@@ -8,9 +8,9 @@
   "level": "A2"
 },
 {
-  "id": "want_do",
+   "id": "want_do",
   "pattern": "-고 싶다",
-  "regex_text": "[가-힣]+/VV 고/EC 싶/VA",
+  "regex_text": "[가-힣]+/(VV|XSV) 고/EC 싶/(VX|VA)",
   "meaning": "Хотеть что-то сделать",
   "example": "일하고 싶어요 — Хочу работать",
   "level": "A2"
@@ -21,6 +21,14 @@
   "regex_text": "싶/VA 긴/VCP\\+ETM 하/VV ㄴ데/EC",
   "meaning": "Вроде бы да, но… / Хотеть-то хочу, но… (контраст, оговорка)",
   "example": "일하고 싶긴 한데 — Хочу поработать, но…",
+  "level": "B1"
+},
+{
+  "id": "want_but",
+  "pattern": "-고 싶기 + -ㄴ데",
+  "regex_text": "싶/VX 기/ETN ㄴ/JX 하/VV ㄴ데/EC",
+  "meaning": "Хотеть сделать, но... (контраст с -기 + -ㄴ데)",
+  "example": "일하고 싶긴 한데 → 일하고 싶기ㄴ데",
   "level": "B1"
 }
 ]
