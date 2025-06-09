@@ -7,6 +7,9 @@ app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False  
 komoran = Komoran()
 
+@app.route('/')
+def home():
+    return "Сервер для анализа грамматик работает!"
 # 1) Загрузка базы грамматик
 with open('patterns.json', encoding='utf-8') as f:
     patterns = json.load(f)
