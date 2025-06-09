@@ -2,3 +2,4 @@ Flask
 gunicorn
 konlpy
 numpy
+flask-cors
