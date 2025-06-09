@@ -1,0 +1,14 @@
+$Env:JAVA_HOME = 'C:\Program Files\Eclipse Adoptium\jdk-21.0.7.6-hotspot'
+setx JAVA_HOME "C:\Program Files\Eclipse Adoptium\jdk-21.0.7.6-hotspot"
+echo $Env:JAVA_HOME
+java -version
+
+curl -Uri http://127.0.0.1:5000/analyze `
+  -Method POST `
+  -Headers @{ "Content-Type" = "application/json" } `
+  -InFile .\payload.json `
+  > result.json
+
+
+venv\Scripts\activate
+  python app.py

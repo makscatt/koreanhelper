@@ -1,8 +1,10 @@
 from flask import Flask, request, Response
+from flask_cors import CORS   
 from konlpy.tag import Okt  # <--- ИЗМЕНЕНИЕ 1
 import json, re
 
 app = Flask(__name__)
+CORS(app) 
 app.config['JSON_AS_ASCII'] = False
 okt = Okt()  # <--- ИЗМЕНЕНИЕ 2
 
