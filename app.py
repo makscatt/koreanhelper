@@ -1,12 +1,12 @@
 from flask import Flask, request, Response
 from flask_cors import CORS   
-from konlpy.tag import Okt  # <--- ИЗМЕНЕНИЕ 1
+from konlpy.tag import Komoran  # <--- ИЗМЕНЕНИЕ 1
 import json, re
 
 app = Flask(__name__)
 CORS(app) 
 app.config['JSON_AS_ASCII'] = False
-okt = Okt()  # <--- ИЗМЕНЕНИЕ 2
+komoran = Komoran()  # <--- ИЗМЕНЕНИЕ 2
 
 @app.route('/')
 def home():
@@ -23,16 +23,11 @@ def analyze():
     text = data.get('text', '')
     print("TEXT:", text.encode('utf-8'))
     
-    # 1. Анализ для поиска грамматик (с окончаниями)
-    parsed_for_grammar = okt.pos(text, stem=False) 
+    parsed_for_grammar = komoran.pos(text)
     route = ' '.join(f'{word}/{pos}' for word, pos in parsed_for_grammar)
-    # 2. Анализ для поля "tokens" (с основами)
-    tokens_with_stems = okt.pos(text, stem=True)
-
-    
     print("ROUTE:", route)
-    
-    
+    tokens_with_stems = komoran.pos(text)
+
     matches = []
     for pat in patterns:
         if pat.get('regex_text'):
@@ -46,13 +41,11 @@ def analyze():
                 })
 
     payload = {
-        'tokens': tokens_with_stems, # Используем токены с основами
+        'tokens': tokens_with_stems,
         'grammar_matches': matches
     }
     print("MATCHES:", matches)
-    # сериализуем в чистый UTF-8 JSON
     js = json.dumps(payload, ensure_ascii=False)
-    # возвращаем руками
     print("RESPONSE:", js)
     return Response(js, mimetype='application/json; charset=utf-8')
 

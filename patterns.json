@@ -1,140 +1,26 @@
 [
-  {
-    "id": "must_do_ending",
-    "pattern": "-아야/어야 하다",
-    "regex_text": "[가-힣]+야/[^\\s]+ 해/[^\\s]+",
-    "meaning": "Нужно, должен сделать",
-    "example": "공부해야 해요 — Нужно учиться",
-    "level": "A2"
-  },
-  {
-    "id": "progressive",
-    "pattern": "-고 있다",
-    "regex_text": "[가-힣]+고 있",
-    "meaning": "Действие в процессе (настоящее продолженное время)",
-    "example": "먹고 있어요 — Я ем (прямо сейчас)",
-    "level": "A1"
-  },
-  {
-  "id": "informal_copula",
-  "pattern": "-야",
-  "regex_text": "[가-힣]+/Noun 야/Josa",
-  "meaning": "Неформальное окончание связки (это есть)",
-  "example": "너는 바보야 — Ты дурак",
-  "level": "A1"
-},
-{
-  "id": "plural_suffix",
-  "pattern": "-들",
-  "regex_text": "[가-힣]+/Noun 들/Suffix",
-  "meaning": "Множественное число",
-  "example": "학생들 — студенты",
-  "level": "A1"
-},
-{
-  "id": "with_josa",
-  "pattern": "-이랑",
-  "regex_text": "[가-힣]+/(Noun|Suffix) 이랑/Josa",
-  "meaning": "С кем-то / и с кем-то (разговорный стиль)",
-  "example": "친구랑 놀았어요 — Играл с другом",
+ {
+  "id": "must_do_ending",
+  "pattern": "-아야/어야 하다",
+  "regex_text": "[가-힣]+/VV (아야|어야)/EC 하/VV",
+  "meaning": "Нужно, должен сделать",
+  "example": "해야 해요 — Нужно сделать; 가야 해요 — Нужно идти",
   "level": "A2"
 },
-  {
-    "id": "future_intent",
-    "pattern": "-(으)ㄹ 거예요",
-    "regex_text": "[가-힣]+/Verb 거/Noun 예요/Josa",
-    "meaning": "Будущее время (намерение)",
-    "example": "갈 거예요 — Я пойду",
-    "level": "A2"
-  },
-  {
-    "id": "can_do",
-    "pattern": "-ㄹ 수 있다",
-    "regex_text": "[가-힣]+을|ㄹ 수 있",
-    "meaning": "Мочь, быть в состоянии что-то сделать",
-    "example": "할 수 있어요 — Могу сделать",
-    "level": "A2"
-  },
-  {
-    "id": "reason_because",
-    "pattern": "-기 때문에",
-    "regex_text": "[가-힣]+기 때문에",
-    "meaning": "Потому что (объективная причина)",
-    "example": "바쁘기 때문에 못 갔어요 — Не смог прийти, потому что был занят",
-    "level": "A2"
-  },
-  {
-    "id": "and_connecting",
-    "pattern": "-고",
-    "regex_text": "[가-힣]+고",
-    "meaning": "И (связь действий)",
-    "example": "밥을 먹고 잤어요 — Поел и лёг спать",
-    "level": "A1"
-  },
-  {
-    "id": "present_polite",
-    "pattern": "-아요/어요",
-    "regex_text": "[가-힣]+아요|어요",
-    "meaning": "Настоящее вежливое время",
-    "example": "가요 — Иду",
-    "level": "A1"
-  },
-  {
-    "id": "past_polite",
-    "pattern": "-았어요/었어요",
-    "regex_text": "[가-힣]+았어요|었어요",
-    "meaning": "Прошедшее вежливое время",
-    "example": "봤어요 — Увидел",
-    "level": "A1"
-  },
-  {
-    "id": "must_negation",
-    "pattern": "-지 않다",
-    "regex_text": "[가-힣]+지 않다|아요|습니다",
-    "meaning": "Отрицание действия (не делаю)",
-    "example": "가지 않아요 — Не иду",
-    "level": "A1"
-  },
-  {
-    "id": "try_doing",
-    "pattern": "-아/어 보다",
-    "regex_text": "[가-힣]+(아|어)/[^\\s]+ 보/[^\\s]+",
-    "meaning": "Пробовать что-то сделать",
-    "example": "먹어 봐요 — Попробуй поесть",
-    "level": "A2"
-  },
-  {
-    "id": "topic_marker",
-    "pattern": "-는",
-    "regex_text": "[가-힣]+는",
-    "meaning": "Указывает тему предложения",
-    "example": "저는 학생입니다 — Я студент (Я - тема предложения)",
-    "level": "A1"
-  },
-  {
-    "id": "subject_marker",
-    "pattern": "-가",
-    "regex_text": "[가-힣]+가",
-    "meaning": "Указывает подлежащее/субъект. Тот, кто выполняет действие, или обладает признаком.",
-    "example": "오늘 날씨가 좋습니다 — Сегодня погода хорошая",
-    "level": "A1"
-  },
-  {
-    "id": "polite_copula",
-    "pattern": "-입니다",
-    "regex_text": "입니다",
-    "meaning": "Вежливая форма ‘быть/являться/есть’",
-    "example": "저는 학생입니다 — Я (есть) студент",
-    "level": "A1"
-  },
-  {
-    "id": "polite_ending",
-    "pattern": "-습니다",
-    "regex_text": "[가-힣]+습니다",
-    "meaning": "Вежливое окончание для глагола/прилагательного: после основы на гласную пишется «-ㅂ니다», после основы на согласную — «-습니다»",
-    "example": "오다 — 옵니다; 먹다 — 먹습니다",
-    "level": "A1"
-  }
-
-
+{
+  "id": "want_do",
+  "pattern": "-고 싶다",
+  "regex_text": "[가-힣]+/VV 고/EC 싶/VA",
+  "meaning": "Хотеть что-то сделать",
+  "example": "일하고 싶어요 — Хочу работать",
+  "level": "A2"
+},
+{
+  "id": "contrast_gin_hande",
+  "pattern": "-긴 한데 / -기는 한데",
+  "regex_text": "싶/VA 긴/VCP\\+ETM 하/VV ㄴ데/EC",
+  "meaning": "Вроде бы да, но… / Хотеть-то хочу, но… (контраст, оговорка)",
+  "example": "일하고 싶긴 한데 — Хочу поработать, но…",
+  "level": "B1"
+}
 ]
