@@ -14,7 +14,9 @@ def home():
 # 1) Загрузка базы грамматик
 with open('patterns.json', encoding='utf-8') as f:
     patterns = json.load(f)
-
+# 1.1) Загрузка маппинга POS→цветов
+with open('colors.json', encoding='utf-8') as f:
+    pos_colors = json.load(f)
 # 2) Эндпоинт анализа
 @app.route('/analyze', methods=['POST'])
 def analyze():
@@ -27,6 +29,15 @@ def analyze():
     route = ' '.join(f'{word}/{pos}' for word, pos in parsed_for_grammar)
     print("ROUTE:", route)
     tokens_with_stems = komoran.pos(text)
+    colored_tokens = [
+        {
+            "word": w,
+            "pos": p,
+            "color": pos_colors.get(p, "#000000")
+        }
+        for w, p in tokens_with_stems
+    ]
+
 
     matches = []
     for pat in patterns:
@@ -41,8 +52,8 @@ def analyze():
                 })
 
     payload = {
-        'tokens': tokens_with_stems,
-        'grammar_matches': matches
+        'tokens':           colored_tokens,
+        'grammar_matches':  matches
     }
     print("MATCHES:", matches)
     js = json.dumps(payload, ensure_ascii=False)
