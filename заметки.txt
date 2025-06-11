@@ -13,6 +13,8 @@ curl -Uri http://127.0.0.1:5000/analyze `
 venv\Scripts\activate
   python app.py
 
+
+git add patterns.json
   git add .                    
-git commit -m "комментарий" 
+git commit -m "Добавил конструкции" 
 git push
