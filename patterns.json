@@ -136,6 +136,14 @@
   "level": "B1"
 },
 {
+  "id": "informal_speech_ao",
+  "pattern": "-아/어/여 (неформальный стиль общения)",
+  "regex_text": "[가-힣]+/(VV|VA|VX)\\s+(아|어|여)/(EF|EC)",
+  "meaning": "",
+  "example": "알아 — Знаю<br>좋아 — Нравится<br>가 — Иди",
+  "level": "A1"
+},
+{
   "id": "future_participle_rl_ge",
   "pattern": "глагол + ㄹ/을 + существительное (будущее причастие)",
   "regex_text": "[가-힣]+/VV\\s+(ㄹ|을)/ETM\\s+[가-힣]+/NNG",
