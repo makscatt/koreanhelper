@@ -202,6 +202,14 @@
   "level": "B1"
 },
 {
+  "id": "noun_jung_in_process",
+  "pattern": "Сущ + 중 (в процессе...)",
+  "regex_text": "[가-힣]+/NNG 중/NNB(\\s+이/VCP\\s+(에요|입니다|야|야요|예요)?/(EC|EF))?",
+  "meaning": "",
+  "example": "회의 중이에요 — Я на собрании.<br>수업 중 — У меня урок.",
+  "level": "A2"
+},
+{
   "id": "informal_copula_ya",
   "pattern": "-야 (разговорное окончание после существительного)",
   "regex_text": "([가-힣]+/(NN[PG]|NP|XPN)\\s+(이야|야)/(JX|JKV|EC))|([가-힣]+/(XPN|NP)\\s+가야/NNP)",
