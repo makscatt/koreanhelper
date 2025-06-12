@@ -268,7 +268,7 @@
 {
   "id": "copula_polite_ieyo_yeyo",
   "pattern": "Сущ + 이에요 / 예요 (вежливое окончание)",
-  "regex_text": "[가-힣]+/NNG\\s+이/VCP\\s+에요/(EC|EF)|[가-힣]+/NNG\\s+예요/(EC|EF)",
+  "regex_text": "[가-힣]+/(NNG|NNB|NP|NR)\\s+이/VCP\\s+에요/(EC|EF)|[가-힣]+/(NNG|NNB|NP|NR)\\s+예요/(EC|EF)",
   "meaning": "Образовано от Сущ + 이다. После основы на согласную — '이에요', после гласной — '예요'.",
   "example": "학생이에요 — Я студент.<br>의사예요 — Я врач.",
   "level": "A1"
