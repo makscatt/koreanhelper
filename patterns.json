@@ -88,12 +88,28 @@
   "level": "A1"
 },
 {
+  "id": "plural_marker_deul",
+  "pattern": "-들 (Множественное число)",
+  "regex_text": "(NNG|NNP|NNB|NP)\\s+들/XSN",
+  "meaning": "",
+  "example": "학생들 — студенты<br>사람들 — люди",
+  "level": "A2"
+},
+{
   "id": "adverb_from_adj_ge",
   "pattern": "-게 (Наречие от прилагательных)",
   "regex_text": "[가-힣]+/(VA|XSA)\\s+게/EC",
   "meaning": "Отвечает на вопрос 'как?'.",
   "example": "조용하게 문을 닫았어요 — Тихо закрыл дверь<br>행복하게 살고 있어요 — Живёт счастливо<br>깨끗하게 청소했어요 — Убрался чисто",
   "level": "A2"
+},
+{
+  "id": "connector_go_between_verbs_adjectives",
+  "pattern": "-고 (Союз 'И' между глаголами или прилагательными)",
+  "regex_text": "[가-힣]+/(VV|VA|VX|XSV|XSA)\\s+고/EC\\s+[가-힣]+/(VV|VA|VX|XSV|XSA)",
+  "meaning": "Ведет себя как союз 'и'.<br>Не подходит для последовательности действий.<br>Это просто перечисление того, что вы делаете в общем.",
+  "example": "책을 읽고 잤어요 — Почитал книгу и лёг спать.<br>날씨가 맑고 따뜻해요 — Погода ясная и тёплая.",
+  "level": "A1"
 },
 {
   "id": "conditional_if_myeon",
