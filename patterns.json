@@ -23,6 +23,14 @@
   "example": "뭐 먹을래? — Что будешь есть?",
   "level": "A1"
 },
+{
+  "id": "without_noun_eopsi",
+  "pattern": "N + 없이 (без чего-либо)",
+  "regex_text": "[가-힣]+/(NNG|NNP|NNB|NP)\\s+없이/MAG",
+  "meaning": "Наречие от 없다-отсутствовать/не иметь.",
+  "example": "돈 없이 — без денег<br>말 없이 — без слов",
+  "level": "A2"
+},
  {
   "id": "subject_marker",
   "pattern": "-이/가 (подлежащее)",
