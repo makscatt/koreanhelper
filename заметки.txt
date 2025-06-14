@@ -15,6 +15,7 @@ venv\Scripts\activate
 
 
 git add patterns.json
-  git add .                    
+git add .       
+git commit -m "Обновил цвет"              
 git commit -m "Добавил конструкции" 
 git push

@@ -17,6 +17,19 @@ with open('patterns.json', encoding='utf-8') as f:
 # 1.1) Загрузка маппинга POS→цветов
 with open('colors.json', encoding='utf-8') as f:
     pos_colors = json.load(f)
+    # 1.2) Загрузка исправлений для Komoran
+with open('komoran_corrections.json', encoding='utf-8') as f:
+    komoran_fixes = json.load(f)
+    # 1.3) Функция фикса ошибок Komoran
+def fix_komoran(tokens):
+    fixed = []
+    for word, pos in tokens:
+        key = f"{word}/{pos}"
+        if key in komoran_fixes:
+            fixed.extend(komoran_fixes[key])
+        else:
+            fixed.append([word, pos])
+    return fixed
 # 2) Эндпоинт анализа
 @app.route('/analyze', methods=['POST'])
 def analyze():
@@ -28,7 +41,12 @@ def analyze():
     parsed_for_grammar = komoran.pos(text)
     route = ' '.join(f'{word}/{pos}' for word, pos in parsed_for_grammar)
     print("ROUTE:", route)
-    tokens_with_stems = komoran.pos(text)
+    tokens_raw = komoran.pos(text)
+    tokens_with_stems = fix_komoran(tokens_raw)
+
+    # путь через fix_komoran:
+    route = ' '.join(f'{word}/{pos}' for word, pos in tokens_with_stems)
+
     colored_tokens = [
         {
             "word": w,
