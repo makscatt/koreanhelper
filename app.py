@@ -47,7 +47,8 @@ def fix_komoran(tokens):
                     if fix_key.startswith("__startswith__:"):
                         prefix = fix_key[len("__startswith__:"):]
                         if key.startswith(prefix):
-                            tail_word = tokens[i][0].split(" ", 1)[1] if " " in tokens[i][0] else tokens[i][0]
+                            raw_word = tokens[i][0]
+                            tail_word = raw_word[len(prefix.strip()):] if raw_word.startswith(prefix.strip()) else raw_word
                             substitution = []
                             for word, pos in komoran_fixes[fix_key]:
                                 if word == "__tail__":
