@@ -25,7 +25,9 @@ def fix_komoran(tokens):
     fixed = []
     for word, pos in tokens:
         key = f"{word}/{pos}"
+        print("CHECKING:", key)  # Добавь это
         if key in komoran_fixes:
+            print("FIXING:", key, "→", komoran_fixes[key])  # И это
             fixed.extend(komoran_fixes[key])
         else:
             fixed.append([word, pos])
