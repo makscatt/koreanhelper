@@ -16,7 +16,10 @@ with open('patterns.json', encoding='utf-8') as f:
     patterns = json.load(f)
 # 1.1) Загрузка маппинга POS→цветов
 with open('colors.json', encoding='utf-8') as f:
-    pos_colors = json.load(f)
+    colors_data = json.load(f)
+    combined_colors = colors_data.get('COMBINED', {})
+    word_colors = colors_data.get('WORDS', {})
+    pos_colors = colors_data.get('POS', {})
     # 1.2) Загрузка исправлений для Komoran
 with open('komoran_corrections.json', encoding='utf-8') as f:
     komoran_fixes = json.load(f)
@@ -62,7 +65,7 @@ def analyze():
         {
             "word": w,
             "pos": p,
-            "color": pos_colors.get(p, "#000000")
+            "color": combined_colors.get(f"{w}/{p}", word_colors.get(w, pos_colors.get(p, "#000000")))
         }
         for w, p in tokens_with_stems
     ]

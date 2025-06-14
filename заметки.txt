@@ -15,7 +15,9 @@ venv\Scripts\activate
 
 
 git add patterns.json
+git add komoran_corrections.json
 git add .       
 git commit -m "Обновил цвет"              
 git commit -m "Добавил конструкции" 
+git commit -m "Обновил fix_komoran" 
 git push
