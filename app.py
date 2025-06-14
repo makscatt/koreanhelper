@@ -23,14 +23,23 @@ with open('komoran_corrections.json', encoding='utf-8') as f:
     # 1.3) Функция фикса ошибок Komoran
 def fix_komoran(tokens):
     fixed = []
-    for word, pos in tokens:
-        key = f"{word}/{pos}"
-        print("CHECKING:", key)  # Добавь это
-        if key in komoran_fixes:
-            print("FIXING:", key, "→", komoran_fixes[key])  # И это
-            fixed.extend(komoran_fixes[key])
-        else:
-            fixed.append([word, pos])
+    i = 0
+    while i < len(tokens):
+        replaced = False
+        # Пробуем 3-грамму, 2-грамму, 1-грамму — в этом порядке
+        for n in [3, 2, 1]:
+            if i + n <= len(tokens):
+                key = ' '.join(f"{w}/{p}" for w, p in tokens[i:i + n])
+                print("CHECKING:", key)  # Добавь это
+                if key in komoran_fixes:
+                    print("FIXING:", key, "→", komoran_fixes[key])  # И это
+                    fixed.extend(komoran_fixes[key])
+                    i += n
+                    replaced = True
+                    break
+        if not replaced:
+            fixed.append(tokens[i])
+            i += 1
     return fixed
 # 2) Эндпоинт анализа
 @app.route('/analyze', methods=['POST'])
