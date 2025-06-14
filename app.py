@@ -24,42 +24,64 @@ pos_colors = colors_data.get('POS', {})
     # 1.2) Загрузка исправлений для Komoran
 with open('komoran_corrections.json', encoding='utf-8') as f:
     komoran_fixes = json.load(f)
-    # 1.3) Функция фикса ошибок Komoran
+    # 1.3) Загрузка правил разбиения слитых токенов
+with open('komoran_split_rules.json', encoding='utf-8') as f:
+    komoran_split_rules = json.load(f)
+    # 1.4) Функция фикса ошибок Komoran
 def fix_komoran(tokens):
     fixed = []
     i = 0
     while i < len(tokens):
         replaced = False
+        # 0) Проверка по split-правилам
+        word, pos = tokens[i]
+        for rule in komoran_split_rules:
+            if re.match(rule['regex'], f"{word}/{pos}"):
+                print("SPLIT MATCH:", word, pos)
+
+                # Разбиваем по пробелу
+                parts = word.split()
+                if len(parts) != 2:
+                    break  # Защита от некорректных случаев
+
+                left, right = parts[0], parts[1]
+
+                # Выделение основы и окончания из левой части (형용사 + ETM)
+                if left.endswith('은'):
+                    stem = left[:-1]
+                    modifier = '은'
+                elif left.endswith('ㄴ'):
+                    stem = left[:-1]
+                    modifier = 'ㄴ'
+                else:
+                    break  # Неизвестное окончание
+
+                # Подстановка в шаблон split
+                fixed_entry = []
+                for w, p in rule['split']:
+                    if w == "{adj_stem}":
+                        w = stem
+                    elif w == "{modifier}":
+                        w = modifier
+                    elif w == "{noun}":
+                        w = right
+                    fixed_entry.append([w, p])
+
+                print("SPLIT FIX:", f"{word}/{pos}", "→", fixed_entry)
+                fixed.extend(fixed_entry)
+                i += 1
+                replaced = True
+                break
         # Пробуем 3-грамму, 2-грамму, 1-грамму — в этом порядке
         for n in [3, 2, 1]:
             if i + n <= len(tokens):
                 key = ' '.join(f"{w}/{p}" for w, p in tokens[i:i + n])
-
-                # --- 1) точное совпадение
+                print("CHECKING:", key)  # Добавь это
                 if key in komoran_fixes:
+                    print("FIXING:", key, "→", komoran_fixes[key])  # И это
                     fixed.extend(komoran_fixes[key])
                     i += n
                     replaced = True
-                    break
-
-                # --- 2) обработка шаблонов __startswith__:...
-                for fix_key in komoran_fixes:
-                    if fix_key.startswith("__startswith__:"):
-                        prefix = fix_key[len("__startswith__:"):]
-                        if key.startswith(prefix):
-                            raw_word = tokens[i][0]
-                            tail_word = raw_word[len(prefix.strip()):] if raw_word.startswith(prefix.strip()) else raw_word
-                            substitution = []
-                            for word, pos in komoran_fixes[fix_key]:
-                                if word == "__tail__":
-                                    substitution.append([tail_word, pos])
-                                else:
-                                    substitution.append([word, pos])
-                            fixed.extend(substitution)
-                            i += n
-                            replaced = True
-                            break
-                if replaced:
                     break
         if not replaced:
             fixed.append(tokens[i])
