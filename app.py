@@ -104,11 +104,18 @@ def analyze():
     # путь через fix_komoran:
     route = ' '.join(f'{word}/{pos}' for word, pos in tokens_with_stems)
 
+    def get_combined_color(word, pos):
+        key = f"{word}/{pos}"
+        for pattern, color in combined_colors.items():
+            if re.fullmatch(pattern, key):
+                return color
+        return word_colors.get(word, pos_colors.get(pos, "#000000"))
+
     colored_tokens = [
         {
             "word": w,
             "pos": p,
-            "color": combined_colors.get(f"{w}/{p}", word_colors.get(w, pos_colors.get(p, "#000000")))
+            "color": get_combined_color(w, p)
         }
         for w, p in tokens_with_stems
     ]
