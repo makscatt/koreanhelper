@@ -34,12 +34,31 @@ def fix_komoran(tokens):
         for n in [3, 2, 1]:
             if i + n <= len(tokens):
                 key = ' '.join(f"{w}/{p}" for w, p in tokens[i:i + n])
-                print("CHECKING:", key)  # Добавь это
+
+                # --- 1) точное совпадение
                 if key in komoran_fixes:
-                    print("FIXING:", key, "→", komoran_fixes[key])  # И это
                     fixed.extend(komoran_fixes[key])
                     i += n
                     replaced = True
+                    break
+
+                # --- 2) обработка шаблонов __startswith__:...
+                for fix_key in komoran_fixes:
+                    if fix_key.startswith("__startswith__:"):
+                        prefix = fix_key[len("__startswith__:"):]
+                        if key.startswith(prefix):
+                            tail_word = tokens[i][0].split(" ", 1)[1] if " " in tokens[i][0] else tokens[i][0]
+                            substitution = []
+                            for word, pos in komoran_fixes[fix_key]:
+                                if word == "__tail__":
+                                    substitution.append([tail_word, pos])
+                                else:
+                                    substitution.append([word, pos])
+                            fixed.extend(substitution)
+                            i += n
+                            replaced = True
+                            break
+                if replaced:
                     break
         if not replaced:
             fixed.append(tokens[i])
