@@ -73,7 +73,7 @@ def fix_komoran(tokens):
                 replaced = True
                 break
         # Пробуем 3-грамму, 2-грамму, 1-грамму — в этом порядке
-        for n in [3, 2, 1]:
+        for n in [4, 3, 2, 1]:
             if i + n <= len(tokens):
                 key = ' '.join(f"{w}/{p}" for w, p in tokens[i:i + n])
                 print("CHECKING:", key)  # Добавь это
