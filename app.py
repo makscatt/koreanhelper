@@ -122,16 +122,29 @@ def analyze():
 
 
     matches = []
-    for pat in patterns:
-        if pat.get('regex_text'):
-            found = re.findall(pat['regex_text'], route)
-            if found and not any(match['id'] == pat['id'] for match in matches):
-                matches.append({
-                    'id': pat['id'],
-                    'pattern': pat['pattern'],
-                    'meaning': pat['meaning'],
-                    'example': pat['example']
-                })
+    used_ids = set()
+    route_tokens = route.split()
+
+    for i in range(len(route_tokens)):
+        for n in [3, 2, 1]:
+            if i + n > len(route_tokens):
+                continue
+            sub_route = ' '.join(route_tokens[i:i+n])
+            for pat in patterns:
+                if pat['id'] in used_ids:
+                    continue
+                if re.fullmatch(pat['regex_text'], sub_route):
+                    matches.append({
+                        'id': pat['id'],
+                        'pattern': pat['pattern'],
+                        'meaning': pat['meaning'],
+                        'example': pat['example']
+                    })
+                    used_ids.add(pat['id'])
+                    break
+            else:
+                continue
+            break
 
     payload = {
         'tokens':           colored_tokens,
