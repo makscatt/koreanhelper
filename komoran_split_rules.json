@@ -6,13 +6,5 @@
       ["{modifier}", "ETM"],
       ["{noun}", "NNP"]
     ]
-  },
-  {
-    "regex": "^잠시/NNG 만요/NNP$",
-    "split": [
-      ["잠시", "NNG"],
-      ["만", "JX"],
-      ["요", "SF"]
-    ]
   }
 ]
