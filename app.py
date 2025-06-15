@@ -124,30 +124,23 @@ def analyze():
     matches = []
     for pat in patterns:
         if pat.get('regex_text'):
-            found = re.findall(pat['regex_text'], route)
-            if found and not any(match['id'] == pat['id'] for match in matches):
-                matches.append({
-                    'id': pat['id'],
-                    'pattern': pat['pattern'],
-                    'meaning': pat['meaning'],
-                    'example': pat['example']
-                })
-
-    def match_index(pattern):
-        try:
-            match = re.search(pattern['regex_text'], route)
-            return match.start() if match else float('inf')
-        except Exception as e:
-            print(f"Regex error for pattern {pattern['id']}: {e}")
-            return float('inf')
-
-    matches.sort(key=match_index)
+            for m in re.finditer(pat['regex_text'], route):
+                if not any(match['id'] == pat['id'] for match in matches):
+                    matches.append({
+                        'id': pat['id'],
+                        'pattern': pat['pattern'],
+                        'meaning': pat['meaning'],
+                        'example': pat['example'],
+                        'start': m.start()  # ← сохраняем индекс начала
+                    })
+    matches.sort(key=lambda x: x['start'])
+    for m in matches:
+        m.pop('start')                
 
     payload = {
         'tokens':           colored_tokens,
         'grammar_matches':  matches
     }
-
     print("MATCHES:", matches)
     js = json.dumps(payload, ensure_ascii=False)
     print("RESPONSE:", js)
