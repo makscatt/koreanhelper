@@ -64,6 +64,14 @@
   "level": "A1"
 },
 {
+  "id": "noun_conjunction_hago",
+  "pattern": "N + 하고 N (союз 'И' между существительными)",
+  "regex_text": "[가-힣]+/(NNG|NNP)\\s+하고/JKB(\\s+[가-힣]+/(NNG|NNP))?",
+  "meaning": "",
+  "example": "사과하고 바나나를 샀어요 — Купил яблоко и банан<br>책하고… — Книга и…<br>밥하고 국을 먹었어요 — Ел рис и суп",
+  "level": "A1"
+},
+{
   "id": "man_euro_do",
   "pattern": "N + 만으로도 (даже только из-за чего-то)",
   "regex_text": "만으로도/JX",
