@@ -346,7 +346,7 @@
   {
     "id": "additive_particle",
     "pattern": "-도 (тоже, даже)",
-    "regex_text": "(?![가-힣]+/JKB\\s+도/JX)[가-힣]+/[^\\s]+ 도/JX",
+    "regex_text": "[가-힣]+/(NNG|NNP|NNB|NP)\\s+도/JX",
     "meaning": "Сущ + 도",
     "example": "빵도 먹고 밥도 먹어요 — Ем и хлеб, и рис тоже",
     "level": "A1"
@@ -382,6 +382,14 @@
     "meaning": "Основа глагола + 는 것 같다",
     "example": "기다리는 것 같아요 — Кажется, он ждёт<br>비가 오는 것 같아요 — Кажется, идёт дождь",
     "level": "A2"
+  },
+  {
+    "id": "etm_l_geo_gat_future_guess",
+    "pattern": "-(으)ㄹ 것 같다 (предположение о будущем)",
+    "regex_text": "[가-힣]+/(VV|VA|VX|XSV|XSA)\\s+ㄹ/ETM\\s+거/NNB\\s+같/VA",
+    "meaning": "'кажется, что…', 'похоже, что…'.",
+    "example": "비가 올 것 같아요 — Похоже, пойдёт дождь.<br>잘 될 것 같아 — Кажется, всё получится.",
+    "level": "B1"
   },
   {
     "id": "and_connector",
