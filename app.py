@@ -125,32 +125,21 @@ def analyze():
     ]
 
 
-    route_parts = [f"{w}/{p}" for w, p in tokens_with_stems]
-    route_offsets = []
-    pos = 0
-    for i, part in enumerate(route_parts):
-        route_offsets.append((pos, i))  # (позиция в строке, индекс токена)
-        pos += len(part) + 1  # +1 за пробел    
-        
-        # Анализ паттернов
     matches = []
     for pat in patterns:
         if pat.get('regex_text'):
             for m in re.finditer(pat['regex_text'], route):
-                match_pos = m.start()
-                # найти ближайший токен по позиции
-                token_index = next((i for (offset, i) in route_offsets if offset >= match_pos), 0)
                 if not any(match['id'] == pat['id'] for match in matches):
                     matches.append({
                         'id': pat['id'],
                         'pattern': pat['pattern'],
                         'meaning': pat['meaning'],
                         'example': pat['example'],
-                        'start_token': token_index
-                    }) 
-    matches.sort(key=lambda x: x['start_token'])
+                        'start': m.start()  # ← сохраняем индекс начала
+                    })
+    matches.sort(key=lambda x: x['start'])
     for m in matches:
-        m.pop('start_token')                          
+        m.pop('start')                
 
     payload = {
         'tokens':           colored_tokens,
