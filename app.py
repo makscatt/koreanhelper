@@ -11,6 +11,7 @@ komoran = Komoran()  # <--- ИЗМЕНЕНИЕ 2
 @app.route('/')
 def home():
     return "Сервер для анализа грамматик работает!"
+
 # 1) Загрузка базы грамматик
 with open('patterns.json', encoding='utf-8') as f:
     patterns = json.load(f)
@@ -21,93 +22,80 @@ with open('colors.json', encoding='utf-8') as f:
 combined_colors = colors_data.get('COMBINED', {})
 word_colors = colors_data.get('WORDS', {})
 pos_colors = colors_data.get('POS', {})
-    # 1.2) Загрузка исправлений для Komoran
+# 1.2) Загрузка исправлений для Komoran
 with open('komoran_corrections.json', encoding='utf-8') as f:
     komoran_fixes = json.load(f)
-    # 1.3) Загрузка правил разбиения слитых токенов
+# 1.3) Загрузка правил разбиения слитых токенов
 with open('komoran_split_rules.json', encoding='utf-8') as f:
     komoran_split_rules = json.load(f)
-    # 1.4) Функция фикса ошибок Komoran
+
+# 1.4) Функция фикса ошибок Komoran
+
 def fix_komoran(tokens):
     fixed = []
     i = 0
     while i < len(tokens):
         replaced = False
-        # 0) Проверка по split-правилам
         word, pos = tokens[i]
+        # 0) Проверка по split-правилам
         for rule in komoran_split_rules:
             if re.match(rule['regex'], f"{word}/{pos}"):
-                print("SPLIT MATCH:", word, pos)
-
-                # Разбиваем по пробелу
                 parts = word.split()
                 if len(parts) != 2:
-                    break  # Защита от некорректных случаев
-
+                    break
                 left, right = parts[0], parts[1]
-
-                # Выделение основы и окончания из левой части (형용사 + ETM)
                 if left.endswith('은'):
-                    stem = left[:-1]
-                    modifier = '은'
+                    stem, modifier = left[:-1], '은'
                 elif left.endswith('ㄴ'):
-                    stem = left[:-1]
-                    modifier = 'ㄴ'
+                    stem, modifier = left[:-1], 'ㄴ'
                 else:
-                    break  # Неизвестное окончание
-
-                # Подстановка в шаблон split
+                    break
                 fixed_entry = []
                 for w, p in rule['split']:
-                    if w == "{adj_stem}":
-                        w = stem
-                    elif w == "{modifier}":
-                        w = modifier
-                    elif w == "{noun}":
-                        w = right
+                    if w == "{adj_stem}": w = stem
+                    elif w == "{modifier}": w = modifier
+                    elif w == "{noun}": w = right
                     fixed_entry.append([w, p])
-
-                print("SPLIT FIX:", f"{word}/{pos}", "→", fixed_entry)
                 fixed.extend(fixed_entry)
                 i += 1
                 replaced = True
                 break
-        # Пробуем 3-грамму, 2-грамму, 1-грамму — в этом порядке
-        for n in [4, 3, 2, 1]:
-            if i + n <= len(tokens):
-                key = ' '.join(f"{w}/{p}" for w, p in tokens[i:i + n])
-                print("CHECKING:", key)  # Добавь это
-                if key in komoran_fixes:
-                    print("FIXING:", key, "→", komoran_fixes[key])  # И это
-                    fixed.extend(komoran_fixes[key])
-                    i += n
-                    replaced = True
-                    break
+        # 1) Комбинации из 4,3,2,1 n-грамм
+        if not replaced:
+            for n in [4, 3, 2, 1]:
+                if i + n <= len(tokens):
+                    key = ' '.join(f"{w}/{p}" for w, p in tokens[i:i + n])
+                    if key in komoran_fixes:
+                        fixed.extend(komoran_fixes[key])
+                        i += n
+                        replaced = True
+                        break
         if not replaced:
             fixed.append(tokens[i])
             i += 1
     return fixed
+
 # 2) Эндпоинт анализа
 @app.route('/analyze', methods=['POST'])
 def analyze():
     data = request.get_json()
-    print("RAW DATA:", data)
     text = data.get('text', '')
-    print("TEXT:", text.encode('utf-8'))
     
-    parsed_for_grammar = komoran.pos(text)
-    route = ' '.join(f'{word}/{pos}' for word, pos in parsed_for_grammar)
-    print("ROUTE:", route)
+    # POS-токены и корректировка
     tokens_raw = komoran.pos(text)
     tokens_with_stems = fix_komoran(tokens_raw)
-    print("\nDEBUG: Порядок токенов после fix_komoran():")
-    for idx, (w, p) in enumerate(tokens_with_stems):
-        print(f"{idx}: {w}/{p}")
-    print()
 
-    # путь через fix_komoran:
-    route = ' '.join(f'{word}/{pos}' for word, pos in tokens_with_stems)
+    # === ИЗМЕНЕНИЕ: вычисление позиционной карты токенов ===
+    tokens_str = [f"{w}/{p}" for w, p in tokens_with_stems]
+    route = ' '.join(tokens_str)
 
+    token_starts = []
+    pos_cursor = 0
+    for ts in tokens_str:
+        token_starts.append(pos_cursor)
+        pos_cursor += len(ts) + 1  # +1 за пробел
+
+    # Цвета для токенов
     def get_combined_color(word, pos):
         key = f"{word}/{pos}"
         for pattern, color in combined_colors.items():
@@ -116,38 +104,35 @@ def analyze():
         return word_colors.get(word, pos_colors.get(pos, "#000000"))
 
     colored_tokens = [
-        {
-            "word": w,
-            "pos": p,
-            "color": get_combined_color(w, p)
-        }
+        {"word": w, "pos": p, "color": get_combined_color(w, p)}
         for w, p in tokens_with_stems
     ]
 
-
+    # Поиск грамматик с сортировкой по индексу токена
     matches = []
     for pat in patterns:
         if pat.get('regex_text'):
             for m in re.finditer(pat['regex_text'], route):
                 if not any(match['id'] == pat['id'] for match in matches):
+                    token_index = max(i for i, st in enumerate(token_starts) if st <= m.start())
                     matches.append({
                         'id': pat['id'],
                         'pattern': pat['pattern'],
                         'meaning': pat['meaning'],
                         'example': pat['example'],
-                        'start': m.start()  # ← сохраняем индекс начала
+                        'token_index': token_index
                     })
-    matches.sort(key=lambda x: route[:x['start']].count(' '))
+    matches.sort(key=lambda x: x['token_index'])
     for m in matches:
-        m.pop('start')                
+        m.pop('token_index')
+    # === /ИЗМЕНЕНИЕ ===
 
     payload = {
         'tokens':           colored_tokens,
         'grammar_matches':  matches
     }
-    print("MATCHES:", matches)
+
     js = json.dumps(payload, ensure_ascii=False)
-    print("RESPONSE:", js)
     return Response(js, mimetype='application/json; charset=utf-8')
 
 if __name__ == '__main__':
