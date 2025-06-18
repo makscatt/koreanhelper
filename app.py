@@ -100,6 +100,10 @@ def analyze():
     print("ROUTE:", route)
     tokens_raw = komoran.pos(text)
     tokens_with_stems = fix_komoran(tokens_raw)
+    print("\nDEBUG: Порядок токенов после fix_komoran():")
+    for idx, (w, p) in enumerate(tokens_with_stems):
+        print(f"{idx}: {w}/{p}")
+    print()
 
     # путь через fix_komoran:
     route = ' '.join(f'{word}/{pos}' for word, pos in tokens_with_stems)
