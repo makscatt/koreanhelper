@@ -72,6 +72,14 @@
   "level": "A1"
 },
 {
+  "id": "noun_ina_disjunction",
+  "pattern": "N + 이나 (или; союз между двумя существительными)",
+  "regex_text": "[가-힣]+/NN[GPB]\\s+이나/JC",
+  "meaning": "Согласная + 이나<br>Гласная + 나.",
+  "example": "아들이나 딸 — Сын или дочь<br>고기나 생선 — Мясо или рыба",
+  "level": "A2"
+},
+{
   "id": "man_euro_do",
   "pattern": "N + 만으로도 (даже только из-за чего-то)",
   "regex_text": "만으로도/JX",
