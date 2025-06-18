@@ -137,7 +137,7 @@ def analyze():
                         'example': pat['example'],
                         'start': m.start()  # ← сохраняем индекс начала
                     })
-    matches.sort(key=lambda x: x['start'])
+    matches.sort(key=lambda x: route[:x['start']].count(' '))
     for m in matches:
         m.pop('start')                
 
