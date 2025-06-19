@@ -137,9 +137,31 @@ def analyze():
                         'example': pat['example'],
                         'start': m.start()  # ← сохраняем индекс начала
                     })
-    matches.sort(key=lambda x: x['start'])
+    token_pos_list = [f"{w}/{p}" for w, p in tokens_with_stems]     
+
     for m in matches:
-        m.pop('start')                
+        regex = next((p['regex_text'] for p in patterns if p['id'] == m['id']), None)
+        if not regex:
+            m['pos_index'] = float('inf')
+            continue    
+        pattern = re.compile(regex)
+        joined = ' '.join(token_pos_list)
+        found = pattern.search(joined)
+        if not found:
+            m['pos_index'] = float('inf')
+        else:
+            match_seq = found.group(0).split()
+            for idx in range(len(token_pos_list)):
+                if token_pos_list[idx:idx + len(match_seq)] == match_seq:
+                    m['pos_index'] = idx
+                    break
+            else:
+                m['pos_index'] = float('inf') 
+
+    matches.sort(key=lambda x: x['pos_index'])
+    for m in matches:
+        m.pop('pos_index', None)
+        m.pop('start', None)                 
 
     payload = {
         'tokens':           colored_tokens,
