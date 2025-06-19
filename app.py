@@ -124,27 +124,34 @@ def analyze():
         for w, p in tokens_with_stems
     ]
 
+    route = ' '.join(f'{w}/{p}' for w,p in tokens_with_stems)
+
+    token_starts = []
+    offset = 0
+    for w,p in tokens_with_stems:
+        token_starts.append(offset)
+        offset += len(f"{w}/{p}") + 1
 
     matches = []
-    max_n = 4
-    for idx in range(len(tokens_with_stems)):
-        for n in range(max_n, 0, -1):
-            window = ' '.join(f"{w}/{p}" for w,p in tokens_with_stems[idx:idx+n])
-            for pat in patterns:
-                if pat.get('regex_text') and re.match(pat['regex_text'], window):
-                    if not any(m['id']==pat['id'] for m in matches):
-                        matches.append({
-                            'id':      pat['id'],
-                            'pattern': pat['pattern'],
-                            'meaning': pat['meaning'],
-                            'example': pat['example'],
-                            'start':   idx
-                        })
-                    break
-            else:
-                continue
-            break
-    matches.sort(key=lambda x: x['start'])               
+    for pat in patterns:
+        if pat.get('regex_text'):
+            for m in re.finditer(pat['regex_text'], route):
+                if not any(match['id']==pat['id'] for match in matches):
+                    start_char = m.start()
+                    token_idx = 0
+                    for i, ts in enumerate(token_starts):
+                        if ts <= start_char:
+                            token_idx = i
+                        else:
+                            break
+                    matches.append({
+                        'id':      pat['id'],
+                        'pattern': pat['pattern'],
+                        'meaning': pat['meaning'],
+                        'example': pat['example'],
+                        'start':   token_idx
+                    })
+    matches.sort(key=lambda x: x['start'])              
 
     payload = {
         'tokens':           colored_tokens,
