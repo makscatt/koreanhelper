@@ -126,20 +126,20 @@ def analyze():
 
 
     matches = []
-    for pat in patterns:
-        if pat.get('regex_text'):
-            for m in re.finditer(pat['regex_text'], route):
+    for idx, (w, p) in enumerate(tokens_with_stems):
+        token_str = f"{w}/{p}"
+        for pat in patterns:
+            if pat.get('regex_text') and re.match(pat['regex_text'], token_str):
                 if not any(match['id'] == pat['id'] for match in matches):
                     matches.append({
-                        'id': pat['id'],
+                        'id':      pat['id'],
                         'pattern': pat['pattern'],
                         'meaning': pat['meaning'],
                         'example': pat['example'],
-                        'start': m.start()  # ← сохраняем индекс начала
+                        'start':   idx
                     })
-    matches.sort(key=lambda x: x['start'])
-    for m in matches:
-        m.pop('start')                
+                break
+    matches.sort(key=lambda x: x['start'])              
 
     payload = {
         'tokens':           colored_tokens,
