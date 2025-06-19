@@ -126,26 +126,20 @@ def analyze():
 
 
     matches = []
-    max_n = 4
-    for idx in range(len(tokens_with_stems)):
-    # проверяем 4-, 3-, 2-, 1-граммы
-        for n in range(max_n, 0, -1):
-            window = ' '.join(f"{w}/{p}" for w,p in tokens_with_stems[idx:idx+n])
-            for pat in patterns:
-                if pat.get('regex_text') and re.match(pat['regex_text'], window):
+    for pat in patterns:
+        if pat.get('regex_text'):
+            for m in re.finditer(pat['regex_text'], route):
+                if not any(match['id'] == pat['id'] for match in matches):
                     matches.append({
-                        'id':      pat['id'],
+                        'id': pat['id'],
                         'pattern': pat['pattern'],
                         'meaning': pat['meaning'],
                         'example': pat['example'],
-                        'start':   idx
+                        'start': m.start()  # ← сохраняем индекс начала
                     })
-                    break   # дальше меньшие n не ищем для этого idx
-            else:
-                continue
-            break
-
-    matches.sort(key=lambda x: x['start'])                
+    matches.sort(key=lambda x: x['start'])
+    for m in matches:
+        m.pop('start')                
 
     payload = {
         'tokens':           colored_tokens,
