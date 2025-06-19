@@ -130,17 +130,15 @@ def analyze():
         if pat.get('regex_text'):
             for m in re.finditer(pat['regex_text'], route):
                 if not any(match['id'] == pat['id'] for match in matches):
-                    token_index = route[:m.start()].count(' ')
                     matches.append({
-                        'id':          pat['id'],
-                        'pattern':     pat['pattern'],
-                        'meaning':     pat['meaning'],
-                        'example':     pat['example'],
-                        'token_index': token_index
+                        'id': pat['id'],
+                        'pattern': pat['pattern'],
+                        'meaning': pat['meaning'],
+                        'example': pat['example'],
+                        'start': m.start()  # ← сохраняем индекс начала
                     })
-    matches.sort(key=lambda x: x['token_index'])
-    for m in matches:
-        m.pop('token_index')              
+    matches.sort(key=lambda x: x['start'])
+                    
 
     payload = {
         'tokens':           colored_tokens,
