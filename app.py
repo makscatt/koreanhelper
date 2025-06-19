@@ -126,20 +126,25 @@ def analyze():
 
 
     matches = []
-    for idx, (w, p) in enumerate(tokens_with_stems):
-        token_str = f"{w}/{p}"
-        for pat in patterns:
-            if pat.get('regex_text') and re.match(pat['regex_text'], token_str):
-                if not any(match['id'] == pat['id'] for match in matches):
-                    matches.append({
-                        'id':      pat['id'],
-                        'pattern': pat['pattern'],
-                        'meaning': pat['meaning'],
-                        'example': pat['example'],
-                        'start':   idx
-                    })
-                break
-    matches.sort(key=lambda x: x['start'])              
+    max_n = 4
+    for idx in range(len(tokens_with_stems)):
+        for n in range(max_n, 0, -1):
+            window = ' '.join(f"{w}/{p}" for w,p in tokens_with_stems[idx:idx+n])
+            for pat in patterns:
+                if pat.get('regex_text') and re.match(pat['regex_text'], window):
+                    if not any(m['id']==pat['id'] for m in matches):
+                        matches.append({
+                            'id':      pat['id'],
+                            'pattern': pat['pattern'],
+                            'meaning': pat['meaning'],
+                            'example': pat['example'],
+                            'start':   idx
+                        })
+                    break
+            else:
+                continue
+            break
+    matches.sort(key=lambda x: x['start'])               
 
     payload = {
         'tokens':           colored_tokens,
