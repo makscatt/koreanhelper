@@ -130,38 +130,17 @@ def analyze():
         if pat.get('regex_text'):
             for m in re.finditer(pat['regex_text'], route):
                 if not any(match['id'] == pat['id'] for match in matches):
+                    token_index = route[:m.start()].count(' ')
                     matches.append({
-                        'id': pat['id'],
-                        'pattern': pat['pattern'],
-                        'meaning': pat['meaning'],
-                        'example': pat['example'],
-                        'start': m.start()  # ← сохраняем индекс начала
+                        'id':          pat['id'],
+                        'pattern':     pat['pattern'],
+                        'meaning':     pat['meaning'],
+                        'example':     pat['example'],
+                        'token_index': token_index
                     })
-    token_pos_list = [f"{w}/{p}" for w, p in tokens_with_stems]     
-
+    matches.sort(key=lambda x: x['token_index'])
     for m in matches:
-        regex = next((p['regex_text'] for p in patterns if p['id'] == m['id']), None)
-        if not regex:
-            m['pos_index'] = float('inf')
-            continue    
-        pattern = re.compile(regex)
-        joined = ' '.join(token_pos_list)
-        found = pattern.search(joined)
-        if not found:
-            m['pos_index'] = float('inf')
-        else:
-            match_seq = found.group(0).split()
-            for idx in range(len(token_pos_list)):
-                if token_pos_list[idx:idx + len(match_seq)] == match_seq:
-                    m['pos_index'] = idx
-                    break
-            else:
-                m['pos_index'] = float('inf') 
-
-    matches.sort(key=lambda x: x['pos_index'])
-    for m in matches:
-        m.pop('pos_index', None)
-        m.pop('start', None)                 
+        m.pop('token_index')              
 
     payload = {
         'tokens':           colored_tokens,
