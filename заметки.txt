@@ -15,9 +15,14 @@ venv\Scripts\activate
 
 
 git add patterns.json
+git add colors.json
 git add komoran_corrections.json
+git add komoran_split_rules.json
+git add app.py
 git add .       
 git commit -m "Обновил цвет"              
 git commit -m "Добавил конструкции" 
 git commit -m "Обновил fix_komoran" 
+git commit -m "Обновил app.py" 
+git commit -m "Общее обновление" 
 git push
