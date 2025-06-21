@@ -10,7 +10,7 @@
   {
     "id": "with_irang",
     "pattern": "N + (이)랑 (вместе с…, и…)",
-    "regex_text": "[가-힣]+/(NNG|NNP|NNB|NP)(\\s+들/XSN)?\\s+(이랑|랑)/JC",
+    "regex_text": "[가-힣]+/(NNG|NNP|NNB|NP)(\\s+들/XSN)?\\s+(이랑|랑)/(JKB|JC)",
     "meaning": "",
     "example": "친구랑 갔어요 — Пошёл с другом<br>고양이랑 놀았어요 — Играл с кошкой<br>아이들이랑 이야기했어요 — Разговаривал с детьми",
     "level": "A1"
