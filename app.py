@@ -115,14 +115,44 @@ def analyze():
                 return color
         return word_colors.get(word, pos_colors.get(pos, "#000000"))
 
-    colored_tokens = [
-        {
+    def get_multitoken_colors(route, tokens):
+        match_spans = []  # Список: [(start_index, end_index, color)]
+
+        for pattern, color in combined_colors.items():
+            if ' ' in pattern:  # ← т.е. цепочка токенов
+                for m in re.finditer(pattern, route):
+                    char_start = m.start()
+                    char_end = m.end()
+
+                # Считаем, какой это токен по счёту
+                    token_positions = []
+                    cursor = 0
+                    for i, tok in enumerate(tokens):
+                        token_str = f"{tok[0]}/{tok[1]}"
+                        if cursor == char_start:
+                            start_idx = i
+                        cursor += len(token_str)
+                        if cursor >= char_end:
+                            end_idx = i
+                            break
+                        cursor += 1  # за пробел
+                    match_spans.append((start_idx, end_idx, color))
+        return match_spans
+
+    colored_tokens = []
+    multi_color_ranges = get_multitoken_colors(route, tokens_with_stems)
+
+    for i, (w, p) in enumerate(tokens_with_stems):
+        color = get_combined_color(w, p)
+        for start, end, group_color in multi_color_ranges:
+            if start <= i <= end:
+                color = group_color
+                break
+        colored_tokens.append({
             "word": w,
             "pos": p,
-            "color": get_combined_color(w, p)
-        }
-        for w, p in tokens_with_stems
-    ]
+            "color": color
+        })
 
 
     matches = []
