@@ -14,7 +14,8 @@
   
   },
   "MULTI":{
-    "ㄹ/ETM 수/NNB 있/VV 어/EC": "#ff9900"
+    "ㄹ/ETM 수/NNB 있/VV 어/EC": "#ff9900",
+    "에/JKB 있/VV": "#4C7EFD"
   },
 "WORDS": {
   "더": "#003366",
