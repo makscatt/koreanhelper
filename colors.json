@@ -15,6 +15,7 @@
   },
   "MULTI":{
     "ㄹ/ETM 수/NNB 있/VV 어/EC": "#ff9900",
+    "(아|어)/EC 보/VV": "#ff9900",
     "에/JKB 있/VV": "#4C7EFD",
     "아/EC 주/VX": "#4C7EFD",
     "이/VCP 라는/ETM": "#4C7EFD"
