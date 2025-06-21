@@ -18,7 +18,8 @@
     "(아|어)/EC 보/VV": "#ff9900",
     "에/JKB 있/VV": "#4C7EFD",
     "아/EC 주/VX": "#4C7EFD",
-    "이/VCP 라는/ETM": "#4C7EFD"
+    "이/VCP 라는/ETM": "#4C7EFD",
+    "중/NNB 에서/JKB": "#ff3d27"
   },
 "WORDS": {
   "더": "#003366",
