@@ -264,6 +264,14 @@
     "level": "A2"
   },
   {
+    "id": "potential_ability_l_su_iss",
+    "pattern": "-ㄹ/을 수 없다 (Не мочь что-то сделать)",
+    "regex_text": "[가-힣]+/(VV|VX|XSV)(\\s+(았/EP|었/EP))?\\s+(을|ㄹ)/ETM\\s+수/NNB\\s+없/VV",
+    "meaning": "Глагол + ㄹ 수 없다",
+    "example": "읽을 수 없어요 — Не могу прочитать<br>말할 수 없어요 — Не могу сказать<br>도와줄 수 없어요 — Не могу помочь",
+    "level": "A2"
+  },
+  {
     "id": "want_do",
     "pattern": "-고 싶다 (хотеть что-то сделать)",
     "regex_text": "[가-힣]+/(VV|XSV|VX) 고/EC 싶/(VX|VA)",
@@ -510,8 +518,8 @@
   },
   {
     "id": "question_nayo",
-    "pattern": "-나요? (вежливый вопрос: правда ли…, не так ли…?)",
-    "regex_text": "[가-힣]+/(VV|VA|VX|VCP|VCN|XSV|XSA)(\\s+시/EP)?(\\s+(았|었)/EP)?(\\s+겠/EP)?\\s+나요/(EC|EF)",
+    "pattern": "-나(요)? (вежливый вопрос: правда ли…, не так ли…?)",
+    "regex_text": "[가-힣]+/(VV|VA|VX|VCP|VCN|XSV|XSA)(\\s+시/EP)?(\\s+(았|었)/EP)?(\\s+겠/EP)?\\s+나(요)?/(EC|EF)",
     "meaning": "",
     "example": "괜찮나요? — Всё в порядке?<br>많았나요? — Было много?<br>오시겠나요? — Вы придёте?",
     "level": "B1"
