@@ -19,6 +19,7 @@ with open('colors.json', encoding='utf-8') as f:
     colors_data = json.load(f)
 
 combined_colors = colors_data.get('COMBINED', {})
+multi_token_colors = colors_data.get('MULTI', {})
 word_colors = colors_data.get('WORDS', {})
 pos_colors = colors_data.get('POS', {})
     # 1.2) Загрузка исправлений для Komoran
@@ -118,7 +119,7 @@ def analyze():
     def get_multitoken_colors(route, tokens):
         match_spans = []  # Список: [(start_index, end_index, color)]
 
-        for pattern, color in combined_colors.items():
+        for pattern, color in multi_token_colors.items():
             if ' ' in pattern:  # ← т.е. цепочка токенов
                 for m in re.finditer(pattern, route):
                     char_start = m.start()
