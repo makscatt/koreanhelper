@@ -535,7 +535,7 @@
   {
     "id": "question_nayo",
     "pattern": "-나(요)? (вежливый вопрос: правда ли…, не так ли…?)",
-    "regex_text": "[가-힣]+/(VV|VA|VX|VCP|VCN|XSV|XSA)(\\s+시/EP)?(\\s+(았|었)/EP)?(\\s+겠/EP)?\\s+나(요)?/(EC|EF)",
+    "regex_text": "[가-힣]+/(VV|VA|VX|VCP|VCN|XSV|XSA)(\\s+시/EP)?(\\s+(았|었)/EP)?(\\s+겠/EP)?\\s+나(요)?/(EC|EF)(?!\\s+보/VV)",
     "meaning": "",
     "example": "괜찮나요? — Всё в порядке?<br>많았나요? — Было много?<br>오시겠나요? — Вы придёте?",
     "level": "B1"
