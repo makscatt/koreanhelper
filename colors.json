@@ -22,7 +22,8 @@
     "중/NNB 에서/JKB": "#ff3d27", 
     "지/EC 말/VX": "#ff3d27",
     "기/ETN 싫/VA": "#4C7EFD",
-    "ㄴ/ETM 거/NNB": "#ff3d27"
+    "ㄴ/ETM 거/NNB": "#ff3d27",
+    "고/EC 있/(VX|VV)": "#4C7EFD"
   },
 "WORDS": {
   "더": "#003366",

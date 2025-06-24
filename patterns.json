@@ -202,7 +202,7 @@
   {
     "id": "connector_go_between_verbs_adjectives",
     "pattern": "-고 (Союз 'И' между глаголами или прилагательными)",
-    "regex_text": "[가-힣]+/(VV|VA|VX|XSV|XSA|VCP)(\\s+(았|었|였)/EP)?\\s+고/(EC|EF)(?!\\s+(싶|있)/VX)(\\s+[가-힣]+/(VV|VA|VX|XSV|XSA))?",
+    "regex_text": "[가-힣]+/(VV|VA|VX|XSV|XSA|VCP)(\\s+(았|었|였)/EP)?\\s+고/(EC|EF)(?!\\s+(싶|있)/(VV|VX))(\\s+[가-힣]+/(VV|VA|VX|XSV|XSA))?",
     "meaning": "",
     "example": "책을 읽고 잤어요 — Почитал книгу и лёг спать.<br>날씨가 맑고 따뜻해요 — Погода ясная и тёплая.",
     "level": "A1"
@@ -250,7 +250,7 @@
   {
     "id": "progressive_tense",
     "pattern": "-고 있다 (настоящее длительное время)",
-    "regex_text": "[가-힣]+/(VV|XSV|VX)\\s+고/EC\\s+있/VX\\s+어요/(EC|EF)",
+    "regex_text": "[가-힣]+/(VV|XSV|VX)\\s+고/EC\\s+있/(VV|VX)\\s+어요/(EC|EF)",
     "meaning": "Действие происходит в текущий момент.<br>Глагол + 고 있다",
     "example": "듣고 있어요 — Слушаю (прямо сейчас)<br>먹고 있어요 — Ем<br>공부하고 있어요 — Учусь",
     "level": "A2"
