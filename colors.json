@@ -14,6 +14,7 @@
   
   },
   "MULTI":{
+    "(은|ㄴ)/ETM (거|것)/NNB 같/VA":"#4C7EFD",
     "(았|었)/EP (을|ㄹ)/ETM 거예요/EC": "#4C7EFD",
     "ㄹ/ETM 수/NNB 있/VV 어/EC": "#ff9900",
     "(아|어)/EC 보/VV": "#ff9900",
@@ -26,8 +27,8 @@
     "ㄴ/ETM 거/NNB": "#ff3d27",
     "고/EC 있/(VX|VV)": "#4C7EFD",
     "나/EC 보/VV": "#4C7EFD",
-    "는/ETM 척/NNB": "#ff3d27",
-    "(은|ㄴ)/ETM (거|것)/NNB 같/VA":"#4C7EFD"
+    "는/ETM 척/NNB": "#ff3d27"
+    
     
     
   },
