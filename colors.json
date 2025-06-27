@@ -26,7 +26,8 @@
     "ㄴ/ETM 거/NNB": "#ff3d27",
     "고/EC 있/(VX|VV)": "#4C7EFD",
     "나/EC 보/VV": "#4C7EFD",
-    "는/ETM 척/NNB": "#ff3d27"
+    "는/ETM 척/NNB": "#ff3d27",
+    "(은|ㄴ)/ETM (거|것)/NNB 같/VA":"#4C7EFD"
     
     
   },

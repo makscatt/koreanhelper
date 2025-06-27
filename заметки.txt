@@ -26,3 +26,7 @@ git commit -m "Обновил fix_komoran"
 git commit -m "Обновил app.py" 
 git commit -m "Общее обновление" 
 git push
+#2e9100
+#ff3d27  
+#4C7EFD
+#ff9900
