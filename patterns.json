@@ -8,14 +8,6 @@
     "level": "A1"
   },
   {
-    "id": "with_irang",
-    "pattern": "N + (이)랑 (вместе с…, и…)",
-    "regex_text": "[가-힣]+/(NNG|NNP|NNB|NP)(\\s+들/XSN)?\\s+(이랑|랑)/(JKB|JC)",
-    "meaning": "",
-    "example": "친구랑 갔어요 — Пошёл с другом<br>고양이랑 놀았어요 — Играл с кошкой<br>아이들이랑 이야기했어요 — Разговаривал с детьми",
-    "level": "A1"
-  },
-  {
     "id": "location_marker_eseo",
     "pattern": "N + 에서 (в месте / из места)",
     "regex_text": "[가-힣]+/(NNG|NNP|NNB|NP)\\s+에서/JKB",
@@ -190,6 +182,14 @@
     "meaning": "",
     "example": "학생들 — студенты<br>사람들 — люди",
     "level": "A2"
+  },
+  {
+    "id": "with_irang",
+    "pattern": "N + (이)랑 (вместе с…, и…)",
+    "regex_text": "[가-힣]+/(NNG|NNP|NNB|NP)(\\s+들/XSN)?\\s+(이랑|랑)/(JKB|JC)",
+    "meaning": "",
+    "example": "친구랑 갔어요 — Пошёл с другом<br>고양이랑 놀았어요 — Играл с кошкой<br>아이들이랑 이야기했어요 — Разговаривал с детьми",
+    "level": "A1"
   },
   {
     "id": "among_noun_group",
@@ -508,7 +508,6 @@
     "meaning": "Наречие '덜'. Неполное выполнение действия или меньшую степень.",
     "example": "덜 먹었어요 — Я недоел<br>덜 아파요 — Меньше болит<br>덜 비싸요 — Менее дорого"
   },
-  
   {
     "id": "declarative_ending_da_with_copula",
     "pattern": "Сущ + (이) + 다 (книжный стиль для Сущ.)",
