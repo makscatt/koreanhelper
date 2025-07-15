@@ -725,6 +725,14 @@
     "level": "B1"
   },
   {
+    "id": "guessing_or_intent_plain",
+    "pattern": "-었/았+다 (прошедшее время в книжном стиле)",
+    "regex_text": "(았|었|였)/EP\\s+다/(EC|EF)",
+    "meaning": "Используется в письме. Может встречаться в разговоре.<br>이다/Глагол/прил. + 었/았 + 다.",
+    "example": "학생이었다 — (Он) был студентом.<br>먹었다 — Съел.<br>예뻤다 — Была красивой.",
+    "level": "B1"
+  },
+  {
     "id": "copula_polite_ieyo_yeyo",
     "pattern": "Сущ + 이에요 / 예요 (вежливое окончание)",
     "regex_text": "[가-힣]+/(NNG|NNB|NP|NNP|NR)\\s+이/VCP\\s+에요/(EC|EF)|[가-힣]+/(NNG|NNB|NP|NR|NNP)\\s+예요/(EC|EF)",
