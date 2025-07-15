@@ -186,7 +186,7 @@
   {
     "id": "plural_marker_deul",
     "pattern": "-들 (Множественное число)",
-    "regex_text": "(NNG|NNP|NNB|NP|XSN)\\s+들/XSN",
+    "regex_text": "[가-힣]+/(NNG|NNP|NNB|NP)\\s+들/XSN",
     "meaning": "",
     "example": "학생들 — студенты<br>사람들 — люди",
     "level": "A2"
