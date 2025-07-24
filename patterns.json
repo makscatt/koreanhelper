@@ -751,7 +751,7 @@
   {
     "id": "copula_polite_ieyo_yeyo",
     "pattern": "Сущ + 이에요 / 예요 (вежливое окончание)",
-    "regex_text": "[가-힣]+/(NNG|NNB|NP|NNP|NR)\\s+이/VCP\\s+에요/(EC|EF)|[가-힣]+/(NNG|NNB|NP|NR|NNP)\\s+예요/(EC|EF)",
+    "regex_text": "[가-힣]+/(NNG|NNB|NP|NNP|NR)\\s+이/VCP\\s+요/(EC|EF)",
     "meaning": "Образовано от Сущ + 이다. После основы на согласную — '이에요',<br>После гласной — '예요'.",
     "example": "학생이에요 — Я студент.<br>의사예요 — Я врач.",
     "level": "A1"
@@ -911,7 +911,7 @@
   {
   "id": "politeness_suffix_yo",
   "pattern": "Сущ + 요 (вежливая частица)",
-  "regex_text": "요/JX",
+  "regex_text": "[가-힣]+/(NNG|NNB|NP|NNP|NR)\\s+요/JX",
   "meaning": "Вежливая частица, добавляется прямо после существительного.",
   "example": "이름요 — имя (вежливо)<br>학생요 — студент (вежливо)<br>물요 — вода (вежливо)",
   "level": "A1"
