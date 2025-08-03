@@ -114,7 +114,7 @@
   {
     "id": "vocative_particle_ah_ya",
     "pattern": "-아 / -야 (обращение по имени)",
-    "regex_text": "[가-힣]+/(NNG|NP|NNB|NNP)\\s+(아|야)/JKV",
+    "regex_text": "[가-힣]+/(NNG|NP|NNB|NNP)\\s+(아|야)/(JKV|JX)",
     "meaning": "Неформальное общение. 'Согласная + 아'.<br>'Гласная + 야'.",
     "example": "수진아, 잘 가! — Суджина, пока!<br>철수야, 여기 봐! — Чольсуя, смотри сюда!",
     "level": "A1"
