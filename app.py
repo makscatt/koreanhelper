@@ -28,7 +28,17 @@ with open('komoran_corrections.json', encoding='utf-8') as f:
     # 1.3) Загрузка правил разбиения слитых токенов
 with open('komoran_split_rules.json', encoding='utf-8') as f:
     komoran_split_rules = json.load(f)
-    # 1.4) Функция фикса ошибок Komoran
+# 1.5) Поверхностные оверрайды разборов (ДО komoran.pos)
+with open('komoran_surface_overrides.json', encoding='utf-8') as f:
+    surface_overrides = {k: [tuple(x) for x in v] for k, v in json.load(f).items()}
+
+# ---- Функции фиксов ----
+def pos_or_override(txt: str):
+    key = txt.strip()
+    if key in surface_overrides:
+        return surface_overrides[key]  # уже список (word,pos)
+    return komoran.pos(txt)
+
 def fix_komoran(tokens):
     fixed = []
     i = 0
@@ -96,10 +106,10 @@ def analyze():
     text = data.get('text', '')
     print("TEXT:", text.encode('utf-8'))
     
-    parsed_for_grammar = komoran.pos(text)
+    parsed_for_grammar = pos_or_override(text)
     route = ' '.join(f'{word}/{pos}' for word, pos in parsed_for_grammar)
     print("ROUTE:", route)
-    tokens_raw = komoran.pos(text)
+    tokens_raw = parsed_for_grammar
     tokens_with_stems = fix_komoran(tokens_raw)
     print("\nDEBUG: Порядок токенов после fix_komoran():")
     for idx, (w, p) in enumerate(tokens_with_stems):
