@@ -166,27 +166,44 @@ def analyze():
         })
 
 
-    matches = []
+    final_matches = []
+    occupied_spans = [] # Список для хранения "занятых" участков текста: [(start, end)]
+
     for pat in patterns:
         if pat.get('regex_text'):
             for m in re.finditer(pat['regex_text'], route):
-                if not any(match['id'] == pat['id'] for match in matches):
-                    matches.append({
+                new_start, new_end = m.start(), m.end()
+
+                # Проверяем, не пересекается ли новый матч с уже найденными
+                is_overlapping = False
+                for start, end in occupied_spans:
+                    # Условие пересечения интервалов: max(start1, start2) < min(end1, end2)
+                    if max(new_start, start) < min(new_end, end):
+                        is_overlapping = True
+                        break
+                
+                if not is_overlapping:
+                    # Если пересечений нет, добавляем матч в результаты
+                    final_matches.append({
                         'id': pat['id'],
                         'pattern': pat['pattern'],
                         'meaning': pat['meaning'],
                         'example': pat['example'],
-                        'start': m.start()  # ← сохраняем индекс начала
+                        'start': new_start
                     })
-    matches.sort(key=lambda x: x['start'])
-    for m in matches:
+                    # И "резервируем" этот участок текста, чтобы другие паттерны его не заняли
+                    occupied_spans.append((new_start, new_end))
+
+    # Сортируем и убираем временный ключ 'start'
+    final_matches.sort(key=lambda x: x['start'])
+    for m in final_matches:
         m.pop('start')                
 
     payload = {
         'tokens':           colored_tokens,
-        'grammar_matches':  matches
+        'grammar_matches':  final_matches
     }
-    print("MATCHES:", matches)
+    print("MATCHES:", final_matches)
     js = json.dumps(payload, ensure_ascii=False)
     print("RESPONSE:", js)
     return Response(js, mimetype='application/json; charset=utf-8')
