@@ -166,6 +166,7 @@ def analyze():
         })
 
 
+    # --- НАЧАЛО ИЗМЕНЕНИЙ ---
     final_matches = []
     occupied_spans = [] # Список для хранения "занятых" участков текста: [(start, end)]
 
@@ -173,17 +174,16 @@ def analyze():
         if pat.get('regex_text'):
             for m in re.finditer(pat['regex_text'], route):
                 new_start, new_end = m.start(), m.end()
-
-                # Проверяем, не пересекается ли новый матч с уже найденными
-                is_overlapping = False
+                
+                # --- ЭТО НОВАЯ ЛОГИКА ---
+                # Проверяем, не является ли новый матч ПОДМНОЖЕСТВОМ уже найденного
+                is_subpattern = False
                 for start, end in occupied_spans:
-                    # Условие пересечения интервалов: max(start1, start2) < min(end1, end2)
-                    if max(new_start, start) < min(new_end, end):
-                        is_overlapping = True
+                    if new_start >= start and new_end <= end:
+                        is_subpattern = True
                         break
                 
-                if not is_overlapping:
-                    # Если пересечений нет, добавляем матч в результаты
+                if not is_subpattern:
                     final_matches.append({
                         'id': pat['id'],
                         'pattern': pat['pattern'],
@@ -191,8 +191,8 @@ def analyze():
                         'example': pat['example'],
                         'start': new_start
                     })
-                    # И "резервируем" этот участок текста, чтобы другие паттерны его не заняли
                     occupied_spans.append((new_start, new_end))
+    # --- КОНЕЦ ИЗМЕНЕНИЙ ---
 
     # Сортируем и убираем временный ключ 'start'
     final_matches.sort(key=lambda x: x['start'])
