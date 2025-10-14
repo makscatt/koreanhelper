@@ -306,7 +306,7 @@
   {
     "id": "potential_ability_l_su_iss",
     "pattern": "-ㄹ/을 수 있다 (мочь что-то сделать)",
-    "regex_text": "[가-힣]+/(VV|VX|XSV)(\\s+(았/EP|었/EP))?\\s+(을|ㄹ)/ETM\\s+수/NNB(\\s+도/JX)?\\s+있/VV",
+    "regex_text": "[가-힣]+/(VV|VX|XSV)(\\s+(았/EP|었/EP))?\\s+(을|ㄹ)/ETM\\s+수/NNB(\\s+도/JX)?\\s+있/(VV|VX)",
     "meaning": "Глагол + ㄹ 수 있다<br>Если добавить 수+도, то значение будет 'Может быть'",
     "example": "읽을 수 있어요 — Могу прочитать<br>말할 수 있어요 — Могу сказать<br>도와줄 수도 있어요 — Может быть поможет",
     "level": "A2"
@@ -314,7 +314,7 @@
   {
     "id": "potential_ability_l_su_iss",
     "pattern": "-ㄹ/을 수 없다 (Не мочь что-то сделать)",
-    "regex_text": "[가-힣]+/(VV|VX|XSV)(\\s+(았/EP|었/EP))?\\s+(을|ㄹ)/ETM\\s+수/NNB\\s+없/VV",
+    "regex_text": "[가-힣]+/(VV|VX|XSV)(\\s+(았/EP|었/EP))?\\s+(을|ㄹ)/ETM\\s+수/NNB\\s+없/(VV|VX)",
     "meaning": "Глагол + ㄹ 수 없다",
     "example": "읽을 수 없어요 — Не могу прочитать<br>말할 수 없어요 — Не могу сказать<br>도와줄 수 없어요 — Не могу помочь",
     "level": "A2"
