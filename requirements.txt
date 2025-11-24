@@ -3,3 +3,6 @@ gunicorn
 konlpy
 numpy
 flask-cors
+librosa
+fastdtw
+soundfile
