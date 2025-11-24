@@ -1,4 +1,4 @@
-from flask import Flask, request, Respons, jsonifye
+from flask import Flask, request, Response, jsonify
 from flask_cors import CORS   
 from konlpy.tag import Komoran  # <--- ИЗМЕНЕНИЕ 1
 import json, re
