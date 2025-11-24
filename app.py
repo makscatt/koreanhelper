@@ -6,6 +6,7 @@ import os
 import librosa
 import numpy as np
 import requests
+import psutil
 from fastdtw import fastdtw
 from scipy.spatial.distance import euclidean
 
@@ -13,6 +14,11 @@ app = Flask(__name__)
 CORS(app) 
 app.config['JSON_AS_ASCII'] = False
 komoran = Komoran()  # <--- ИЗМЕНЕНИЕ 2
+
+def log_memory_usage(stage=""):
+    process = psutil.Process(os.getpid())
+    memory_mb = process.memory_info().rss / (1024 * 1024) # в мегабайтах
+    print(f"--- MEMORY USAGE [{stage}]: {memory_mb:.2f} MB")
 
 def compare_pronunciation(original_file_path, user_file_path):
     try:
@@ -61,6 +67,7 @@ def compare_pronunciation(original_file_path, user_file_path):
 # --- НОВЫЙ ЭНДПОИНТ ДЛЯ ПРИЕМА АУДИО ---
 @app.route('/compare-audio', methods=['POST'])
 def compare_audio_files():
+    log_memory_usage("Request Start")
     # 1. Проверяем, что получили файл от пользователя и URL
     if 'user_audio' not in request.files:
         return jsonify({"status": "error", "message": "Файл 'user_audio' не найден"}), 400
@@ -81,6 +88,7 @@ def compare_audio_files():
     try:
         # 2. Сохраняем файл пользователя
         user_file.save(user_path)
+        log_memory_usage("User file saved") 
 
         # 3. Скачиваем эталонное видео по URL
         response = requests.get(original_video_url, stream=True)
@@ -88,9 +96,11 @@ def compare_audio_files():
         with open(original_path, 'wb') as f:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
+        log_memory_usage("Original video downloaded")
 
         # 4. Сравниваем (librosa сам извлечет аудио из видео)
         result = compare_pronunciation(original_path, user_path)
+        log_memory_usage("Comparison finished")
 
     except requests.exceptions.RequestException as e:
         # Ошибка, если не удалось скачать видео

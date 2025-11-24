@@ -7,3 +7,4 @@ librosa
 fastdtw
 soundfile
 requests
+psutil
