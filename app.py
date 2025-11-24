@@ -16,23 +16,32 @@ komoran = Komoran()  # <--- ИЗМЕНЕНИЕ 2
 
 def compare_pronunciation(original_file_path, user_file_path):
     try:
-        original_audio, sr1 = librosa.load(original_file_path, sr=None)
-        # Загружаем аудио пользователя, конвертируя его "на лету"
-        user_audio, sr2 = librosa.load(user_file_path, sr=None)
+        # --- ОПТИМИЗАЦИИ ---
+        TARGET_SR = 16000  # Снижаем частоту дискретизации. 16кГц достаточно для речи.
+        MAX_DURATION = 10  # Обрабатываем не более 10 секунд аудио.
 
-        if sr1 != sr2:
-            user_audio = librosa.resample(y=user_audio, orig_sr=sr2, target_sr=sr1)
+        # Загружаем аудио, сразу применяя оптимизации
+        original_audio, sr1 = librosa.load(
+            original_file_path, 
+            sr=TARGET_SR,         # 1. Принудительно ставим низкую частоту
+            mono=True,            # 2. Преобразуем в моно (в 2 раза меньше данных)
+            duration=MAX_DURATION # 3. Обрезаем длинные файлы
+        )
+        user_audio, sr2 = librosa.load(
+            user_file_path, 
+            sr=TARGET_SR, 
+            mono=True, 
+            duration=MAX_DURATION
+        )
 
-        original_mfcc = librosa.feature.mfcc(y=original_audio, sr=sr1, n_mfcc=13)
-        user_mfcc = librosa.feature.mfcc(y=user_audio, sr=sr1, n_mfcc=13)
+        # --- Остальной код остается прежним ---
+        original_mfcc = librosa.feature.mfcc(y=original_audio, sr=TARGET_SR, n_mfcc=13)
+        user_mfcc = librosa.feature.mfcc(y=user_audio, sr=TARGET_SR, n_mfcc=13)
         
         distance, path = fastdtw(original_mfcc.T, user_mfcc.T, dist=euclidean)
 
-        # Нормализуем "расстояние" по длине дорожек, чтобы получить более стабильный результат
         normalized_distance = distance / (len(original_mfcc[0]) + len(user_mfcc[0]))
         
-        # Эмпирическая формула для получения процента схожести. 
-        # Коэффициент 10 нужно будет подбирать (калибровать) для лучших результатов.
         similarity = max(0, 100 - (normalized_distance * 10)) 
 
         return {
@@ -41,6 +50,9 @@ def compare_pronunciation(original_file_path, user_file_path):
         }
         
     except Exception as e:
+        # Добавляем traceback для лучшей отладки в будущем
+        import traceback
+        print(traceback.format_exc())
         return {
             "status": "error",
             "message": str(e)
