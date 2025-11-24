@@ -5,6 +5,7 @@ import json, re
 import os 
 import librosa
 import numpy as np
+import requests
 from fastdtw import fastdtw
 from scipy.spatial.distance import euclidean
 
@@ -48,29 +49,50 @@ def compare_pronunciation(original_file_path, user_file_path):
 # --- НОВЫЙ ЭНДПОИНТ ДЛЯ ПРИЕМА АУДИО ---
 @app.route('/compare-audio', methods=['POST'])
 def compare_audio_files():
-    if 'user_audio' not in request.files or 'original_audio' not in request.files:
-        return jsonify({"status": "error", "message": "Требуются файлы 'user_audio' и 'original_audio'"}), 400
+    # 1. Проверяем, что получили файл от пользователя и URL
+    if 'user_audio' not in request.files:
+        return jsonify({"status": "error", "message": "Файл 'user_audio' не найден"}), 400
+    if 'original_video_url' not in request.form:
+        return jsonify({"status": "error", "message": "Параметр 'original_video_url' не найден"}), 400
 
     user_file = request.files['user_audio']
-    original_file = request.files['original_audio']
+    original_video_url = request.form['original_video_url']
 
-    upload_folder = 'temp_uploads' # Используем временную папку
+    upload_folder = 'temp_uploads'
     if not os.path.exists(upload_folder):
         os.makedirs(upload_folder)
+        
+    # Пути для временных файлов
+    user_path = os.path.join(upload_folder, "user_temp.webm")
+    original_path = os.path.join(upload_folder, "original_temp_video") # Имя не важно, librosa определит формат
 
-    # Сохраняем файлы с уникальными именами, чтобы избежать конфликтов при одновременных запросах
-    user_filename = "user_" + str(os.getpid()) + ".webm"
-    original_filename = "original_" + str(os.getpid()) + ".wav"
-    user_path = os.path.join(upload_folder, user_filename)
-    original_path = os.path.join(upload_folder, original_filename)
-    user_file.save(user_path)
-    original_file.save(original_path)
+    try:
+        # 2. Сохраняем файл пользователя
+        user_file.save(user_path)
 
-    result = compare_pronunciation(original_path, user_path)
+        # 3. Скачиваем эталонное видео по URL
+        response = requests.get(original_video_url, stream=True)
+        response.raise_for_status() # Проверка на ошибки типа 404 Not Found
+        with open(original_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
 
-    os.remove(user_path)
-    os.remove(original_path)
-    
+        # 4. Сравниваем (librosa сам извлечет аудио из видео)
+        result = compare_pronunciation(original_path, user_path)
+
+    except requests.exceptions.RequestException as e:
+        # Ошибка, если не удалось скачать видео
+        return jsonify({"status": "error", "message": f"Не удалось скачать эталонное видео: {e}"}), 500
+    except Exception as e:
+        # Другие возможные ошибки
+        return jsonify({"status": "error", "message": f"Внутренняя ошибка сервера: {e}"}), 500
+    finally:
+        # 5. Гарантированно удаляем временные файлы
+        if os.path.exists(user_path):
+            os.remove(user_path)
+        if os.path.exists(original_path):
+            os.remove(original_path)
+            
     return jsonify(result)
 
 @app.route('/')
