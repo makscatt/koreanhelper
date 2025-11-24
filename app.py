@@ -1,12 +1,77 @@
-from flask import Flask, request, Response
+from flask import Flask, request, Respons, jsonifye
 from flask_cors import CORS   
 from konlpy.tag import Komoran  # <--- ИЗМЕНЕНИЕ 1
 import json, re
+import os 
+import librosa
+import numpy as np
+from fastdtw import fastdtw
+from scipy.spatial.distance import euclidean
 
 app = Flask(__name__)
 CORS(app) 
 app.config['JSON_AS_ASCII'] = False
 komoran = Komoran()  # <--- ИЗМЕНЕНИЕ 2
+
+def compare_pronunciation(original_file_path, user_file_path):
+    try:
+        original_audio, sr1 = librosa.load(original_file_path, sr=None)
+        # Загружаем аудио пользователя, конвертируя его "на лету"
+        user_audio, sr2 = librosa.load(user_file_path, sr=None)
+
+        if sr1 != sr2:
+            user_audio = librosa.resample(y=user_audio, orig_sr=sr2, target_sr=sr1)
+
+        original_mfcc = librosa.feature.mfcc(y=original_audio, sr=sr1, n_mfcc=13)
+        user_mfcc = librosa.feature.mfcc(y=user_audio, sr=sr1, n_mfcc=13)
+        
+        distance, path = fastdtw(original_mfcc.T, user_mfcc.T, dist=euclidean)
+
+        # Нормализуем "расстояние" по длине дорожек, чтобы получить более стабильный результат
+        normalized_distance = distance / (len(original_mfcc[0]) + len(user_mfcc[0]))
+        
+        # Эмпирическая формула для получения процента схожести. 
+        # Коэффициент 10 нужно будет подбирать (калибровать) для лучших результатов.
+        similarity = max(0, 100 - (normalized_distance * 10)) 
+
+        return {
+            "similarity": round(similarity),
+            "status": "success"
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+# --- НОВЫЙ ЭНДПОИНТ ДЛЯ ПРИЕМА АУДИО ---
+@app.route('/compare-audio', methods=['POST'])
+def compare_audio_files():
+    if 'user_audio' not in request.files or 'original_audio' not in request.files:
+        return jsonify({"status": "error", "message": "Требуются файлы 'user_audio' и 'original_audio'"}), 400
+
+    user_file = request.files['user_audio']
+    original_file = request.files['original_audio']
+
+    upload_folder = 'temp_uploads' # Используем временную папку
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
+
+    # Сохраняем файлы с уникальными именами, чтобы избежать конфликтов при одновременных запросах
+    user_filename = "user_" + str(os.getpid()) + ".webm"
+    original_filename = "original_" + str(os.getpid()) + ".wav"
+    user_path = os.path.join(upload_folder, user_filename)
+    original_path = os.path.join(upload_folder, original_filename)
+    user_file.save(user_path)
+    original_file.save(original_path)
+
+    result = compare_pronunciation(original_path, user_path)
+
+    os.remove(user_path)
+    os.remove(original_path)
+    
+    return jsonify(result)
 
 @app.route('/')
 def home():
