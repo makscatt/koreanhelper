@@ -1,13 +1,3 @@
 Flask
 gunicorn
 konlpy
-numpy
-scipy
-flask-cors
-fastdtw
-soundfile
-requests
-psutil
-pydub
-python_speech_features
-static-ffmpeg
