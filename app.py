@@ -1,10 +1,10 @@
 from flask import Flask, request, Response, jsonify
-from flask_cors import CORS   
+from flask_cors import CORS
 from konlpy.tag import Komoran
 import json, re
 
 app = Flask(__name__)
-CORS(app) 
+CORS(app)
 app.config['JSON_AS_ASCII'] = False
 komoran = Komoran()
 
@@ -12,10 +12,8 @@ komoran = Komoran()
 def home():
     return "Сервер для анализа грамматик работает!"
 
-# --- ЗАГРУЗКА ДАННЫХ ---
 with open('patterns.json', encoding='utf-8') as f:
     patterns = json.load(f)
-
 with open('colors.json', encoding='utf-8') as f:
     colors_data = json.load(f)
 
@@ -26,14 +24,11 @@ pos_colors = colors_data.get('POS', {})
 
 with open('komoran_corrections.json', encoding='utf-8') as f:
     komoran_fixes = json.load(f)
-
 with open('komoran_split_rules.json', encoding='utf-8') as f:
     komoran_split_rules = json.load(f)
-
 with open('komoran_surface_overrides.json', encoding='utf-8') as f:
     surface_overrides = {k: [tuple(x) for x in v] for k, v in json.load(f).items()}
 
-# --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
 def pos_or_override(txt: str):
     key = txt.strip()
     if key in surface_overrides:
@@ -50,10 +45,8 @@ def fix_komoran(tokens):
             if re.match(rule['regex'], f"{word}/{pos}"):
                 parts = word.split()
                 if len(parts) != 2:
-                    break 
-
+                    break
                 left, right = parts[0], parts[1]
-
                 if left.endswith('은'):
                     stem = left[:-1]
                     modifier = '은'
@@ -62,7 +55,6 @@ def fix_komoran(tokens):
                     modifier = 'ㄴ'
                 else:
                     break
-
                 fixed_entry = []
                 for w, p in rule['split']:
                     if w == "{adj_stem}":
@@ -72,7 +64,6 @@ def fix_komoran(tokens):
                     elif w == "{noun}":
                         w = right
                     fixed_entry.append([w, p])
-
                 fixed.extend(fixed_entry)
                 i += 1
                 replaced = True
@@ -90,7 +81,6 @@ def fix_komoran(tokens):
             i += 1
     return fixed
 
-# --- ЭНДПОИНТ АНАЛИЗА ТЕКСТА ---
 @app.route('/analyze', methods=['POST'])
 def analyze():
     data = request.get_json()
@@ -100,7 +90,6 @@ def analyze():
     route = ' '.join(f'{word}/{pos}' for word, pos in parsed_for_grammar)
     tokens_raw = parsed_for_grammar
     tokens_with_stems = fix_komoran(tokens_raw)
-
     route = ' '.join(f'{word}/{pos}' for word, pos in tokens_with_stems)
 
     def get_combined_color(word, pos):
@@ -111,14 +100,12 @@ def analyze():
         return word_colors.get(word, pos_colors.get(pos, "#000000"))
 
     def get_multitoken_colors(route, tokens):
-        match_spans = [] 
-
+        match_spans = []
         for pattern, color in multi_token_colors.items():
             if ' ' in pattern:
                 for m in re.finditer(pattern, route):
                     char_start = m.start()
                     char_end = m.end()
-
                     token_positions = []
                     cursor = 0
                     for i, tok in enumerate(tokens):
@@ -155,13 +142,11 @@ def analyze():
         if pat.get('regex_text'):
             for m in re.finditer(pat['regex_text'], route):
                 new_start, new_end = m.start(), m.end()
-                
                 is_subpattern = False
                 for start, end in occupied_spans:
                     if new_start >= start and new_end <= end:
                         is_subpattern = True
                         break
-                
                 if not is_subpattern:
                     final_matches.append({
                         'id': pat['id'],
@@ -174,7 +159,7 @@ def analyze():
 
     final_matches.sort(key=lambda x: x['start'])
     for m in final_matches:
-        m.pop('start')                
+        m.pop('start')
 
     payload = {
         'tokens':           colored_tokens,
