@@ -13,7 +13,7 @@ import psutil
 from fastdtw import fastdtw
 from scipy.spatial.distance import euclidean
 from pydub import AudioSegment
-from python_speech_features import mfcc, delta
+from python_speech_features import mfcc
 
 app = Flask(__name__)
 CORS(app) 
@@ -25,10 +25,11 @@ def log_memory_usage(stage=""):
     memory_mb = process.memory_info().rss / (1024 * 1024)
     print(f"--- MEMORY USAGE [{stage}]: {memory_mb:.2f} MB", flush=True)
 
+# 1. Функция обрезки тишины (Оставляем, она работает хорошо)
 def trim_silence(audio_samples, threshold=0.02):
     magnitude = np.abs(audio_samples)
     if np.max(magnitude) < threshold:
-        return audio_samples # Слишком тихо, возвращаем как есть
+        return audio_samples 
         
     start_idx = 0
     for i, sample in enumerate(magnitude):
@@ -44,94 +45,85 @@ def trim_silence(audio_samples, threshold=0.02):
             
     return audio_samples[start_idx:end_idx]
 
-def load_audio_smart(file_path, target_sr=16000):
-    # Загрузка
+# 2. Загрузка аудио (Простая версия + обрезка тишины)
+def load_and_prep_audio(file_path, target_sr=16000):
     audio = AudioSegment.from_file(file_path)
-    # Конвертация в моно и 16кгц
     audio = audio.set_channels(1).set_frame_rate(target_sr)
-    # В numpy array
-    samples = np.array(audio.get_array_of_samples(), dtype=np.float32)
+    samples = np.array(audio.get_array_of_samples(), dtype=np.float32) / 32768.0
     
-    # Нормализация амплитуды (-1..1)
+    # Нормализация громкости
     if np.max(np.abs(samples)) > 0:
         samples = samples / np.max(np.abs(samples))
     
-    # Обрезка тишины
+    # Режем тишину
     samples = trim_silence(samples, threshold=0.03)
     
-    # Pre-emphasis filter (выделяет высокие частоты/согласные)
-    # y(t) = x(t) - 0.97 * x(t-1)
-    samples = np.append(samples[0], samples[1:] - 0.97 * samples[:-1])
-    
     return samples, target_sr
-
-def get_rich_features(samples, sr):
-    # 1. Базовые MFCC (форманты голоса)
-    # nfft=512 (для 16кгц это 32мс окно)
-    mfcc_feat = mfcc(samples, sr, winlen=0.025, winstep=0.01, numcep=13, nfilt=26, nfft=512)
-    
-    # 2. Delta (скорость изменения звука)
-    d_mfcc_feat = delta(mfcc_feat, 2)
-    
-    # 3. Объединяем их в один большой вектор для каждого момента времени
-    # Теперь мы сравниваем не 13 чисел, а 26, учитывая динамику
-    combined = np.hstack((mfcc_feat, d_mfcc_feat))
-    
-    # 4. Z-Score Normalization (критически важно для DTW)
-    # Делаем так, чтобы среднее было 0, а отклонение 1. Убирает влияние громкости и тембра микрофона.
-    mean = np.mean(combined, axis=0)
-    std = np.std(combined, axis=0) + 1e-8 # защита от деления на 0
-    combined = (combined - mean) / std
-    
-    return combined
 
 def compare_pronunciation(original_file_path, user_file_path):
     try:
         log_memory_usage("Start")
         TARGET_SR = 16000
         
-        # 1. Загрузка и очистка
-        orig_samples, _ = load_audio_smart(original_file_path, TARGET_SR)
-        user_samples, _ = load_audio_smart(user_file_path, TARGET_SR)
+        orig_samples, _ = load_and_prep_audio(original_file_path, TARGET_SR)
+        user_samples, _ = load_and_prep_audio(user_file_path, TARGET_SR)
         
-        # Проверка длительности
+        # --- ПРОВЕРКА ДЛИТЕЛЬНОСТИ ---
         orig_dur = len(orig_samples) / TARGET_SR
         user_dur = len(user_samples) / TARGET_SR
         print(f"=== DURATIONS: Orig={orig_dur:.2f}s, User={user_dur:.2f}s ===", flush=True)
         
-        if user_dur < 0.1:
-             return {"similarity": 0, "status": "success", "message": "Too short/silent"}
+        # Если длительность отличается более чем в 1.5 раза -> штраф
+        duration_penalty = 1.0
+        if orig_dur > 0 and user_dur > 0:
+            ratio = max(orig_dur, user_dur) / min(orig_dur, user_dur)
+            if ratio > 1.5:
+                # Штрафуем: чем больше разница, тем меньше коэффициент (0.8, 0.7...)
+                duration_penalty = 1.0 / (ratio * 0.8) 
+                print(f"=== Duration Penalty applied: {duration_penalty:.2f} ===", flush=True)
 
-        # 2. Извлечение продвинутых признаков (MFCC + Delta + Norm)
-        orig_features = get_rich_features(orig_samples, TARGET_SR)
-        user_features = get_rich_features(user_samples, TARGET_SR)
+        if user_dur < 0.1:
+             return {"similarity": 0, "status": "success", "message": "Too short"}
+
+        # --- ИЗВЛЕЧЕНИЕ MFCC ---
+        # Используем простые настройки
+        orig_mfcc = mfcc(orig_samples, TARGET_SR, winlen=0.025, winstep=0.01, numcep=13, nfilt=26)
+        user_mfcc = mfcc(user_samples, TARGET_SR, winlen=0.025, winstep=0.01, numcep=13, nfilt=26)
         
-        # 3. DTW
-        distance, path = fastdtw(orig_features, user_features, dist=euclidean)
+        # --- НОРМАЛИЗАЦИЯ (Cepstral Mean Subtraction) ---
+        # Критически важно для сравнения разных микрофонов!
+        orig_mfcc -= (np.mean(orig_mfcc, axis=0) + 1e-8)
+        user_mfcc -= (np.mean(user_mfcc, axis=0) + 1e-8)
         
-        # Нормализация дистанции по длине пути
-        # Путь всегда длиннее или равен самому длинному сигналу
-        path_len = len(path)
-        if path_len == 0: path_len = 1
+        # --- DTW ---
+        distance, path = fastdtw(orig_mfcc, user_mfcc, dist=euclidean)
         
+        # Нормализуем дистанцию
+        path_len = len(path) if len(path) > 0 else 1
         normalized_distance = distance / path_len
         
-        print(f"=== DISTANCE (Normalized) = {normalized_distance:.4f} ===", flush=True)
+        print(f"=== RAW DISTANCE = {normalized_distance:.4f} ===", flush=True)
 
-        # 4. Расчет процента
-        # С новыми фичами (Z-score + Delta) дистанция будет вести себя иначе.
-        # Обычно:
-        # 0.0 - 0.3: Идеально
-        # 0.3 - 0.6: Хорошо
-        # 0.6 - 1.0: Средне
-        # > 1.0: Плохо
+        # --- РАСЧЕТ ОЦЕНКИ ---
+        # Калибровка под CMS и FastDTW:
+        # Дистанция ~15-20 -> Отлично (90-100%)
+        # Дистанция ~30 -> Хорошо (70%)
+        # Дистанция ~40-50 -> Так себе (40-50%)
+        # Дистанция >60 -> Плохо
         
-        # Экспоненциальная шкала для резкого падения на плохих звуках
-        # Коэффициент 0.5 подобран эмпирически для нормированных данных
-        similarity = 100 * np.exp(-normalized_distance / 0.65)
+        # Линейная формула с порогом
+        base_score = max(0, 100 - (normalized_distance - 15) * 2.5)
         
+        # Ограничиваем сверху 100
+        if base_score > 100: base_score = 100
+            
+        # Применяем штраф за длительность
+        final_score = base_score * duration_penalty
+        
+        print(f"=== SCORE: Base={base_score:.2f} * Penalty={duration_penalty:.2f} = {final_score:.2f} ===", flush=True)
+
         return {
-            "similarity": round(similarity),
+            "similarity": round(final_score),
             "status": "success"
         }
         
@@ -179,7 +171,7 @@ def compare_audio_files():
 def home():
     return "Server OK"
 
-# ... (ВЕСЬ ОСТАЛЬНОЙ КОД ДЛЯ KOMORAN ВСТАВИТЬ НИЖЕ: patterns, analyze и т.д.) ...
+# ... (ОСТАЛЬНОЙ КОД БЕЗ ИЗМЕНЕНИЙ ВНИЗУ: patterns, analyze...) ...
 with open('patterns.json', encoding='utf-8') as f:
     patterns = json.load(f)
 
