@@ -48,7 +48,7 @@ def compare_pronunciation(original_file_path, user_file_path):
         distance, path = fastdtw(original_mfcc, user_mfcc, dist=euclidean)
         
         normalized_distance = distance / (len(original_mfcc) + len(user_mfcc))
-        
+        print(f"=== DEBUG: DISTANCE = {normalized_distance} ===") 
         similarity = max(0, 100 - (normalized_distance * 2)) 
 
         return {
