@@ -1,3 +1,4 @@
+# 1. FFMPEG FIRST
 import static_ffmpeg
 static_ffmpeg.add_paths()
 
@@ -11,7 +12,6 @@ import requests
 import psutil
 from fastdtw import fastdtw
 from scipy.spatial.distance import euclidean
-
 from pydub import AudioSegment
 from python_speech_features import mfcc
 
@@ -25,34 +25,90 @@ def log_memory_usage(stage=""):
     memory_mb = process.memory_info().rss / (1024 * 1024)
     print(f"--- MEMORY USAGE [{stage}]: {memory_mb:.2f} MB", flush=True)
 
+# НОВАЯ ФУНКЦИЯ: Обрезка тишины (пороговая)
+def trim_silence(audio_samples, threshold=0.02):
+    # threshold - уровень шума, ниже которого считаем тишиной
+    magnitude = np.abs(audio_samples)
+    
+    # Ищем начало речи
+    start_idx = 0
+    for i, sample in enumerate(magnitude):
+        if sample > threshold:
+            start_idx = i
+            break
+            
+    # Ищем конец речи
+    end_idx = len(audio_samples)
+    for i in range(len(magnitude) - 1, 0, -1):
+        if magnitude[i] > threshold:
+            end_idx = i + 1
+            break
+            
+    if end_idx <= start_idx:
+        return np.array([0.0], dtype=np.float32) # Если одна тишина
+        
+    return audio_samples[start_idx:end_idx]
+
 def load_audio_lightweight(file_path, target_sr=16000, max_duration=10):
     audio = AudioSegment.from_file(file_path)
     
-    if len(audio) > max_duration * 1000:
-        audio = audio[:max_duration * 1000]
-        
+    # Приводим к формату
     audio = audio.set_channels(1).set_frame_rate(target_sr)
     samples = np.array(audio.get_array_of_samples(), dtype=np.float32) / 32768.0
+    
+    # 1. Нормализация громкости (чтобы тихий голос был равен громкому видео)
+    max_val = np.max(np.abs(samples))
+    if max_val > 0:
+        samples = samples / max_val
+        
+    # 2. Обрезка тишины
+    samples = trim_silence(samples, threshold=0.05)
+    
+    # 3. Обрезка по длительности (после удаления тишины)
+    max_len = int(max_duration * target_sr)
+    if len(samples) > max_len:
+        samples = samples[:max_len]
     
     return samples, target_sr
 
 def compare_pronunciation(original_file_path, user_file_path):
     try:
+        log_memory_usage("Start Comparison")
         TARGET_SR = 16000
         
         original_audio, _ = load_audio_lightweight(original_file_path, target_sr=TARGET_SR)
         user_audio, _ = load_audio_lightweight(user_file_path, target_sr=TARGET_SR)
         
+        # ЛОГИРОВАНИЕ ДЛИТЕЛЬНОСТИ (СЕКУНДЫ)
+        orig_dur = len(original_audio) / TARGET_SR
+        user_dur = len(user_audio) / TARGET_SR
+        print(f"=== DEBUG: Original Duration: {orig_dur:.2f}s | User Duration: {user_dur:.2f}s ===", flush=True)
+
+        # Если файл пустой (одна тишина)
+        if len(user_audio) < 1000: 
+            return {"similarity": 0, "status": "success", "message": "Too silent"}
+
+        # ПРОВЕРКА НА РАЗНИЦУ В ДЛИНЕ
+        # Если длительность отличается более чем в 3 раза -> это точно не то слово
+        ratio = max(orig_dur, user_dur) / (min(orig_dur, user_dur) + 0.001)
+        if ratio > 3.0:
+            print(f"=== DEBUG: Duration mismatch mismatch ratio {ratio:.2f} ===", flush=True)
+            return {"similarity": 10, "status": "success"} # Штраф за длину
+
         original_mfcc = mfcc(original_audio, TARGET_SR, winlen=0.025, winstep=0.01, numcep=13, nfilt=26)
         user_mfcc = mfcc(user_audio, TARGET_SR, winlen=0.025, winstep=0.01, numcep=13, nfilt=26)
         
         distance, path = fastdtw(original_mfcc, user_mfcc, dist=euclidean)
         
         normalized_distance = distance / (len(original_mfcc) + len(user_mfcc))
-
+        
         print(f"=== DEBUG: DISTANCE = {normalized_distance} ===", flush=True) 
 
-        similarity = max(0, 100 - (normalized_distance * 2)) 
+        # НОВАЯ КАЛИБРОВКА (Строже)
+        # 0-30: Отлично
+        # 30-50: Нормально
+        # >50: Плохо
+        similarity = 100 * np.exp(-normalized_distance / 35)
 
         return {
             "similarity": round(similarity),
@@ -61,7 +117,8 @@ def compare_pronunciation(original_file_path, user_file_path):
         
     except Exception as e:
         import traceback
-        print(traceback.format_exc())
+        print("ERROR IN COMPARE:", flush=True)
+        print(traceback.format_exc(), flush=True)
         return {
             "status": "error",
             "message": str(e)
@@ -69,6 +126,7 @@ def compare_pronunciation(original_file_path, user_file_path):
 
 @app.route('/compare-audio', methods=['POST'])
 def compare_audio_files():
+    # ... ТОЧНО ТАКОЙ ЖЕ КОД КАК БЫЛ РАНЬШЕ ...
     log_memory_usage("Request Start")
     if 'user_audio' not in request.files:
         return jsonify({"status": "error", "message": "Файл 'user_audio' не найден"}), 400
@@ -87,22 +145,18 @@ def compare_audio_files():
 
     try:
         user_file.save(user_path)
-        log_memory_usage("User file saved") 
-
+        
         response = requests.get(original_video_url, stream=True)
         response.raise_for_status()
         with open(original_path, 'wb') as f:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
-        log_memory_usage("Original video downloaded")
-
+        
         result = compare_pronunciation(original_path, user_path)
-        log_memory_usage("Comparison finished")
 
-    except requests.exceptions.RequestException as e:
-        return jsonify({"status": "error", "message": f"Не удалось скачать эталонное видео: {e}"}), 500
     except Exception as e:
-        return jsonify({"status": "error", "message": f"Внутренняя ошибка сервера: {e}"}), 500
+        print(f"GLOBAL ERROR: {e}", flush=True)
+        return jsonify({"status": "error", "message": f"Error: {e}"}), 500
     finally:
         if os.path.exists(user_path):
             os.remove(user_path)
@@ -113,8 +167,9 @@ def compare_audio_files():
 
 @app.route('/')
 def home():
-    return "Сервер работает!"
+    return "Server OK"
 
+# ... (ВСТАВИТЬ ВЕСЬ КОД ДЛЯ KOMORAN НИЖЕ) ...
 with open('patterns.json', encoding='utf-8') as f:
     patterns = json.load(f)
 
