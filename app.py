@@ -1,3 +1,6 @@
+import static_ffmpeg
+static_ffmpeg.add_paths()
+
 from flask import Flask, request, Response, jsonify
 from flask_cors import CORS   
 from konlpy.tag import Komoran
@@ -8,11 +11,9 @@ import requests
 import psutil
 from fastdtw import fastdtw
 from scipy.spatial.distance import euclidean
+
 from pydub import AudioSegment
 from python_speech_features import mfcc
-
-import static_ffmpeg
-static_ffmpeg.add_paths()
 
 app = Flask(__name__)
 CORS(app) 
@@ -22,7 +23,7 @@ komoran = Komoran()
 def log_memory_usage(stage=""):
     process = psutil.Process(os.getpid())
     memory_mb = process.memory_info().rss / (1024 * 1024)
-    print(f"--- MEMORY USAGE [{stage}]: {memory_mb:.2f} MB")
+    print(f"--- MEMORY USAGE [{stage}]: {memory_mb:.2f} MB", flush=True)
 
 def load_audio_lightweight(file_path, target_sr=16000, max_duration=10):
     audio = AudioSegment.from_file(file_path)
@@ -48,7 +49,9 @@ def compare_pronunciation(original_file_path, user_file_path):
         distance, path = fastdtw(original_mfcc, user_mfcc, dist=euclidean)
         
         normalized_distance = distance / (len(original_mfcc) + len(user_mfcc))
-        print(f"=== DEBUG: DISTANCE = {normalized_distance} ===") 
+
+        print(f"=== DEBUG: DISTANCE = {normalized_distance} ===", flush=True) 
+
         similarity = max(0, 100 - (normalized_distance * 2)) 
 
         return {
