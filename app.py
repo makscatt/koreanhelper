@@ -11,6 +11,9 @@ from scipy.spatial.distance import euclidean
 from pydub import AudioSegment
 from python_speech_features import mfcc
 
+import static_ffmpeg
+static_ffmpeg.add_paths()
+
 app = Flask(__name__)
 CORS(app) 
 app.config['JSON_AS_ASCII'] = False
