@@ -3,8 +3,9 @@ gunicorn
 konlpy
 numpy
 flask-cors
-librosa
 fastdtw
 soundfile
 requests
 psutil
+pydub
+python_speech_features
