@@ -2,6 +2,7 @@ Flask
 gunicorn
 konlpy
 numpy
+scipy
 flask-cors
 fastdtw
 soundfile
