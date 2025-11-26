@@ -13,7 +13,7 @@ import psutil
 from fastdtw import fastdtw
 from scipy.spatial.distance import euclidean
 from pydub import AudioSegment
-from python_speech_features import mfcc
+from python_speech_features import mfcc, delta
 
 app = Flask(__name__)
 CORS(app) 
@@ -25,91 +25,111 @@ def log_memory_usage(stage=""):
     memory_mb = process.memory_info().rss / (1024 * 1024)
     print(f"--- MEMORY USAGE [{stage}]: {memory_mb:.2f} MB", flush=True)
 
-# НОВАЯ ФУНКЦИЯ: Обрезка тишины (пороговая)
 def trim_silence(audio_samples, threshold=0.02):
-    # threshold - уровень шума, ниже которого считаем тишиной
     magnitude = np.abs(audio_samples)
-    
-    # Ищем начало речи
+    if np.max(magnitude) < threshold:
+        return audio_samples # Слишком тихо, возвращаем как есть
+        
     start_idx = 0
     for i, sample in enumerate(magnitude):
         if sample > threshold:
             start_idx = i
             break
             
-    # Ищем конец речи
     end_idx = len(audio_samples)
     for i in range(len(magnitude) - 1, 0, -1):
         if magnitude[i] > threshold:
             end_idx = i + 1
             break
             
-    if end_idx <= start_idx:
-        return np.array([0.0], dtype=np.float32) # Если одна тишина
-        
     return audio_samples[start_idx:end_idx]
 
-def load_audio_lightweight(file_path, target_sr=16000, max_duration=10):
+def load_audio_smart(file_path, target_sr=16000):
+    # Загрузка
     audio = AudioSegment.from_file(file_path)
-    
-    # Приводим к формату
+    # Конвертация в моно и 16кгц
     audio = audio.set_channels(1).set_frame_rate(target_sr)
-    samples = np.array(audio.get_array_of_samples(), dtype=np.float32) / 32768.0
+    # В numpy array
+    samples = np.array(audio.get_array_of_samples(), dtype=np.float32)
     
-    # 1. Нормализация громкости (чтобы тихий голос был равен громкому видео)
-    max_val = np.max(np.abs(samples))
-    if max_val > 0:
-        samples = samples / max_val
-        
-    # 2. Обрезка тишины
-    samples = trim_silence(samples, threshold=0.05)
+    # Нормализация амплитуды (-1..1)
+    if np.max(np.abs(samples)) > 0:
+        samples = samples / np.max(np.abs(samples))
     
-    # 3. Обрезка по длительности (после удаления тишины)
-    max_len = int(max_duration * target_sr)
-    if len(samples) > max_len:
-        samples = samples[:max_len]
+    # Обрезка тишины
+    samples = trim_silence(samples, threshold=0.03)
+    
+    # Pre-emphasis filter (выделяет высокие частоты/согласные)
+    # y(t) = x(t) - 0.97 * x(t-1)
+    samples = np.append(samples[0], samples[1:] - 0.97 * samples[:-1])
     
     return samples, target_sr
 
+def get_rich_features(samples, sr):
+    # 1. Базовые MFCC (форманты голоса)
+    # nfft=512 (для 16кгц это 32мс окно)
+    mfcc_feat = mfcc(samples, sr, winlen=0.025, winstep=0.01, numcep=13, nfilt=26, nfft=512)
+    
+    # 2. Delta (скорость изменения звука)
+    d_mfcc_feat = delta(mfcc_feat, 2)
+    
+    # 3. Объединяем их в один большой вектор для каждого момента времени
+    # Теперь мы сравниваем не 13 чисел, а 26, учитывая динамику
+    combined = np.hstack((mfcc_feat, d_mfcc_feat))
+    
+    # 4. Z-Score Normalization (критически важно для DTW)
+    # Делаем так, чтобы среднее было 0, а отклонение 1. Убирает влияние громкости и тембра микрофона.
+    mean = np.mean(combined, axis=0)
+    std = np.std(combined, axis=0) + 1e-8 # защита от деления на 0
+    combined = (combined - mean) / std
+    
+    return combined
+
 def compare_pronunciation(original_file_path, user_file_path):
     try:
-        log_memory_usage("Start Comparison")
+        log_memory_usage("Start")
         TARGET_SR = 16000
         
-        original_audio, _ = load_audio_lightweight(original_file_path, target_sr=TARGET_SR)
-        user_audio, _ = load_audio_lightweight(user_file_path, target_sr=TARGET_SR)
+        # 1. Загрузка и очистка
+        orig_samples, _ = load_audio_smart(original_file_path, TARGET_SR)
+        user_samples, _ = load_audio_smart(user_file_path, TARGET_SR)
         
-        # ЛОГИРОВАНИЕ ДЛИТЕЛЬНОСТИ (СЕКУНДЫ)
-        orig_dur = len(original_audio) / TARGET_SR
-        user_dur = len(user_audio) / TARGET_SR
-        print(f"=== DEBUG: Original Duration: {orig_dur:.2f}s | User Duration: {user_dur:.2f}s ===", flush=True)
-
-        # Если файл пустой (одна тишина)
-        if len(user_audio) < 1000: 
-            return {"similarity": 0, "status": "success", "message": "Too silent"}
-
-        # ПРОВЕРКА НА РАЗНИЦУ В ДЛИНЕ
-        # Если длительность отличается более чем в 3 раза -> это точно не то слово
-        ratio = max(orig_dur, user_dur) / (min(orig_dur, user_dur) + 0.001)
-        if ratio > 3.0:
-            print(f"=== DEBUG: Duration mismatch mismatch ratio {ratio:.2f} ===", flush=True)
-            return {"similarity": 10, "status": "success"} # Штраф за длину
-
-        original_mfcc = mfcc(original_audio, TARGET_SR, winlen=0.025, winstep=0.01, numcep=13, nfilt=26)
-        user_mfcc = mfcc(user_audio, TARGET_SR, winlen=0.025, winstep=0.01, numcep=13, nfilt=26)
+        # Проверка длительности
+        orig_dur = len(orig_samples) / TARGET_SR
+        user_dur = len(user_samples) / TARGET_SR
+        print(f"=== DURATIONS: Orig={orig_dur:.2f}s, User={user_dur:.2f}s ===", flush=True)
         
-        distance, path = fastdtw(original_mfcc, user_mfcc, dist=euclidean)
-        
-        normalized_distance = distance / (len(original_mfcc) + len(user_mfcc))
-        
-        print(f"=== DEBUG: DISTANCE = {normalized_distance} ===", flush=True) 
+        if user_dur < 0.1:
+             return {"similarity": 0, "status": "success", "message": "Too short/silent"}
 
-        # НОВАЯ КАЛИБРОВКА (Строже)
-        # 0-30: Отлично
-        # 30-50: Нормально
-        # >50: Плохо
-        similarity = 100 * np.exp(-normalized_distance / 35)
+        # 2. Извлечение продвинутых признаков (MFCC + Delta + Norm)
+        orig_features = get_rich_features(orig_samples, TARGET_SR)
+        user_features = get_rich_features(user_samples, TARGET_SR)
+        
+        # 3. DTW
+        distance, path = fastdtw(orig_features, user_features, dist=euclidean)
+        
+        # Нормализация дистанции по длине пути
+        # Путь всегда длиннее или равен самому длинному сигналу
+        path_len = len(path)
+        if path_len == 0: path_len = 1
+        
+        normalized_distance = distance / path_len
+        
+        print(f"=== DISTANCE (Normalized) = {normalized_distance:.4f} ===", flush=True)
 
+        # 4. Расчет процента
+        # С новыми фичами (Z-score + Delta) дистанция будет вести себя иначе.
+        # Обычно:
+        # 0.0 - 0.3: Идеально
+        # 0.3 - 0.6: Хорошо
+        # 0.6 - 1.0: Средне
+        # > 1.0: Плохо
+        
+        # Экспоненциальная шкала для резкого падения на плохих звуках
+        # Коэффициент 0.5 подобран эмпирически для нормированных данных
+        similarity = 100 * np.exp(-normalized_distance / 0.65)
+        
         return {
             "similarity": round(similarity),
             "status": "success"
@@ -117,21 +137,15 @@ def compare_pronunciation(original_file_path, user_file_path):
         
     except Exception as e:
         import traceback
-        print("ERROR IN COMPARE:", flush=True)
         print(traceback.format_exc(), flush=True)
-        return {
-            "status": "error",
-            "message": str(e)
-        }
+        return {"status": "error", "message": str(e)}
 
 @app.route('/compare-audio', methods=['POST'])
 def compare_audio_files():
-    # ... ТОЧНО ТАКОЙ ЖЕ КОД КАК БЫЛ РАНЬШЕ ...
-    log_memory_usage("Request Start")
     if 'user_audio' not in request.files:
-        return jsonify({"status": "error", "message": "Файл 'user_audio' не найден"}), 400
+        return jsonify({"status": "error", "message": "No file"}), 400
     if 'original_video_url' not in request.form:
-        return jsonify({"status": "error", "message": "Параметр 'original_video_url' не найден"}), 400
+        return jsonify({"status": "error", "message": "No URL"}), 400
 
     user_file = request.files['user_audio']
     original_video_url = request.form['original_video_url']
@@ -145,23 +159,19 @@ def compare_audio_files():
 
     try:
         user_file.save(user_path)
-        
-        response = requests.get(original_video_url, stream=True)
-        response.raise_for_status()
+        r = requests.get(original_video_url, stream=True)
+        r.raise_for_status()
         with open(original_path, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
+            for chunk in r.iter_content(chunk_size=8192):
                 f.write(chunk)
         
         result = compare_pronunciation(original_path, user_path)
 
     except Exception as e:
-        print(f"GLOBAL ERROR: {e}", flush=True)
-        return jsonify({"status": "error", "message": f"Error: {e}"}), 500
+        return jsonify({"status": "error", "message": str(e)}), 500
     finally:
-        if os.path.exists(user_path):
-            os.remove(user_path)
-        if os.path.exists(original_path):
-            os.remove(original_path)
+        if os.path.exists(user_path): os.remove(user_path)
+        if os.path.exists(original_path): os.remove(original_path)
             
     return jsonify(result)
 
@@ -169,7 +179,7 @@ def compare_audio_files():
 def home():
     return "Server OK"
 
-# ... (ВСТАВИТЬ ВЕСЬ КОД ДЛЯ KOMORAN НИЖЕ) ...
+# ... (ВЕСЬ ОСТАЛЬНОЙ КОД ДЛЯ KOMORAN ВСТАВИТЬ НИЖЕ: patterns, analyze и т.д.) ...
 with open('patterns.json', encoding='utf-8') as f:
     patterns = json.load(f)
 
