@@ -2,3 +2,4 @@ Flask
 gunicorn
 konlpy
 flask-cors
+requests
