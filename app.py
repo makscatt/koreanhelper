@@ -14,7 +14,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 komoran = Komoran()
 
-# --- УЛУЧШЕННАЯ ФУНКЦИЯ СРАВНЕНИЯ ---
+# --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
 def normalize_text(text):
     """Удаляет пробелы и знаки препинания, оставляя только буквы/цифры"""
     return "".join(char for char in text if char.isalnum()).lower()
@@ -28,7 +28,7 @@ def similar(a, b):
     if not clean_a or not clean_b: return 0
     
     return SequenceMatcher(None, clean_a, clean_b).ratio() * 100
-# ------------------------------------
+# -------------------------------
 
 with open('patterns.json', encoding='utf-8') as f:
     patterns = json.load(f)
@@ -186,12 +186,14 @@ def analyze():
     js = json.dumps(payload, ensure_ascii=False)
     return Response(js, mimetype='application/json; charset=utf-8')
 
+# === ИЗМЕНЕННАЯ ФУНКЦИЯ COMPARE-AUDIO ===
 @app.route('/compare-audio', methods=['POST'])
 def compare_audio_files():
     if 'user_audio' not in request.files:
         return jsonify({"status": "error", "message": "No audio file"}), 400
     
-    reference_text = request.form.get('reference_text', '')
+    # 1. Получаем текст-эталон (для подсказки Whisper)
+    reference_text = request.form.get('reference_text', '').strip()
     user_file = request.files['user_audio']
     
     filename = "temp_whisper.webm"
@@ -202,13 +204,27 @@ def compare_audio_files():
             "Authorization": f"Bearer {OPENAI_API_KEY}"
         }
         
-        files = {
-            "file": (filename, open(filename, "rb"), "audio/webm"),
-            "model": (None, "whisper-1"),
-            "language": (None, "ko")
+        # 2. Формируем поля формы (data)
+        # prompt = reference_text сильно повышает точность
+        data_payload = {
+            "model": "whisper-1",
+            "language": "ko",
+            "prompt": reference_text 
+        }
+        
+        # 3. Формируем файлы (files)
+        files_payload = {
+            "file": (filename, open(filename, "rb"), "audio/webm")
         }
 
-        response = requests.post("https://api.openai.com/v1/audio/transcriptions", headers=headers, files=files)
+        # 4. Отправляем запрос (files + data)
+        response = requests.post(
+            "https://api.openai.com/v1/audio/transcriptions", 
+            headers=headers, 
+            files=files_payload, 
+            data=data_payload
+        )
+        
         data = response.json()
 
         if 'error' in data:
@@ -216,7 +232,7 @@ def compare_audio_files():
 
         user_text = data.get('text', '').strip()
         
-        # Используем улучшенную функцию сравнения
+        # 5. Сравниваем очищенный текст
         similarity = similar(reference_text, user_text)
 
         return jsonify({
@@ -233,7 +249,7 @@ def compare_audio_files():
 
 @app.route('/')
 def home():
-    return "Server Running (Komoran + Whisper)"
+    return "Server Running (Komoran + Whisper with Prompt)"
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
