@@ -14,8 +14,21 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 komoran = Komoran()
 
+# --- УЛУЧШЕННАЯ ФУНКЦИЯ СРАВНЕНИЯ ---
+def normalize_text(text):
+    """Удаляет пробелы и знаки препинания, оставляя только буквы/цифры"""
+    return "".join(char for char in text if char.isalnum()).lower()
+
 def similar(a, b):
-    return SequenceMatcher(None, a.lower(), b.lower()).ratio() * 100
+    clean_a = normalize_text(a)
+    clean_b = normalize_text(b)
+    
+    # Защита от пустых строк
+    if not clean_a and not clean_b: return 100
+    if not clean_a or not clean_b: return 0
+    
+    return SequenceMatcher(None, clean_a, clean_b).ratio() * 100
+# ------------------------------------
 
 with open('patterns.json', encoding='utf-8') as f:
     patterns = json.load(f)
@@ -203,6 +216,7 @@ def compare_audio_files():
 
         user_text = data.get('text', '').strip()
         
+        # Используем улучшенную функцию сравнения
         similarity = similar(reference_text, user_text)
 
         return jsonify({
