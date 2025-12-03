@@ -2,15 +2,20 @@ from flask import Flask, request, Response, jsonify
 from flask_cors import CORS
 from konlpy.tag import Komoran
 import json, re
+import os
+import requests
+from difflib import SequenceMatcher
 
 app = Flask(__name__)
 CORS(app)
 app.config['JSON_AS_ASCII'] = False
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
 komoran = Komoran()
 
-@app.route('/')
-def home():
-    return "Сервер для анализа грамматик работает!"
+def similar(a, b):
+    return SequenceMatcher(None, a.lower(), b.lower()).ratio() * 100
 
 with open('patterns.json', encoding='utf-8') as f:
     patterns = json.load(f)
@@ -167,6 +172,54 @@ def analyze():
     }
     js = json.dumps(payload, ensure_ascii=False)
     return Response(js, mimetype='application/json; charset=utf-8')
+
+@app.route('/compare-audio', methods=['POST'])
+def compare_audio_files():
+    if 'user_audio' not in request.files:
+        return jsonify({"status": "error", "message": "No audio file"}), 400
+    
+    reference_text = request.form.get('reference_text', '')
+    user_file = request.files['user_audio']
+    
+    filename = "temp_whisper.webm"
+    user_file.save(filename)
+
+    try:
+        headers = {
+            "Authorization": f"Bearer {OPENAI_API_KEY}"
+        }
+        
+        files = {
+            "file": (filename, open(filename, "rb"), "audio/webm"),
+            "model": (None, "whisper-1"),
+            "language": (None, "ko")
+        }
+
+        response = requests.post("https://api.openai.com/v1/audio/transcriptions", headers=headers, files=files)
+        data = response.json()
+
+        if 'error' in data:
+            return jsonify({"status": "error", "message": data['error']['message']}), 500
+
+        user_text = data.get('text', '').strip()
+        
+        similarity = similar(reference_text, user_text)
+
+        return jsonify({
+            "status": "success",
+            "similarity": round(similarity),
+            "user_text": user_text 
+        })
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        if os.path.exists(filename):
+            os.remove(filename)
+
+@app.route('/')
+def home():
+    return "Server Running (Komoran + Whisper)"
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
