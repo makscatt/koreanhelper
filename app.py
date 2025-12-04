@@ -11,6 +11,34 @@ app.config['JSON_AS_ASCII'] = False
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
+# === ПАРОЛЬ АДМИНИСТРАТОРА ДЛЯ ОБНОВЛЕНИЯ КЭША ===
+ADMIN_SECRET = "my_super_secret_password_123"
+
+# === НАСТРОЙКА КЭША ===
+CACHE_FILE = '/data/cache.json' if os.path.exists('/data') else 'cache.json'
+
+def load_cache():
+    if os.path.exists(CACHE_FILE):
+        try:
+            with open(CACHE_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Ошибка чтения кэша: {e}")
+            return {}
+    return {}
+
+def save_cache(new_data):
+    try:
+        current_cache = load_cache()
+        current_cache.update(new_data)
+        with open(CACHE_FILE, 'w', encoding='utf-8') as f:
+            json.dump(current_cache, f, ensure_ascii=False, indent=4)
+    except Exception as e:
+        print(f"Ошибка записи кэша: {e}")
+
+# Загрузка кэша в память при старте
+analysis_cache = load_cache()
+
 COLOR_MAP = {
     "noun": "#4A90E2",      
     "verb": "#D0021B",      
@@ -32,13 +60,29 @@ def similar(a, b):
     if not clean_a or not clean_b: return 0
     return SequenceMatcher(None, clean_a, clean_b).ratio() * 100
 
+# === ЭНДПОИНТ АНАЛИЗА ТЕКСТА (GPT) ===
 @app.route('/analyze', methods=['POST'])
 def analyze():
     data = request.get_json()
-    text = data.get('text', '')
+    text = data.get('text', '').strip()
+    
+    force_update = data.get('force', False)
+    secret_key = data.get('secret', '')
 
     if not text:
         return jsonify({"tokens": [], "grammar_matches": []})
+
+    is_admin_request = force_update and (secret_key == ADMIN_SECRET)
+    
+    # Если есть в кэше и не просят обновить принудительно - отдаем из кэша
+    if text in analysis_cache and not is_admin_request:
+        print(f"Cache HIT: {text}")
+        return jsonify(analysis_cache[text])
+
+    if is_admin_request:
+        print(f"Force Update Requested for: {text}")
+    else:
+        print(f"Cache MISS: Requesting GPT for {text}")
 
     system_prompt = f"""
     Ты профессиональный преподаватель корейского языка. Сделай разбор предложения для JSON API.
@@ -111,15 +155,22 @@ def analyze():
                 "example": g["example"]
             })
 
-        return jsonify({
+        final_response = {
             "tokens": client_tokens,
             "grammar_matches": client_grammar
-        })
+        }
+
+        # Сохраняем в память и файл
+        analysis_cache[text] = final_response
+        save_cache({text: final_response})
+
+        return jsonify(final_response)
 
     except Exception as e:
         print(f"Server Error: {e}")
         return jsonify({"tokens": [], "grammar_matches": [{"pattern": "Ошибка", "meaning": str(e), "example": ""}]}), 500
 
+# === ЭНДПОИНТ АНАЛИЗА АУДИО (WHISPER) ===
 @app.route('/compare-audio', methods=['POST'])
 def compare_audio_files():
     if 'user_audio' not in request.files:
@@ -175,7 +226,7 @@ def compare_audio_files():
 
 @app.route('/')
 def home():
-    return "Server Running (GPT-5 + Whisper)"
+    return "Server Running (Analize + Audio)"
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
