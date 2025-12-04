@@ -1,8 +1,7 @@
-from flask import Flask, request, Response, jsonify
+from flask import Flask, request, jsonify
 from flask_cors import CORS
-from konlpy.tag import Komoran
-import json, re
 import os
+import json
 import requests
 from difflib import SequenceMatcher
 
@@ -12,187 +11,120 @@ app.config['JSON_AS_ASCII'] = False
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-komoran = Komoran()
+COLOR_MAP = {
+    "noun": "#4A90E2",      
+    "verb": "#D0021B",      
+    "adj": "#F5A623",       
+    "particle": "#9013FE",  
+    "ending": "#50E3C2",    
+    "adverb": "#B8E986",    
+    "number": "#BD10E0",    
+    "other": "#4A4A4A"      
+}
 
-# --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
 def normalize_text(text):
-    """Удаляет пробелы и знаки препинания, оставляя только буквы/цифры"""
     return "".join(char for char in text if char.isalnum()).lower()
 
 def similar(a, b):
     clean_a = normalize_text(a)
     clean_b = normalize_text(b)
-    
-    # Защита от пустых строк
     if not clean_a and not clean_b: return 100
     if not clean_a or not clean_b: return 0
-    
     return SequenceMatcher(None, clean_a, clean_b).ratio() * 100
-# -------------------------------
-
-with open('patterns.json', encoding='utf-8') as f:
-    patterns = json.load(f)
-with open('colors.json', encoding='utf-8') as f:
-    colors_data = json.load(f)
-
-combined_colors = colors_data.get('COMBINED', {})
-multi_token_colors = colors_data.get('MULTI', {})
-word_colors = colors_data.get('WORDS', {})
-pos_colors = colors_data.get('POS', {})
-
-with open('komoran_corrections.json', encoding='utf-8') as f:
-    komoran_fixes = json.load(f)
-with open('komoran_split_rules.json', encoding='utf-8') as f:
-    komoran_split_rules = json.load(f)
-with open('komoran_surface_overrides.json', encoding='utf-8') as f:
-    surface_overrides = {k: [tuple(x) for x in v] for k, v in json.load(f).items()}
-
-def pos_or_override(txt: str):
-    key = txt.strip()
-    if key in surface_overrides:
-        return surface_overrides[key]
-    return komoran.pos(txt)
-
-def fix_komoran(tokens):
-    fixed = []
-    i = 0
-    while i < len(tokens):
-        replaced = False
-        word, pos = tokens[i]
-        for rule in komoran_split_rules:
-            if re.match(rule['regex'], f"{word}/{pos}"):
-                parts = word.split()
-                if len(parts) != 2:
-                    break
-                left, right = parts[0], parts[1]
-                if left.endswith('은'):
-                    stem = left[:-1]
-                    modifier = '은'
-                elif left.endswith('ㄴ'):
-                    stem = left[:-1]
-                    modifier = 'ㄴ'
-                else:
-                    break
-                fixed_entry = []
-                for w, p in rule['split']:
-                    if w == "{adj_stem}":
-                        w = stem
-                    elif w == "{modifier}":
-                        w = modifier
-                    elif w == "{noun}":
-                        w = right
-                    fixed_entry.append([w, p])
-                fixed.extend(fixed_entry)
-                i += 1
-                replaced = True
-                break
-        for n in [4, 3, 2, 1]:
-            if i + n <= len(tokens):
-                key = ' '.join(f"{w}/{p}" for w, p in tokens[i:i + n])
-                if key in komoran_fixes:
-                    fixed.extend(komoran_fixes[key])
-                    i += n
-                    replaced = True
-                    break
-        if not replaced:
-            fixed.append(tokens[i])
-            i += 1
-    return fixed
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
     data = request.get_json()
     text = data.get('text', '')
-    
-    parsed_for_grammar = pos_or_override(text)
-    route = ' '.join(f'{word}/{pos}' for word, pos in parsed_for_grammar)
-    tokens_raw = parsed_for_grammar
-    tokens_with_stems = fix_komoran(tokens_raw)
-    route = ' '.join(f'{word}/{pos}' for word, pos in tokens_with_stems)
 
-    def get_combined_color(word, pos):
-        key = f"{word}/{pos}"
-        for pattern, color in combined_colors.items():
-            if re.fullmatch(pattern, key):
-                return color
-        return word_colors.get(word, pos_colors.get(pos, "#000000"))
+    if not text:
+        return jsonify({"tokens": [], "grammar_matches": []})
 
-    def get_multitoken_colors(route, tokens):
-        match_spans = []
-        for pattern, color in multi_token_colors.items():
-            if ' ' in pattern:
-                for m in re.finditer(pattern, route):
-                    char_start = m.start()
-                    char_end = m.end()
-                    token_positions = []
-                    cursor = 0
-                    for i, tok in enumerate(tokens):
-                        token_str = f"{tok[0]}/{tok[1]}"
-                        if cursor == char_start:
-                            start_idx = i
-                        cursor += len(token_str)
-                        if cursor >= char_end:
-                            end_idx = i
-                            break
-                        cursor += 1
-                    match_spans.append((start_idx, end_idx, color))
-        return match_spans
+    system_prompt = f"""
+    Ты профессиональный преподаватель корейского языка. Сделай разбор предложения для JSON API.
+    Входящее предложение: "{text}"
 
-    colored_tokens = []
-    multi_color_ranges = get_multitoken_colors(route, tokens_with_stems)
+    Инструкции:
+    1. Переведи на русский.
+    2. Разбей на токены. "pos_type" выбери строго из: ["noun", "verb", "adj", "particle", "ending", "adverb", "number", "other"].
+    3. Найди грамматику.
 
-    for i, (w, p) in enumerate(tokens_with_stems):
-        color = get_combined_color(w, p)
-        for start, end, group_color in multi_color_ranges:
-            if start <= i <= end:
-                color = group_color
-                break
-        colored_tokens.append({
-            "word": w,
-            "pos": p,
-            "color": color
+    ОТВЕТЬ ТОЛЬКО ВАЛИДНЫМ JSON:
+    {{
+      "translation": "перевод предложения",
+      "tokens": [
+        {{ "token": "фрагмент", "pos_type": "тип", "meaning": "значение слова" }}
+      ],
+      "grammar": [
+        {{ "pattern": "формула", "explanation": "объяснение", "example": "пример" }}
+      ]
+    }}
+    """
+
+    try:
+        response = requests.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
+            json={
+                "model": "gpt-5-chat-latest",
+                "messages": [{"role": "system", "content": system_prompt}],
+                "temperature": 0.2
+            }
+        )
+        
+        gpt_data = response.json()
+        
+        if 'error' in gpt_data:
+            print("OpenAI Error:", gpt_data['error'])
+            return jsonify({"tokens": [], "grammar_matches": [{"pattern": "Ошибка", "meaning": "API Error", "example": ""}]})
+
+        content_str = gpt_data['choices'][0]['message']['content']
+        
+        if content_str.startswith("```"):
+            content_str = content_str.strip("`").replace("json", "").strip()
+            
+        result_json = json.loads(content_str)
+
+        client_tokens = []
+        for t in result_json.get("tokens", []):
+            color = COLOR_MAP.get(t.get("pos_type"), "#000000")
+            client_tokens.append({
+                "word": t["token"],
+                "pos": t["meaning"], 
+                "color": color
+            })
+
+        client_grammar = []
+        
+        translation = result_json.get("translation", "")
+        if translation:
+            client_grammar.append({
+                "pattern": "ПЕРЕВОД",
+                "meaning": translation,
+                "example": ""
+            })
+
+        for g in result_json.get("grammar", []):
+            client_grammar.append({
+                "pattern": g["pattern"],
+                "meaning": g["explanation"],
+                "example": g["example"]
+            })
+
+        return jsonify({
+            "tokens": client_tokens,
+            "grammar_matches": client_grammar
         })
 
-    final_matches = []
-    occupied_spans = []
+    except Exception as e:
+        print(f"Server Error: {e}")
+        return jsonify({"tokens": [], "grammar_matches": [{"pattern": "Ошибка", "meaning": str(e), "example": ""}]}), 500
 
-    for pat in patterns:
-        if pat.get('regex_text'):
-            for m in re.finditer(pat['regex_text'], route):
-                new_start, new_end = m.start(), m.end()
-                is_subpattern = False
-                for start, end in occupied_spans:
-                    if new_start >= start and new_end <= end:
-                        is_subpattern = True
-                        break
-                if not is_subpattern:
-                    final_matches.append({
-                        'id': pat['id'],
-                        'pattern': pat['pattern'],
-                        'meaning': pat['meaning'],
-                        'example': pat['example'],
-                        'start': new_start
-                    })
-                    occupied_spans.append((new_start, new_end))
-
-    final_matches.sort(key=lambda x: x['start'])
-    for m in final_matches:
-        m.pop('start')
-
-    payload = {
-        'tokens':           colored_tokens,
-        'grammar_matches':  final_matches
-    }
-    js = json.dumps(payload, ensure_ascii=False)
-    return Response(js, mimetype='application/json; charset=utf-8')
-
-# === ИЗМЕНЕННАЯ ФУНКЦИЯ COMPARE-AUDIO ===
 @app.route('/compare-audio', methods=['POST'])
 def compare_audio_files():
     if 'user_audio' not in request.files:
         return jsonify({"status": "error", "message": "No audio file"}), 400
     
-    # 1. Получаем текст-эталон (для подсказки Whisper)
     reference_text = request.form.get('reference_text', '').strip()
     user_file = request.files['user_audio']
     
@@ -204,20 +136,16 @@ def compare_audio_files():
             "Authorization": f"Bearer {OPENAI_API_KEY}"
         }
         
-        # 2. Формируем поля формы (data)
-        # prompt = reference_text сильно повышает точность
         data_payload = {
             "model": "whisper-1",
             "language": "ko",
             "prompt": reference_text 
         }
         
-        # 3. Формируем файлы (files)
         files_payload = {
             "file": (filename, open(filename, "rb"), "audio/webm")
         }
 
-        # 4. Отправляем запрос (files + data)
         response = requests.post(
             "https://api.openai.com/v1/audio/transcriptions", 
             headers=headers, 
@@ -231,8 +159,6 @@ def compare_audio_files():
             return jsonify({"status": "error", "message": data['error']['message']}), 500
 
         user_text = data.get('text', '').strip()
-        
-        # 5. Сравниваем очищенный текст
         similarity = similar(reference_text, user_text)
 
         return jsonify({
@@ -249,7 +175,7 @@ def compare_audio_files():
 
 @app.route('/')
 def home():
-    return "Server Running (Komoran + Whisper with Prompt)"
+    return "Server Running (GPT-5 + Whisper)"
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
