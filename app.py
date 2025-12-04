@@ -235,36 +235,7 @@ def compare_audio_files():
 def home():
     return "Server Running (Analize + Audio)"
 
-# === НАСТРОЙКИ TELEGRAM ===
-TG_BOT_TOKEN = "7828959849:AAEWW1imJPB_7GaB2S8P62060JP5DcVqtC0"  # Вставь сюда токен
-TG_ADMIN_ID = "910912532"             # Вставь сюда цифры ID
 
-@app.route('/report', methods=['POST'])
-def report_error():
-    data = request.get_json()
-    text = data.get('text', 'Нет текста')
-    comment = data.get('comment', 'Без комментария')
-
-    # Формируем сообщение для тебя
-    message = (
-        f"🚨 <b>Репорт об ошибке!</b>\n\n"
-        f"🇰🇷 <b>Предложение:</b>\n{text}\n\n"
-        f"💬 <b>Комментарий:</b>\n{comment}"
-    )
-
-    # Отправляем в Телеграм
-    try:
-        url = f"https://api.telegram.org/bot{TG_BOT_TOKEN}/sendMessage"
-        payload = {
-            "chat_id": TG_ADMIN_ID,
-            "text": message,
-            "parse_mode": "HTML"
-        }
-        requests.post(url, json=payload)
-        return jsonify({"status": "sent"})
-    except Exception as e:
-        print(f"TG Error: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
