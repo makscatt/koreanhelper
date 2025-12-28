@@ -50,15 +50,49 @@ COLOR_MAP = {
     "other": "#4A4A4A"      
 }
 
+# === БЛОК ОБРАБОТКИ КОРЕЙСКОГО ТЕКСТА ===
+
+# Списки букв для разбора (Jamo)
+CHOSUNG_LIST = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ']
+JUNGSUNG_LIST = ['ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ']
+JONGSUNG_LIST = ['', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ']
+
+def decompose_hangul(text):
+    result = ""
+    for char in text:
+        code = ord(char)
+        # Проверка: это корейский слог? (диапазон Unicode AC00-D7A3)
+        if 0xAC00 <= code <= 0xD7A3:
+            code -= 0xAC00
+            jong = code % 28
+            jung = (code // 28) % 21
+            cho = (code // 28) // 21
+            
+            result += CHOSUNG_LIST[cho] + JUNGSUNG_LIST[jung]
+            if jong > 0:
+                result += JONGSUNG_LIST[jong]
+        else:
+            result += char
+    return result
+
 def normalize_text(text):
+    # Убираем все кроме букв и цифр, переводим в нижний регистр
     return "".join(char for char in text if char.isalnum()).lower()
 
-def similar(a, b):
-    clean_a = normalize_text(a)
-    clean_b = normalize_text(b)
-    if not clean_a and not clean_b: return 100
-    if not clean_a or not clean_b: return 0
-    return SequenceMatcher(None, clean_a, clean_b).ratio() * 100
+def similar(reference, user_input):
+    # 1. Сначала пробуем прямое сравнение
+    clean_ref = normalize_text(reference)
+    clean_usr = normalize_text(user_input)
+    
+    if not clean_ref and not clean_usr: return 100
+    if not clean_ref or not clean_usr: return 0
+    
+    # 2. Если прямое сравнение дает низкий результат, разбираем на буквы (Jamo)
+    # Это спасает "밥" vs "바" (66% match) или "감사" vs "암사" (75% match)
+    decomp_ref = decompose_hangul(clean_ref)
+    decomp_usr = decompose_hangul(clean_usr)
+    
+    return SequenceMatcher(None, decomp_ref, decomp_usr).ratio() * 100
 
 # === ЭНДПОИНТ АНАЛИЗА ТЕКСТА (GPT) ===
 @app.route('/analyze', methods=['POST'])
