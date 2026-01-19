@@ -241,6 +241,51 @@ def chat_endpoint():
         return jsonify({"reply": "Ошибка на сервере."}), 500
 # --- КОНЕЦ ИСПРАВЛЕНИЙ ---
 
+# --- НОВЫЙ ЭНДПОИНТ ДЛЯ ЧИСТОГО РАСПОЗНАВАНИЯ ГОЛОСА ---
+@app.route('/transcribe', methods=['POST'])
+def transcribe_audio():
+    if 'user_audio' not in request.files:
+        return jsonify({"error": "No file"}), 400
+    
+    user_file = request.files['user_audio']
+    filename = "temp_chat_voice.webm"
+    user_file.save(filename)
+
+    try:
+        # Используем requests, как и везде в твоем коде
+        headers = { "Authorization": f"Bearer {OPENAI_API_KEY}" }
+        
+        data_payload = {
+            "model": "whisper-1",
+            "language": "ko" # Корейский язык
+        }
+        
+        files_payload = {
+            "file": (filename, open(filename, "rb"), "audio/webm")
+        }
+
+        response = requests.post(
+            "https://api.openai.com/v1/audio/transcriptions", 
+            headers=headers, 
+            files=files_payload, 
+            data=data_payload
+        )
+        
+        data = response.json()
+
+        if 'error' in data:
+            print("Whisper Error:", data)
+            return jsonify({"text": ""}), 500
+
+        return jsonify({"text": data.get('text', '')})
+
+    except Exception as e:
+        print(f"Transcribe Error: {e}")
+        return jsonify({"text": ""}), 500
+    finally:
+        if os.path.exists(filename):
+            os.remove(filename)
+
 @app.route('/compare-audio', methods=['POST'])
 def compare_audio_files():
     if 'user_audio' not in request.files:
