@@ -7,7 +7,9 @@ from difflib import SequenceMatcher
 import re
 
 app = Flask(__name__)
-CORS(app)
+
+# --- ИСПРАВЛЕНИЕ 1: Разрешаем доступ отовсюду (фикс CORS) ---
+CORS(app, resources={r"/*": {"origins": "*"}})
 app.config['JSON_AS_ASCII'] = False
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -183,6 +185,61 @@ def analyze():
 
     except Exception as e:
         return jsonify({"tokens": [], "grammar_matches": [{"pattern": "Error", "meaning": str(e), "example": ""}]}), 500
+
+# --- ИСПРАВЛЕНИЕ 2: Новая функция чата с поддержкой OPTIONS и логами ---
+@app.route('/chat', methods=['POST', 'OPTIONS'])
+def chat_endpoint():
+    # Хак для браузера: если он спрашивает "можно?", говорим "можно"
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response, 200
+
+    data = request.get_json()
+    messages = data.get('messages', [])
+
+    if not messages:
+        return jsonify({"reply": "Ошибка: Нет сообщений"}), 400
+
+    print(f"DEBUG CHAT: received {len(messages)} messages")
+
+    try:
+        # Проверяем ключ API
+        if not OPENAI_API_KEY:
+            print("ERROR: API Key is missing on Server!")
+            return jsonify({"reply": "Ошибка сервера: Нет ключа API"}), 500
+
+        # Запрос к OpenAI
+        response = requests.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
+            json={
+                "model": "gpt-4o-mini", # Дешевая модель
+                "messages": messages,
+                "max_tokens": 200,
+                "temperature": 0.7
+            }
+        )
+        
+        gpt_data = response.json()
+
+        if 'error' in gpt_data:
+            print("OpenAI Error:", gpt_data)
+            return jsonify({"reply": f"Ошибка OpenAI: {gpt_data['error']['message']}"}), 500
+
+        reply_text = gpt_data['choices'][0]['message']['content']
+        
+        # Явно добавляем заголовки CORS к ответу (для надежности)
+        response = jsonify({"reply": reply_text})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+
+    except Exception as e:
+        print(f"Server Exception: {e}")
+        return jsonify({"reply": "Ошибка на сервере."}), 500
+# --- КОНЕЦ ИСПРАВЛЕНИЙ ---
 
 @app.route('/compare-audio', methods=['POST'])
 def compare_audio_files():
