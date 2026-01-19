@@ -198,7 +198,7 @@ def compare_audio_files():
     try:
         headers = { "Authorization": f"Bearer {OPENAI_API_KEY}" }
         
-        prompt_context = f"This is a korean language lesson. The student is saying the word: {reference_text}."
+        prompt_context = f"한국어 받아쓰기입니다. 정답을 한글로만 쓰세요. 단어: {reference_text}"
 
         data_payload = {
             "model": "whisper-1",
