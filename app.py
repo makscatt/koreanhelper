@@ -348,5 +348,35 @@ def compare_audio_files():
 def home():
     return "Server Running"
 
+@app.route('/translate_text', methods=['POST'])
+def translate_text():
+    data = request.get_json()
+    text = data.get('text', '')
+    
+    if not text:
+        return jsonify({"translation": ""})
+
+    try:
+        response = requests.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
+            json={
+                "model": "gpt-4o-mini",
+                "messages": [
+                    {"role": "system", "content": "Ты переводчик. Переведи этот корейский текст на русский язык максимально точно и естественно. Верни ТОЛЬКО перевод."},
+                    {"role": "user", "content": text}
+                ],
+                "max_tokens": 200
+            }
+        )
+        gpt_data = response.json()
+        translation = gpt_data['choices'][0]['message']['content'].strip()
+        
+        return jsonify({"translation": translation})
+
+    except Exception as e:
+        print(f"Translate error: {e}")
+        return jsonify({"translation": "Ошибка перевода"}), 500
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
