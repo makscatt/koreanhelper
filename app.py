@@ -378,5 +378,38 @@ def translate_text():
         print(f"Translate error: {e}")
         return jsonify({"translation": "Ошибка перевода"}), 500
 
+@app.route('/tts', methods=['POST'])
+def text_to_speech():
+    data = request.get_json()
+    text = data.get('text', '')
+    voice_type = data.get('voice', 'echo') # alloy, echo, fable, onyx, nova, shimmer
+
+    if not text:
+        return jsonify({"error": "No text provided"}), 400
+
+    try:
+        headers = {
+            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "model": "tts-1",
+            "input": text,
+            "voice": voice_type
+        }
+
+        response = requests.post("https://api.openai.com/v1/audio/speech", json=payload, headers=headers)
+        
+        if response.status_code != 200:
+            return jsonify({"error": "OpenAI Error"}), 500
+
+        # Возвращаем аудиофайл напрямую
+        return response.content, 200, {'Content-Type': 'audio/mpeg'}
+
+    except Exception as e:
+        print(f"TTS Error: {e}")
+        return jsonify({"error": str(e)}), 500        
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
