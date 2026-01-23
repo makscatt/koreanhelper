@@ -382,7 +382,7 @@ def translate_text():
 def text_to_speech():
     data = request.get_json()
     text = data.get('text', '')
-    voice_type = data.get('voice', 'echo') # alloy, echo, fable, onyx, nova, shimmer
+    voice_type = data.get('voice', 'echo') 
 
     if not text:
         return jsonify({"error": "No text provided"}), 400
@@ -394,9 +394,10 @@ def text_to_speech():
         }
         
         payload = {
-            "model": "tts-1",
+            "model": "tts-1-hd",   # Включаем HD качество (живее звучание)
             "input": text,
-            "voice": voice_type
+            "voice": voice_type,
+            "speed": 0.9           # Скорость: 1.0 = норма, 0.9 = чуть медленнее
         }
 
         response = requests.post("https://api.openai.com/v1/audio/speech", json=payload, headers=headers)
@@ -404,7 +405,6 @@ def text_to_speech():
         if response.status_code != 200:
             return jsonify({"error": "OpenAI Error"}), 500
 
-        # Возвращаем аудиофайл напрямую
         return response.content, 200, {'Content-Type': 'audio/mpeg'}
 
     except Exception as e:
