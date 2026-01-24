@@ -195,6 +195,43 @@ def analyze():
     except Exception as e:
         return jsonify({"tokens": [], "grammar_matches": [{"pattern": "Error", "meaning": str(e), "example": ""}]}), 500
 
+@app.route('/report-issue', methods=['POST'])
+def report_issue():
+    data = request.get_json()
+    
+    user_info = data.get('user_info', 'Неизвестный')
+    block_key = data.get('block', 'Не определен')
+    word_kr = data.get('korean', '?')
+    word_ru = data.get('russian', '?')
+    video_id = data.get('video_id', '?')
+    
+    # Формируем сообщение
+    message = (
+        f"🚨 <b>СООБЩЕНИЕ ОБ ОШИБКЕ</b>\n\n"
+        f"👤 <b>Пользователь:</b> {user_info}\n"
+        f"📂 <b>Раздел:</b> {block_key}\n"
+        f"🇰🇷 <b>Слово:</b> {word_kr}\n"
+        f"🇷🇺 <b>Перевод:</b> {word_ru}\n"
+        f"📹 <b>Видео файл:</b> {video_id}\n"
+    )
+
+    TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN") or "ВАШ_ТОКЕН_БОТА"
+    ADMIN_CHAT_ID = "910912532" 
+
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        'chat_id': ADMIN_CHAT_ID,
+        'text': message,
+        'parse_mode': 'HTML'
+    }
+
+    try:
+        requests.post(url, json=payload)
+        return jsonify({"status": "success"})
+    except Exception as e:
+        print(f"Report error: {e}")
+        return jsonify({"status": "error"}), 500    
+
 # --- ИСПРАВЛЕНИЕ 2: Новая функция чата с поддержкой OPTIONS и логами ---
 @app.route('/chat', methods=['POST', 'OPTIONS'])
 def chat_endpoint():
