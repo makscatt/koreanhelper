@@ -202,23 +202,31 @@ def report_issue():
     user_info = data.get('user_info', 'Неизвестный')
     block_key = data.get('block', 'Не определен')
     word_kr = data.get('korean', '?')
-    word_ru = data.get('russian', '?')
     video_id = data.get('video_id', '?')
     
+    # Получаем текст анализа, который видел пользователь
+    ai_context = data.get('ai_context', 'Нет данных анализа')
+    
     # Формируем сообщение
+    # <pre> сохранит форматирование текста анализа
     message = (
         f"🚨 <b>СООБЩЕНИЕ ОБ ОШИБКЕ</b>\n\n"
         f"👤 <b>Пользователь:</b> {user_info}\n"
         f"📂 <b>Раздел:</b> {block_key}\n"
-        f"🇰🇷 <b>Слово:</b> {word_kr}\n"
-        f"🇷🇺 <b>Перевод:</b> {word_ru}\n"
-        f"📹 <b>Видео файл:</b> {video_id}\n"
+        f"🇰🇷 <b>Слово (база):</b> {word_kr}\n"
+        f"📹 <b>Видео:</b> {video_id}\n\n"
+        f"🤖 <b>Что выдал ИИ (экран):</b>\n"
+        f"<pre>{ai_context}</pre>"
     )
 
-    TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN") or "ВАШ_ТОКЕН_БОТА"
+    # Токен вашего СПЕЦИАЛЬНОГО бота для ошибок
+    ERROR_BOT_TOKEN = os.getenv("ERROR_BOT_TOKEN")
     ADMIN_CHAT_ID = "910912532" 
 
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    if not ERROR_BOT_TOKEN:
+        return jsonify({"status": "error", "message": "No token"}), 500
+
+    url = f"https://api.telegram.org/bot{ERROR_BOT_TOKEN}/sendMessage"
     payload = {
         'chat_id': ADMIN_CHAT_ID,
         'text': message,
@@ -230,7 +238,7 @@ def report_issue():
         return jsonify({"status": "success"})
     except Exception as e:
         print(f"Report error: {e}")
-        return jsonify({"status": "error"}), 500    
+        return jsonify({"status": "error"}), 500   
 
 # --- ИСПРАВЛЕНИЕ 2: Новая функция чата с поддержкой OPTIONS и логами ---
 @app.route('/chat', methods=['POST', 'OPTIONS'])
