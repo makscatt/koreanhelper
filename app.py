@@ -90,6 +90,9 @@ def analyze():
     text = data.get('text', '').strip()
     force_update = data.get('force', False)
     secret_key = data.get('secret', '')
+    
+    # 1. Получаем промпт (если его нет, будет пустая строка)
+    custom_prompt = data.get('prompt', '').strip()
 
     if not text:
         return jsonify({"tokens": [], "grammar_matches": []})
@@ -99,6 +102,7 @@ def analyze():
     if text in analysis_cache and not is_admin_request:
         return jsonify(analysis_cache[text])
 
+    # Базовая инструкция
     system_prompt = f"""
     Ты — лучший преподаватель корейского языка. Твоя задача — сделать разбор для JSON API.
     Входящее предложение: "{text}"
@@ -126,6 +130,10 @@ def analyze():
       ]
     }}
     """
+
+    # 2. Если есть дополнительный промпт от админа — добавляем его в конец
+    if custom_prompt:
+        system_prompt += f"\n\nВАЖНОЕ УТОЧНЕНИЕ ОТ ПОЛЬЗОВАТЕЛЯ:\n{custom_prompt}\nОбязательно учти этот контекст или исправление при анализе!"
 
     try:
         response = requests.post(
@@ -178,6 +186,7 @@ def analyze():
             "grammar_matches": client_grammar
         }
 
+        # Обновляем кэш новым результатом
         analysis_cache[text] = final_response
         save_cache({text: final_response})
 
@@ -397,7 +406,7 @@ def text_to_speech():
             "model": "tts-1-hd",   # Включаем HD качество (живее звучание)
             "input": text,
             "voice": voice_type,
-            "speed": 0.9           # Скорость: 1.0 = норма, 0.9 = чуть медленнее
+            "speed": 1.0           # Скорость: 1.0 = норма, 0.9 = чуть медленнее
         }
 
         response = requests.post("https://api.openai.com/v1/audio/speech", json=payload, headers=headers)
