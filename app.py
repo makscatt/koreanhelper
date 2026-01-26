@@ -304,23 +304,13 @@ def transcribe_audio():
     user_file = request.files['user_audio']
     filename = "temp_chat_voice.webm"
     user_file.save(filename)
-    
-    # Получаем язык от клиента
-    requested_lang = request.form.get('lang', 'ko')
-
-    # СТРОГОЕ ОГРАНИЧЕНИЕ: Только 'ru' или 'ko'.
-    # Если придет любой другой код, принудительно ставим 'ko'.
-    if requested_lang == 'ru':
-        target_lang = 'ru'
-    else:
-        target_lang = 'ko'
 
     try:
         headers = { "Authorization": f"Bearer {OPENAI_API_KEY}" }
         
         data_payload = {
             "model": "whisper-1",
-            "language": target_lang
+            "response_format": "verbose_json"
         }
         
         files_payload = {
@@ -340,7 +330,13 @@ def transcribe_audio():
             print("Whisper Error:", data)
             return jsonify({"text": ""}), 500
 
-        return jsonify({"text": data.get('text', '')})
+        detected_lang = data.get('language', '').lower()
+        text = data.get('text', '')
+
+        if detected_lang not in ['russian', 'korean']:
+            return jsonify({"text": ""})
+
+        return jsonify({"text": text})
 
     except Exception as e:
         print(f"Transcribe Error: {e}")
