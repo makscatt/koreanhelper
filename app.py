@@ -306,11 +306,12 @@ def transcribe_audio():
     user_file.save(filename)
 
     try:
+        # Используем requests, как и везде в твоем коде
         headers = { "Authorization": f"Bearer {OPENAI_API_KEY}" }
         
         data_payload = {
             "model": "whisper-1",
-            "response_format": "verbose_json"
+            "language": "ko" # Корейский язык
         }
         
         files_payload = {
@@ -330,13 +331,7 @@ def transcribe_audio():
             print("Whisper Error:", data)
             return jsonify({"text": ""}), 500
 
-        detected_lang = data.get('language', '').lower()
-        text = data.get('text', '')
-
-        if detected_lang not in ['russian', 'korean']:
-            return jsonify({"text": ""})
-
-        return jsonify({"text": text})
+        return jsonify({"text": data.get('text', '')})
 
     except Exception as e:
         print(f"Transcribe Error: {e}")
