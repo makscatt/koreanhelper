@@ -304,14 +304,23 @@ def transcribe_audio():
     user_file = request.files['user_audio']
     filename = "temp_chat_voice.webm"
     user_file.save(filename)
+    
+    # Получаем язык от клиента
+    requested_lang = request.form.get('lang', 'ko')
+
+    # СТРОГОЕ ОГРАНИЧЕНИЕ: Только 'ru' или 'ko'.
+    # Если придет любой другой код, принудительно ставим 'ko'.
+    if requested_lang == 'ru':
+        target_lang = 'ru'
+    else:
+        target_lang = 'ko'
 
     try:
-        # Используем requests, как и везде в твоем коде
         headers = { "Authorization": f"Bearer {OPENAI_API_KEY}" }
         
         data_payload = {
             "model": "whisper-1",
-            "language": "ko" # Корейский язык
+            "language": target_lang
         }
         
         files_payload = {
