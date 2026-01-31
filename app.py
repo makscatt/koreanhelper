@@ -340,6 +340,27 @@ def transcribe_audio():
         if os.path.exists(filename):
             os.remove(filename)
 
+def clean_whisper_hallucinations(text, target_word):
+    # Фразы-паразиты, которые Whisper любит добавлять
+    garbage_phrases = [
+        "정답은", "정답", "입니다", "이에요", "예요", "단어", 
+        "라고", "합니다", "쓰세요", "한글로만", "문제", "답", ".", "!"
+    ]
+    
+    clean_text = text
+    for phrase in garbage_phrases:
+        clean_text = clean_text.replace(phrase, "")
+    
+    clean_text = normalize_text(clean_text) # Ваша функция нормализации (убирает пробелы и знаки)
+    target_clean = normalize_text(target_word)
+    
+    # ГЛАВНАЯ ФИШКА: Если после очистки суть (целевое слово) осталась внутри ответа
+    # Например: User="Это яблоко" -> Clean="яблоко" -> Target="яблоко" -> УСПЕХ
+    if target_clean in clean_text:
+        return target_word # Подменяем на эталон, чтобы similar() дал 100%
+        
+    return clean_text
+
 @app.route('/compare-audio', methods=['POST'])
 def compare_audio_files():
     if 'user_audio' not in request.files:
@@ -354,7 +375,9 @@ def compare_audio_files():
     try:
         headers = { "Authorization": f"Bearer {OPENAI_API_KEY}" }
         
-        prompt_context = f"한국어 받아쓰기입니다. 정답을 한글로만 쓰세요. 단어: {reference_text}"
+        # Мы подсказываем модели правильное слово, чтобы она лучше расслышала,
+        # но убираем лишние инструкции, чтобы она не болтала.
+        prompt_context = f"한국어 단어: {reference_text}"
 
         data_payload = {
             "model": "whisper-1",
@@ -380,15 +403,19 @@ def compare_audio_files():
             print("Whisper API Error:", data)
             return jsonify({"status": "error", "message": data['error']['message']}), 500
 
-        user_text = data.get('text', '').strip()
-        similarity = similar(reference_text, user_text)
+        raw_user_text = data.get('text', '').strip()
+        
+        # Чистим ответ от "мусора"
+        processed_user_text = clean_whisper_hallucinations(raw_user_text, reference_text)
+        
+        similarity = similar(reference_text, processed_user_text)
 
-        print(f"DEBUG: Ref='{reference_text}' | Heard='{user_text}' | Score={similarity}")
+        print(f"DEBUG: Ref='{reference_text}' | Raw='{raw_user_text}' | Clean='{processed_user_text}' | Score={similarity}")
 
         return jsonify({
             "status": "success",
             "similarity": round(similarity),
-            "user_text": user_text 
+            "user_text": raw_user_text # Возвращаем сырой текст, чтобы видеть в UI, что реально услышано
         })
 
     except Exception as e:
