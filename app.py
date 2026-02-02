@@ -341,23 +341,39 @@ def transcribe_audio():
             os.remove(filename)
 
 def clean_whisper_hallucinations(text, target_word):
-    # Фразы-паразиты, которые Whisper любит добавлять
-    garbage_phrases = [
-        "정답은", "정답", "입니다", "이에요", "예요", "단어", 
-        "라고", "합니다", "쓰세요", "한글로만", "문제", "답", ".", "!"
+    # 1. Список слов, которые Whisper добавляет как инструкции (галлюцинации)
+    # Эти слова почти никогда не являются частью учебных фраз
+    instruction_garbage = [
+        "정답은", "정답", "단어", "라고", "합니다", 
+        "쓰세요", "한글로만", "문제", "답"
     ]
     
+    # 2. Список грамматических окончаний, которые Whisper может добавить "от себя",
+    # но которые ТАКЖЕ могут быть частью правильной фразы
+    grammar_garbage = ["입니다", "이에요", "예요", "하고", "했다"]
+
     clean_text = text
-    for phrase in garbage_phrases:
+
+    # Удаляем инструкции (их точно не должно быть)
+    for phrase in instruction_garbage:
         clean_text = clean_text.replace(phrase, "")
+
+    # А ТЕПЕРЬ ГЛАВНОЕ:
+    # Удаляем грамматические окончания ТОЛЬКО если их нет в оригинальном тексте
+    for phrase in grammar_garbage:
+        if phrase not in target_word:
+            clean_text = clean_text.replace(phrase, "")
     
-    clean_text = normalize_text(clean_text) # Ваша функция нормализации (убирает пробелы и знаки)
+    # Убираем лишние точки и знаки в конце, которые Whisper лепит сам
+    clean_text = clean_text.strip(".! ")
+
+    # Нормализуем для финального сравнения
+    clean_text_norm = normalize_text(clean_text)
     target_clean = normalize_text(target_word)
     
-    # ГЛАВНАЯ ФИШКА: Если после очистки суть (целевое слово) осталась внутри ответа
-    # Например: User="Это яблоко" -> Clean="яблоко" -> Target="яблоко" -> УСПЕХ
-    if target_clean in clean_text:
-        return target_word # Подменяем на эталон, чтобы similar() дал 100%
+    # Если после базовой очистки суть совпала — возвращаем эталон (для 100% сходства)
+    if target_clean != "" and target_clean in clean_text_norm:
+        return target_word
         
     return clean_text
 
@@ -377,7 +393,7 @@ def compare_audio_files():
         
         # Мы подсказываем модели правильное слово, чтобы она лучше расслышала,
         # но убираем лишние инструкции, чтобы она не болтала.
-        prompt_context = f"한국어 단어: {reference_text}"
+        prompt_context = f"유저가 다음 단어를 발음합니다: {reference_text}. 다른 말은 하지 말고 들린 대로만 적으세요."
 
         data_payload = {
             "model": "whisper-1",
