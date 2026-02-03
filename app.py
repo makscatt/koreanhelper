@@ -376,6 +376,7 @@ def clean_whisper_hallucinations(text, target_word):
         return target_word
         
     return clean_text
+    
 
 @app.route('/compare-audio', methods=['POST'])
 def compare_audio_files():
@@ -478,8 +479,8 @@ def translate_text():
 @app.route('/tts', methods=['POST'])
 def text_to_speech():
     data = request.get_json()
-    text = data.get('text', '')
-    voice_type = data.get('voice', 'echo') 
+    text = data.get('text', '').strip()
+    voice_type = data.get('voice', 'nova') 
 
     if not text:
         return jsonify({"error": "No text provided"}), 400
@@ -491,10 +492,10 @@ def text_to_speech():
         }
         
         payload = {
-            "model": "tts-1-hd",   # Включаем HD качество (живее звучание)
+            "model": "tts-1",
             "input": text,
             "voice": voice_type,
-            "speed": 1.0           # Скорость: 1.0 = норма, 0.9 = чуть медленнее
+            "speed": 1.0
         }
 
         response = requests.post("https://api.openai.com/v1/audio/speech", json=payload, headers=headers)
@@ -506,7 +507,7 @@ def text_to_speech():
 
     except Exception as e:
         print(f"TTS Error: {e}")
-        return jsonify({"error": str(e)}), 500        
+        return jsonify({"error": str(e)}), 500    
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
