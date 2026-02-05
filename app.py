@@ -12,7 +12,17 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 app.config['JSON_AS_ASCII'] = False
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# --- ИЗМЕНЕНИЕ 1: Добавляем ключ и константы для Groq ---
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") # Остается для TTS
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")     # Новый ключ для чата и Whisper
+
+# --- ДОБАВЛЕНО: Константы для удобства ---
+GROQ_API_URL_CHAT = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_API_URL_TRANSCRIPTIONS = "https://api.groq.com/openai/v1/audio/transcriptions"
+GROQ_CHAT_MODEL_POWERFUL = "llama3-70b-8192"  # Для сложного анализа
+GROQ_CHAT_MODEL_FAST = "llama3-8b-8192"      # Для быстрого чата и перевода
+GROQ_WHISPER_MODEL = "whisper-large-v3"
+
 ADMIN_SECRET = "my_super_secret_password_123"
 CACHE_FILE = '/data/cache.json' if os.path.exists('/data') else 'cache.json'
 
@@ -90,8 +100,6 @@ def analyze():
     text = data.get('text', '').strip()
     force_update = data.get('force', False)
     secret_key = data.get('secret', '')
-    
-    # 1. Получаем промпт (если его нет, будет пустая строка)
     custom_prompt = data.get('prompt', '').strip()
 
     if not text:
@@ -102,7 +110,10 @@ def analyze():
     if text in analysis_cache and not is_admin_request:
         return jsonify(analysis_cache[text])
 
-    # Базовая инструкция
+    # --- ИЗМЕНЕНИЕ 2: Проверяем ключ Groq ---
+    if not GROQ_API_KEY:
+        return jsonify({"error": "Groq API key is not configured on the server."}), 500
+
     system_prompt = f"""
     Ты — лучший преподаватель корейского языка. Твоя задача — сделать разбор для JSON API.
     Входящее предложение: "{text}"
@@ -130,17 +141,16 @@ def analyze():
       ]
     }}
     """
-
-    # 2. Если есть дополнительный промпт от админа — добавляем его в конец
     if custom_prompt:
         system_prompt += f"\n\nВАЖНОЕ УТОЧНЕНИЕ ОТ ПОЛЬЗОВАТЕЛЯ:\n{custom_prompt}\nОбязательно учти этот контекст или исправление при анализе!"
 
     try:
+        # --- ИЗМЕНЕНИЕ 3: Используем API и модель Groq ---
         response = requests.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
+            GROQ_API_URL_CHAT,
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
             json={
-                "model": "gpt-4o",
+                "model": GROQ_CHAT_MODEL_POWERFUL, # Llama 3 70b для качественного анализа
                 "messages": [{"role": "system", "content": system_prompt}],
                 "temperature": 0.2
             }
@@ -186,7 +196,6 @@ def analyze():
             "grammar_matches": client_grammar
         }
 
-        # Обновляем кэш новым результатом
         analysis_cache[text] = final_response
         save_cache({text: final_response})
 
@@ -197,18 +206,13 @@ def analyze():
 
 @app.route('/report-issue', methods=['POST'])
 def report_issue():
+    # Эта функция не использует AI, поэтому изменений нет
     data = request.get_json()
-    
     user_info = data.get('user_info', 'Неизвестный')
     block_key = data.get('block', 'Не определен')
     word_kr = data.get('korean', '?')
     video_id = data.get('video_id', '?')
-    
-    # Получаем текст анализа, который видел пользователь
     ai_context = data.get('ai_context', 'Нет данных анализа')
-    
-    # Формируем сообщение
-    # <pre> сохранит форматирование текста анализа
     message = (
         f"🚨 <b>СООБЩЕНИЕ ОБ ОШИБКЕ</b>\n\n"
         f"👤 <b>Пользователь:</b> {user_info}\n"
@@ -218,21 +222,12 @@ def report_issue():
         f"🤖 <b>Что выдал ИИ (экран):</b>\n"
         f"<pre>{ai_context}</pre>"
     )
-
-    # Токен вашего СПЕЦИАЛЬНОГО бота для ошибок
     ERROR_BOT_TOKEN = os.getenv("ERROR_BOT_TOKEN")
     ADMIN_CHAT_ID = "910912532" 
-
     if not ERROR_BOT_TOKEN:
         return jsonify({"status": "error", "message": "No token"}), 500
-
     url = f"https://api.telegram.org/bot{ERROR_BOT_TOKEN}/sendMessage"
-    payload = {
-        'chat_id': ADMIN_CHAT_ID,
-        'text': message,
-        'parse_mode': 'HTML'
-    }
-
+    payload = { 'chat_id': ADMIN_CHAT_ID, 'text': message, 'parse_mode': 'HTML' }
     try:
         requests.post(url, json=payload)
         return jsonify({"status": "success"})
@@ -240,10 +235,8 @@ def report_issue():
         print(f"Report error: {e}")
         return jsonify({"status": "error"}), 500   
 
-# --- ИСПРАВЛЕНИЕ 2: Новая функция чата с поддержкой OPTIONS и логами ---
 @app.route('/chat', methods=['POST', 'OPTIONS'])
 def chat_endpoint():
-    # Хак для браузера: если он спрашивает "можно?", говорим "можно"
     if request.method == 'OPTIONS':
         response = jsonify({'status': 'ok'})
         response.headers.add('Access-Control-Allow-Origin', '*')
@@ -260,17 +253,17 @@ def chat_endpoint():
     print(f"DEBUG CHAT: received {len(messages)} messages")
 
     try:
-        # Проверяем ключ API
-        if not OPENAI_API_KEY:
-            print("ERROR: API Key is missing on Server!")
+        # --- ИЗМЕНЕНИЕ 4: Проверяем ключ Groq ---
+        if not GROQ_API_KEY:
+            print("ERROR: Groq API Key is missing on Server!")
             return jsonify({"reply": "Ошибка сервера: Нет ключа API"}), 500
 
-        # Запрос к OpenAI
+        # --- ИЗМЕНЕНИЕ 5: Используем API и модель Groq для чата ---
         response = requests.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
+            GROQ_API_URL_CHAT,
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
             json={
-                "model": "gpt-4o-mini", # Дешевая модель
+                "model": GROQ_CHAT_MODEL_FAST, # Llama 3 8b для быстрого ответа
                 "messages": messages,
                 "max_tokens": 200,
                 "temperature": 0.7
@@ -280,12 +273,11 @@ def chat_endpoint():
         gpt_data = response.json()
 
         if 'error' in gpt_data:
-            print("OpenAI Error:", gpt_data)
-            return jsonify({"reply": f"Ошибка OpenAI: {gpt_data['error']['message']}"}), 500
+            print("Groq API Error:", gpt_data)
+            return jsonify({"reply": f"Ошибка Groq: {gpt_data['error']['message']}"}), 500
 
         reply_text = gpt_data['choices'][0]['message']['content']
         
-        # Явно добавляем заголовки CORS к ответу (для надежности)
         response = jsonify({"reply": reply_text})
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response
@@ -293,9 +285,7 @@ def chat_endpoint():
     except Exception as e:
         print(f"Server Exception: {e}")
         return jsonify({"reply": "Ошибка на сервере."}), 500
-# --- КОНЕЦ ИСПРАВЛЕНИЙ ---
 
-# --- НОВЫЙ ЭНДПОИНТ ДЛЯ ЧИСТОГО РАСПОЗНАВАНИЯ ГОЛОСА ---
 @app.route('/transcribe', methods=['POST'])
 def transcribe_audio():
     if 'user_audio' not in request.files:
@@ -306,20 +296,22 @@ def transcribe_audio():
     user_file.save(filename)
 
     try:
-        # Используем requests, как и везде в твоем коде
-        headers = { "Authorization": f"Bearer {OPENAI_API_KEY}" }
+        # --- ИЗМЕНЕНИЕ 6: Используем ключ Groq для Whisper ---
+        headers = { "Authorization": f"Bearer {GROQ_API_KEY}" }
         
+        # --- ИЗМЕНЕНИЕ 7: Используем модель Whisper v3 от Groq ---
         data_payload = {
-            "model": "whisper-1",
-            "language": "ko" # Корейский язык
+            "model": GROQ_WHISPER_MODEL,
+            "language": "ko"
         }
         
         files_payload = {
             "file": (filename, open(filename, "rb"), "audio/webm")
         }
 
+        # --- ИЗМЕНЕНИЕ 8: Используем URL Groq для распознавания ---
         response = requests.post(
-            "https://api.openai.com/v1/audio/transcriptions", 
+            GROQ_API_URL_TRANSCRIPTIONS, 
             headers=headers, 
             files=files_payload, 
             data=data_payload
@@ -328,7 +320,7 @@ def transcribe_audio():
         data = response.json()
 
         if 'error' in data:
-            print("Whisper Error:", data)
+            print("Groq Whisper Error:", data)
             return jsonify({"text": ""}), 500
 
         return jsonify({"text": data.get('text', '')})
@@ -341,43 +333,21 @@ def transcribe_audio():
             os.remove(filename)
 
 def clean_whisper_hallucinations(text, target_word):
-    # 1. Список слов, которые Whisper добавляет как инструкции (галлюцинации)
-    # Эти слова почти никогда не являются частью учебных фраз
-    instruction_garbage = [
-        "정답은", "정답", "단어", "라고", "합니다", 
-        "쓰세요", "한글로만", "문제", "답"
-    ]
-    
-    # 2. Список грамматических окончаний, которые Whisper может добавить "от себя",
-    # но которые ТАКЖЕ могут быть частью правильной фразы
+    instruction_garbage = ["정답은", "정답", "단어", "라고", "합니다", "쓰세요", "한글로만", "문제", "답"]
     grammar_garbage = ["입니다", "이에요", "예요", "하고", "했다"]
-
     clean_text = text
-
-    # Удаляем инструкции (их точно не должно быть)
     for phrase in instruction_garbage:
         clean_text = clean_text.replace(phrase, "")
-
-    # А ТЕПЕРЬ ГЛАВНОЕ:
-    # Удаляем грамматические окончания ТОЛЬКО если их нет в оригинальном тексте
     for phrase in grammar_garbage:
         if phrase not in target_word:
             clean_text = clean_text.replace(phrase, "")
-    
-    # Убираем лишние точки и знаки в конце, которые Whisper лепит сам
     clean_text = clean_text.strip(".! ")
-
-    # Нормализуем для финального сравнения
     clean_text_norm = normalize_text(clean_text)
     target_clean = normalize_text(target_word)
-    
-    # Если после базовой очистки суть совпала — возвращаем эталон (для 100% сходства)
     if target_clean != "" and target_clean in clean_text_norm:
         return target_word
-        
     return clean_text
     
-
 @app.route('/compare-audio', methods=['POST'])
 def compare_audio_files():
     if 'user_audio' not in request.files:
@@ -385,46 +355,36 @@ def compare_audio_files():
     
     reference_text = request.form.get('reference_text', '').strip()
     user_file = request.files['user_audio']
-    
     filename = "temp_whisper.webm"
     user_file.save(filename)
 
     try:
-        headers = { "Authorization": f"Bearer {OPENAI_API_KEY}" }
-        
-        # Мы подсказываем модели правильное слово, чтобы она лучше расслышала,
-        # но убираем лишние инструкции, чтобы она не болтала.
+        # --- ИЗМЕНЕНИЕ 9: Аналогично, меняем всё на Groq ---
+        headers = { "Authorization": f"Bearer {GROQ_API_KEY}" }
         prompt_context = f"유저가 다음 단어를 발음합니다: {reference_text}. 다른 말은 하지 말고 들린 대로만 적으세요."
-
         data_payload = {
-            "model": "whisper-1",
+            "model": GROQ_WHISPER_MODEL,
             "language": "ko",
             "prompt": prompt_context,
             "temperature": 0.0
         }
-        
         files_payload = {
             "file": (filename, open(filename, "rb"), "audio/webm")
         }
-
         response = requests.post(
-            "https://api.openai.com/v1/audio/transcriptions", 
+            GROQ_API_URL_TRANSCRIPTIONS, 
             headers=headers, 
             files=files_payload, 
             data=data_payload
         )
-        
         data = response.json()
 
         if 'error' in data:
-            print("Whisper API Error:", data)
+            print("Groq Whisper API Error:", data)
             return jsonify({"status": "error", "message": data['error']['message']}), 500
 
         raw_user_text = data.get('text', '').strip()
-        
-        # Чистим ответ от "мусора"
         processed_user_text = clean_whisper_hallucinations(raw_user_text, reference_text)
-        
         similarity = similar(reference_text, processed_user_text)
 
         print(f"DEBUG: Ref='{reference_text}' | Raw='{raw_user_text}' | Clean='{processed_user_text}' | Score={similarity}")
@@ -432,7 +392,7 @@ def compare_audio_files():
         return jsonify({
             "status": "success",
             "similarity": round(similarity),
-            "user_text": raw_user_text # Возвращаем сырой текст, чтобы видеть в UI, что реально услышано
+            "user_text": raw_user_text
         })
 
     except Exception as e:
@@ -455,11 +415,12 @@ def translate_text():
         return jsonify({"translation": ""})
 
     try:
+        # --- ИЗМЕНЕНИЕ 10: Перевод тоже через Groq ---
         response = requests.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
+            GROQ_API_URL_CHAT,
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
             json={
-                "model": "gpt-4o-mini",
+                "model": GROQ_CHAT_MODEL_FAST,
                 "messages": [
                     {"role": "system", "content": "Ты переводчик. Переведи этот корейский текст на русский язык максимально точно и естественно. Верни ТОЛЬКО перевод."},
                     {"role": "user", "content": text}
@@ -478,6 +439,7 @@ def translate_text():
 
 @app.route('/tts', methods=['POST'])
 def text_to_speech():
+    # --- БЕЗ ИЗМЕНЕНИЙ: Эта функция продолжает использовать OpenAI ---
     data = request.get_json()
     text = data.get('text', '').strip()
     voice_type = data.get('voice', 'nova') 
