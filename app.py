@@ -19,9 +19,9 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")     # Новый ключ для чат
 # --- ДОБАВЛЕНО: Константы для удобства ---
 GROQ_API_URL_CHAT = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_API_URL_TRANSCRIPTIONS = "https://api.groq.com/openai/v1/audio/transcriptions"
-GROQ_CHAT_MODEL_POWERFUL = "llama3-70b-8192"  # Для сложного анализа
-GROQ_CHAT_MODEL_FAST = "llama3-8b-8192"      # Для быстрого чата и перевода
-GROQ_WHISPER_MODEL = "whisper-large-v3"
+GROQ_CHAT_MODEL_POWERFUL = "llama-3.1-70b-versatile" # НОВОЕ НАЗВАНИЕ
+GROQ_CHAT_MODEL_FAST = "llama-3.1-8b-instant"     # НОВОЕ НАЗВАНИЕ
+GROQ_WHISPER_MODEL = "whisper-large-v3"            # Whisper не изменился
 
 ADMIN_SECRET = "my_super_secret_password_123"
 CACHE_FILE = '/data/cache.json' if os.path.exists('/data') else 'cache.json'
