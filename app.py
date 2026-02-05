@@ -110,7 +110,6 @@ def analyze():
     if text in analysis_cache and not is_admin_request:
         return jsonify(analysis_cache[text])
 
-    # --- ИЗМЕНЕНИЕ 2: Проверяем ключ Groq ---
     if not GROQ_API_KEY:
         return jsonify({"error": "Groq API key is not configured on the server."}), 500
 
@@ -151,25 +150,32 @@ def analyze():
         system_prompt += f"\n\nВАЖНОЕ УТОЧНЕНИЕ ОТ ПОЛЬЗОВАТЕЛЯ:\n{custom_prompt}\nОбязательно учти этот контекст или исправление при анализе!"
 
     try:
-        # --- ИЗМЕНЕНИЕ 3: Используем API и модель Groq ---
         response = requests.post(
             GROQ_API_URL_CHAT,
             headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
             json={
-                "model": GROQ_CHAT_MODEL_POWERFUL, # Llama 3 70b для качественного анализа
+                "model": GROQ_CHAT_MODEL_POWERFUL, 
                 "messages": [{"role": "system", "content": system_prompt}],
                 "temperature": 0.2
             }
         )
         
         gpt_data = response.json()
+        
         if 'error' in gpt_data:
-            return jsonify({"tokens": [], "grammar_matches": [{"pattern": "Error", "meaning": "API Error", "example": ""}]})
+            error_msg = gpt_data['error'].get('message', 'Unknown Groq API Error')
+            print(f"Groq API Error: {error_msg}")
+            return jsonify({"tokens": [], "grammar_matches": [{"pattern": "Error", "meaning": error_msg, "example": ""}]})
 
         content_str = gpt_data['choices'][0]['message']['content']
-        if content_str.startswith("```"):
-            content_str = content_str.strip("`").replace("json", "").strip()
-            
+        
+        json_match = re.search(r'\{.*\}', content_str, re.DOTALL)
+        if json_match:
+            content_str = json_match.group(0)
+        else:
+            print(f"JSON not found in response: {content_str}")
+            raise ValueError("No JSON found in response")
+
         result_json = json.loads(content_str)
 
         client_tokens = []
@@ -208,6 +214,7 @@ def analyze():
         return jsonify(final_response)
 
     except Exception as e:
+        print(f"Analyze Exception: {e}")
         return jsonify({"tokens": [], "grammar_matches": [{"pattern": "Error", "meaning": str(e), "example": ""}]}), 500
 
 @app.route('/report-issue', methods=['POST'])
