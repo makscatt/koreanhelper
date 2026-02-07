@@ -100,37 +100,25 @@ def analyze():
     text = data.get('text', '').strip()
     force_update = data.get('force', False)
     secret_key = data.get('secret', '')
+    
+    # 1. Получаем промпт (если его нет, будет пустая строка)
     custom_prompt = data.get('prompt', '').strip()
-
     if not text:
         return jsonify({"tokens": [], "grammar_matches": []})
-
     is_admin_request = force_update and (secret_key == ADMIN_SECRET)
     
     if text in analysis_cache and not is_admin_request:
         return jsonify(analysis_cache[text])
-
-    if not GROQ_API_KEY:
-        return jsonify({"error": "Groq API key is not configured on the server."}), 500
-
+    # Базовая инструкция
     system_prompt = f"""
     Ты — лучший преподаватель корейского языка. Твоя задача — сделать разбор для JSON API.
     Входящее предложение: "{text}"
-
     ИНСТРУКЦИЯ ПО ГРАММАТИКЕ:
     1. В поле "pattern" НЕ пиши абстрактные формулы.
     2. ОБЯЗАТЕЛЬНО подставляй слово из предложения в начальной форме.
     3. Объясняй простым языком.
-
     ИНСТРУКЦИЯ ПО ЦВЕТАМ (TOKENS):
     pos_type: "noun", "verb", "adj", "adverb", "particle", "ending", "other".
-    
-    --- СТРОГОЕ ПРАВИЛО ЯЗЫКА ---
-    Все текстовые значения (values) в JSON, такие как "translation", "meaning", "explanation", "example", должны быть ТОЛЬКО на русском или корейском языке.
-    **Категорически запрещено использовать английские слова или латинские буквы в этих полях.**
-    Структура JSON (ключи, скобки) должна оставаться стандартной.
-    --- КОНЕЦ ПРАВИЛА ---
-
     ОТВЕТЬ ТОЛЬКО ВАЛИДНЫМ JSON:
     {{
       "translation": "Естественный перевод на русский",
@@ -146,38 +134,28 @@ def analyze():
       ]
     }}
     """
+    # 2. Если есть дополнительный промпт от админа — добавляем его в конец
     if custom_prompt:
-        system_prompt += f"\n\nВАЖНОЕ УТОЧНЕНИЕ ОТ ПОЛЬЗОВАТЕЛЯ:\n{custom_prompt}\nОбязательно учти этот контекст или исправление при анализе!"
-
+        system_prompt += f"\\n\\nВАЖНОЕ УТОЧНЕНИЕ ОТ ПОЛЬЗОВАТЕЛЯ:\\n{custom_prompt}\\nОбязательно учти этот контекст или исправление при анализе!"
     try:
         response = requests.post(
-            GROQ_API_URL_CHAT,
-            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
             json={
-                "model": GROQ_CHAT_MODEL_POWERFUL, 
+                "model": "gpt-4o",
                 "messages": [{"role": "system", "content": system_prompt}],
                 "temperature": 0.2
             }
         )
         
         gpt_data = response.json()
-        
         if 'error' in gpt_data:
-            error_msg = gpt_data['error'].get('message', 'Unknown Groq API Error')
-            print(f"Groq API Error: {error_msg}")
-            return jsonify({"tokens": [], "grammar_matches": [{"pattern": "Error", "meaning": error_msg, "example": ""}]})
-
+            return jsonify({"tokens": [], "grammar_matches": [{"pattern": "Error", "meaning": "API Error", "example": ""}]})
         content_str = gpt_data['choices'][0]['message']['content']
-        
-        json_match = re.search(r'\{.*\}', content_str, re.DOTALL)
-        if json_match:
-            content_str = json_match.group(0)
-        else:
-            print(f"JSON not found in response: {content_str}")
-            raise ValueError("No JSON found in response")
-
+        if content_str.startswith("```"):
+            content_str = content_str.strip("`").replace("json", "").strip()
+            
         result_json = json.loads(content_str)
-
         client_tokens = []
         for t in result_json.get("tokens", []):
             color = COLOR_MAP.get(t.get("pos_type"), "#000000")
@@ -186,7 +164,6 @@ def analyze():
                 "pos": t["meaning"], 
                 "color": color
             })
-
         client_grammar = []
         translation = result_json.get("translation", "")
         if translation:
@@ -195,26 +172,21 @@ def analyze():
                 "meaning": translation,
                 "example": ""
             })
-
         for g in result_json.get("grammar", []):
             client_grammar.append({
                 "pattern": g["pattern"],
                 "meaning": g["explanation"],
                 "example": g["example"]
             })
-
         final_response = {
             "tokens": client_tokens,
             "grammar_matches": client_grammar
         }
-
+        # Обновляем кэш новым результатом
         analysis_cache[text] = final_response
         save_cache({text: final_response})
-
         return jsonify(final_response)
-
     except Exception as e:
-        print(f"Analyze Exception: {e}")
         return jsonify({"tokens": [], "grammar_matches": [{"pattern": "Error", "meaning": str(e), "example": ""}]}), 500
 
 @app.route('/report-issue', methods=['POST'])
