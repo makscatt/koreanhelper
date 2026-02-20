@@ -332,7 +332,7 @@ def chat_endpoint():
             json={
                 "model": "gpt-5.1",
                 "messages": messages,
-                "max_tokens": 200,
+                "max_completion_tokens": 200,
                 "temperature": 0.7
             }
         )
@@ -340,7 +340,7 @@ def chat_endpoint():
         gpt_data = response.json()
 
         if 'error' in gpt_data:
-            return jsonify({"reply": f"Ошибка Groq: {gpt_data['error']['message']}"}), 500
+            return jsonify({"reply": f"Ошибка OpenAI: {gpt_data['error']['message']}"}), 500
 
         reply_text = gpt_data['choices'][0]['message']['content']
         
@@ -481,7 +481,7 @@ def translate_text():
         return jsonify({"translation": ""})
 
     try:
-        # --- ИЗМЕНЕНИЕ 10: Перевод через OpenAI gpt-5.1 ---
+        # --- Перевод через OpenAI gpt-5.1 ---
         response = requests.post(
             "https://api.openai.com/v1/chat/completions",
             headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
@@ -491,7 +491,7 @@ def translate_text():
                     {"role": "system", "content": "Твоя задача — перевести корейский текст на русский язык. Никаких английских слов или латинских букв. Никаких комментариев. Ответ должен содержать ТОЛЬКО результат перевода на чистом русском языке."},
                     {"role": "user", "content": text}
                 ],
-                "max_tokens": 200
+                "max_completion_tokens": 200
             }
         )
         gpt_data = response.json()
