@@ -142,7 +142,7 @@ def analyze():
             "https://api.openai.com/v1/chat/completions",
             headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
             json={
-                "model": "gpt-4o",
+                "model": "gpt-5.1",
                 "messages": [{"role": "system", "content": system_prompt}],
                 "temperature": 0.2
             }
@@ -323,14 +323,14 @@ def chat_endpoint():
     messages.insert(0, {"role": "system", "content": system_content})
 
     try:
-        if not GROQ_API_KEY:
+        if not OPENAI_API_KEY:
             return jsonify({"reply": "Ошибка сервера: Нет ключа API"}), 500
 
         response = requests.post(
-            GROQ_API_URL_CHAT,
-            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
             json={
-                "model": GROQ_CHAT_MODEL_FAST,
+                "model": "gpt-5.1",
                 "messages": messages,
                 "max_tokens": 200,
                 "temperature": 0.7
@@ -481,12 +481,12 @@ def translate_text():
         return jsonify({"translation": ""})
 
     try:
-        # --- ИЗМЕНЕНИЕ 10: Перевод тоже через Groq ---
+        # --- ИЗМЕНЕНИЕ 10: Перевод через OpenAI gpt-5.1 ---
         response = requests.post(
-            GROQ_API_URL_CHAT,
-            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
             json={
-                "model": GROQ_CHAT_MODEL_FAST,
+                "model": "gpt-5.1",
                 "messages": [
                     {"role": "system", "content": "Твоя задача — перевести корейский текст на русский язык. Никаких английских слов или латинских букв. Никаких комментариев. Ответ должен содержать ТОЛЬКО результат перевода на чистом русском языке."},
                     {"role": "user", "content": text}
