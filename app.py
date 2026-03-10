@@ -531,6 +531,15 @@ def history(student_id):
 
 with app.app_context():
     db.create_all()
+    # Миграция: добавляем password_plain если его нет
+    try:
+        db.session.execute(db.text(
+            "ALTER TABLE student_account ADD COLUMN password_plain VARCHAR(200) NOT NULL DEFAULT ''"
+        ))
+        db.session.commit()
+        print("Миграция: добавлен столбец password_plain")
+    except Exception:
+        db.session.rollback()  # столбец уже существует — ок
     if not Teacher.query.filter_by(username='admin').first():
         teacher = Teacher(
             username='admin',
