@@ -33,6 +33,7 @@ class StudentAccount(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
+    password_plain = db.Column(db.String(200), nullable=False, default="")  # открытый пароль для учителя
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False, unique=True)
     is_active = db.Column(db.Boolean, default=True)  # учитель может заблокировать
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -243,6 +244,7 @@ def create_student_account(student_id):
     account = StudentAccount(
         username=username,
         password_hash=generate_password_hash(password),
+        password_plain=password,
         student_id=student_id
     )
     db.session.add(account)

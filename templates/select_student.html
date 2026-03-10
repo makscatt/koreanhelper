@@ -60,9 +60,12 @@
                 <div class="creds-row">
                     <span class="creds-label">Пароль</span>
                     <span class="creds-val creds-pass" id="creds-pass-{{ student.id }}">••••••</span>
-                    <button type="button" class="btn-eye" id="btn-eye-{{ student.id }}" onclick="togglePassView({{ student.id }})">👁</button>
+                    <button type="button" class="btn-eye" id="btn-eye-{{ student.id }}"
+                            data-pass="{{ student.account.password_plain }}"
+                            onclick="togglePassView({{ student.id }})">👁</button>
+                    <button type="button" class="btn-copy" id="btn-copy-pass-{{ student.id }}"
+                            onclick="copyText('{{ student.account.password_plain }}', this)" title="Копировать пароль">📋</button>
                 </div>
-                <div class="creds-note">Пароль хранится зашифрованным. Если ученик забыл — удали аккаунт и создай новый.</div>
             </div>
             {% endif %}
 
@@ -73,7 +76,7 @@
                     <div class="gen-row">
                         <input type="text" name="username" id="uname-{{ student.id }}" placeholder="Логин" required autocomplete="off">
                         <input type="text" name="password" id="upass-{{ student.id }}" placeholder="Пароль" required autocomplete="off">
-                        <button type="button" class="btn-generate" onclick="generateCreds({{ student.id }})" title="Сгенерировать случайные">🎲</button>
+                        <button type="button" class="btn-generate" onclick="generateCreds({{ student.id }})" title="Сгенерировать">🎲</button>
                     </div>
                     <div id="gen-preview-{{ student.id }}" class="gen-preview" style="display:none;"></div>
                     <div style="display:flex;gap:6px;margin-top:8px;">
@@ -105,6 +108,7 @@
 .account-blocked { background:#fee2e2; color:#991b1b; }
 .account-none    { background:var(--bg-app,#f5f6fa); color:var(--text-tertiary,#999); }
 .student-actions { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+
 .btn-small { padding:4px 10px; font-size:12px; font-weight:600; font-family:var(--font-main,inherit); border:1px solid var(--border-color,#e2e5ec); border-radius:6px; background:var(--bg-app,#f5f6fa); color:var(--text-secondary,#666); cursor:pointer; transition:all 0.12s; white-space:nowrap; }
 .btn-small:hover { background:var(--bg-surface-hover,#eee); }
 .btn-create-account { color:var(--primary,#4758d6); border-color:var(--primary-container,#dde); background:var(--primary-container,#eef); }
@@ -118,51 +122,47 @@
 .btn-delete-soft:hover { background:#fecaca; }
 
 /* Данные для входа */
-.creds-view { background:var(--bg-app,#f5f6fa); border:1px solid var(--border-color,#e2e5ec); border-radius:8px; padding:10px 12px; display:flex; flex-direction:column; gap:6px; }
+.creds-view { background:var(--bg-app,#f5f6fa); border:1px solid var(--border-color,#e2e5ec); border-radius:8px; padding:10px 12px; display:flex; flex-direction:column; gap:7px; }
 .creds-row { display:flex; align-items:center; gap:8px; }
-.creds-label { font-size:11px; font-weight:700; color:var(--text-tertiary,#999); text-transform:uppercase; letter-spacing:0.05em; min-width:44px; }
-.creds-val { font-size:13px; font-family:var(--font-mono,monospace); font-weight:600; color:var(--text-primary,#1a1d2e); flex:1; }
-.creds-pass { letter-spacing:2px; }
-.btn-eye, .btn-copy { border:none; background:transparent; cursor:pointer; font-size:14px; padding:2px 4px; border-radius:4px; transition:background 0.1s; }
+.creds-label { font-size:11px; font-weight:700; color:var(--text-tertiary,#999); text-transform:uppercase; letter-spacing:0.05em; width:44px; flex-shrink:0; }
+.creds-val { font-size:13px; font-family:var(--font-mono,monospace); font-weight:600; color:var(--text-primary,#1a1d2e); flex:1; min-width:0; word-break:break-all; }
+.creds-pass { letter-spacing:3px; }
+.btn-eye, .btn-copy { border:none; background:transparent; cursor:pointer; font-size:14px; padding:3px 5px; border-radius:4px; transition:background 0.1s; flex-shrink:0; }
 .btn-eye:hover, .btn-copy:hover { background:var(--border-light,#eee); }
-.creds-note { font-size:11px; color:var(--text-tertiary,#999); line-height:1.5; padding-top:6px; border-top:1px solid var(--border-light,#eee); }
 
 /* Форма создания */
 .account-create-form { padding:10px; background:var(--bg-app,#f5f6fa); border-radius:8px; border:1px solid var(--border-color,#e2e5ec); }
 .gen-row { display:flex; gap:6px; align-items:center; }
-.gen-row input { flex:1; padding:7px 10px; font-size:13px; border:1px solid var(--border-color,#e2e5ec); border-radius:6px; background:var(--bg-surface,#fff); font-family:var(--font-mono,monospace); min-width:0; }
+.gen-row input { width:0; flex:1; padding:7px 10px; font-size:13px; border:1px solid var(--border-color,#e2e5ec); border-radius:6px; background:var(--bg-surface,#fff); font-family:var(--font-mono,monospace); }
 .btn-generate { width:34px; height:34px; border:1px solid var(--border-color,#e2e5ec); border-radius:8px; background:var(--bg-surface,#fff); font-size:18px; cursor:pointer; flex-shrink:0; transition:all 0.15s; display:flex; align-items:center; justify-content:center; }
 .btn-generate:hover { background:#fef9c3; border-color:#fde68a; transform:rotate(20deg) scale(1.1); }
-.gen-preview { margin-top:6px; padding:6px 10px; background:#f0fdf4; border:1px solid #a7f3d0; border-radius:6px; font-size:12px; font-family:var(--font-mono,monospace); color:#065f46; }
+.gen-preview { margin-top:6px; padding:7px 10px; background:#f0fdf4; border:1px solid #a7f3d0; border-radius:6px; font-size:12px; font-family:var(--font-mono,monospace); color:#065f46; line-height:1.6; }
 </style>
 
 <script>
-function toggleAccountForm(studentId) {
-    const el = document.getElementById('account-form-' + studentId);
+function toggleAccountForm(id) {
+    var el = document.getElementById('account-form-' + id);
     if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
 }
 
-function toggleCredsView(studentId) {
-    const el = document.getElementById('creds-view-' + studentId);
+function toggleCredsView(id) {
+    var el = document.getElementById('creds-view-' + id);
     if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
 }
 
-function generateCreds(studentId) {
-    const adjs  = ['swift','brave','calm','kind','bold','wise','cool','fast','neat','keen'];
-    const nouns = ['tiger','eagle','panda','koala','whale','shark','fox','wolf','bear','lion'];
-    const adj  = adjs[Math.floor(Math.random() * adjs.length)];
-    const noun = nouns[Math.floor(Math.random() * nouns.length)];
-    const num  = Math.floor(Math.random() * 90) + 10;
-
-    const login    = adj + '_' + noun;
-    const password = noun + num + adj.slice(0, 3);
-
-    document.getElementById('uname-' + studentId).value = login;
-    document.getElementById('upass-' + studentId).value = password;
-
-    const preview = document.getElementById('gen-preview-' + studentId);
+function generateCreds(id) {
+    var adjs  = ['swift','brave','calm','kind','bold','wise','cool','fast','neat','keen'];
+    var nouns = ['tiger','eagle','panda','koala','whale','shark','fox','wolf','bear','lion'];
+    var adj  = adjs[Math.floor(Math.random() * adjs.length)];
+    var noun = nouns[Math.floor(Math.random() * nouns.length)];
+    var num  = Math.floor(Math.random() * 90) + 10;
+    var login = adj + '_' + noun;
+    var pass  = noun + num + adj.slice(0, 3);
+    document.getElementById('uname-' + id).value = login;
+    document.getElementById('upass-' + id).value = pass;
+    var preview = document.getElementById('gen-preview-' + id);
     preview.style.display = '';
-    preview.innerHTML = '✓ Логин: <b>' + login + '</b> &nbsp;|&nbsp; Пароль: <b>' + password + '</b> &nbsp;<span style="color:#6b7280;font-size:10px;">— запишите и передайте ученику</span>';
+    preview.innerHTML = '📋 Логин: <b>' + login + '</b><br>🔑 Пароль: <b>' + pass + '</b>';
 }
 
 function copyText(text, btn) {
@@ -173,19 +173,17 @@ function copyText(text, btn) {
     });
 }
 
-function togglePassView(studentId) {
-    const passEl = document.getElementById('creds-pass-' + studentId);
-    const btn    = document.getElementById('btn-eye-' + studentId);
+function togglePassView(id) {
+    var passEl = document.getElementById('creds-pass-' + id);
+    var btn    = document.getElementById('btn-eye-' + id);
     if (btn.dataset.shown === '1') {
         passEl.textContent = '••••••';
-        passEl.style.fontSize = '';
-        passEl.style.color = '';
+        passEl.style.letterSpacing = '3px';
         btn.dataset.shown = '0';
         btn.textContent = '👁';
     } else {
-        passEl.textContent = '(зашифрован — сбрось через «Удалить аккаунт»)';
-        passEl.style.fontSize = '10px';
-        passEl.style.color = 'var(--text-tertiary)';
+        passEl.textContent = btn.dataset.pass;
+        passEl.style.letterSpacing = 'normal';
         btn.dataset.shown = '1';
         btn.textContent = '🙈';
     }
