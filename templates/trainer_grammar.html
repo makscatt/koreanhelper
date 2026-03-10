@@ -1,0 +1,1176 @@
+{% extends "trainer_base.html" %}
+
+{% block title %}Грамматика — {{ student.name }}{% endblock %}
+
+{% block trainer_content %}
+<script>document.body.dataset.module = 'grammar';</script>
+
+<style>
+/* ═══ LAYOUT ═══ */
+.gr-page {
+  width: 780px;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 24px 24px 80px;
+  box-sizing: border-box;
+}
+
+/* ═══ TOP BAR ═══ */
+.gr-topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.gr-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.gr-search-input {
+  width: 100%;
+  padding: 9px 36px 9px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-family: var(--font-main);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+.gr-search-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-container);
+}
+.gr-search-input::placeholder { color: var(--text-tertiary); }
+
+.gr-search-clear {
+  position: absolute;
+  right: 10px; top: 50%;
+  transform: translateY(-50%);
+  background: none; border: none;
+  color: var(--text-tertiary);
+  cursor: pointer; font-size: 12px;
+  display: none; padding: 2px 4px;
+}
+.gr-search-clear.visible { display: block; }
+
+/* ═══ SEARCH DROPDOWN ═══ */
+.gr-search-results {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0; right: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-3);
+  z-index: 300;
+  display: none;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.gr-search-results.visible { display: block; }
+.gr-search-result-header {
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  border-bottom: 1px solid var(--border-light);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.gr-search-result {
+  padding: 10px 14px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 13px;
+  transition: background 0.12s;
+  border-bottom: 1px solid var(--border-light);
+}
+.gr-search-result:last-child { border-bottom: none; }
+.gr-search-result:hover { background: var(--bg-surface-hover); }
+.gr-search-result mark { background: var(--primary-container); color: var(--primary); border-radius: 2px; padding: 0 2px; }
+.gr-search-result-meta { font-size: 11px; color: var(--text-tertiary); white-space: nowrap; }
+.gr-search-noresult { padding: 16px 14px; font-size: 13px; color: var(--text-tertiary); text-align: center; }
+
+/* ═══ TOPIC TABS ═══ */
+.gr-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.gr-tab {
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: 0.15s;
+  font-family: var(--font-main);
+  white-space: nowrap;
+}
+.gr-tab:hover { background: var(--bg-surface-active); color: var(--text-primary); }
+.gr-tab.active {
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+  border-color: transparent;
+  font-weight: 600;
+}
+
+/* ═══ CATEGORY LABEL ═══ */
+.gr-category {
+  margin: 28px 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-color);
+}
+.gr-category:first-child { margin-top: 0; }
+
+/* ═══ TABLE ═══ */
+.gr-table {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-surface);
+}
+
+/* row = checkbox | num | formula | title | chevron */
+.gr-row {
+  display: grid;
+  grid-template-columns: 40px 36px 1fr 200px 20px;
+  align-items: center;
+  border-bottom: 1px solid var(--border-light);
+  transition: background 0.12s;
+  user-select: none;
+}
+.gr-row:last-of-type { border-bottom: none; }
+.gr-row:hover { background: var(--bg-surface-hover); }
+.gr-row.checked { background: #f6fff8; }
+.gr-row.checked:hover { background: #edfaf1; }
+
+/* Checkbox cell — not clickable for modal */
+.gr-row-check {
+  padding: 0 0 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.gr-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.gr-row-num {
+  padding: 13px 0 13px 4px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-weight: 600;
+  cursor: pointer;
+}
+.gr-row-formula {
+  padding: 13px 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
+  cursor: pointer;
+}
+.gr-row-title {
+  padding: 13px 8px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.gr-row-chevron {
+  padding-right: 12px;
+  font-size: 9px;
+  color: var(--text-tertiary);
+  text-align: right;
+  cursor: pointer;
+}
+
+/* checked state — dim formula slightly */
+.gr-row.checked .gr-row-formula { color: var(--text-secondary); }
+.gr-row.checked .gr-row-num { color: #7dba94; }
+
+/* ═══ MODAL OVERLAY ═══ */
+.gr-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: rgba(15, 20, 35, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 24px 40px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+.gr-modal-overlay.open {
+  display: flex;
+  animation: overlayIn 0.18s ease;
+}
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Modal box — same width as content */
+.gr-modal {
+  width: 880px;
+  max-width: 95vw;
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px rgba(0,0,0,0.22);
+  position: relative;
+  animation: modalIn 0.2s cubic-bezier(0.2, 0, 0, 1);
+  flex-shrink: 0;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.gr-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.gr-modal-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.gr-modal-subtitle {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 3px;
+}
+
+.gr-modal-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--bg-app);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.gr-modal-close:hover { background: var(--bg-surface-active); color: var(--text-primary); }
+
+.gr-modal-body {
+  padding: 20px 24px 28px;
+}
+
+/* Description */
+.gr-modal-desc {
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-light);
+  white-space: pre-line;
+}
+
+/* ═══ DETAILS BLOCKS (new structured format) ═══ */
+.gr-detail-blocks {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-light);
+}
+.gr-detail-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-tertiary);
+  margin: 20px 0 10px;
+}
+.gr-detail-section-title:first-child { margin-top: 0; }
+
+/* Rules table */
+.gr-rules-table {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border-spacing: 0;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.gr-rules-table th {
+  background: var(--bg-app);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+.gr-rules-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-primary);
+  vertical-align: top;
+}
+.gr-rules-table tr:last-child td { border-bottom: none; }
+.gr-rules-table tr:hover td { background: var(--bg-surface-hover); }
+.gr-rules-table .gr-rule-result {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--primary);
+}
+.gr-rules-table .gr-rule-example {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.gr-rules-table .gr-rule-example b {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* Note block */
+.gr-detail-note {
+  padding: 10px 14px;
+  background: #fff8e1;
+  border-left: 3px solid #ffc107;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 13px;
+  color: #6d5800;
+  line-height: 1.6;
+  margin: 10px 0;
+}
+.gr-detail-note b { color: #4a3c00; }
+
+/* Warning block */
+.gr-detail-warning {
+  padding: 10px 14px;
+  background: #fef2f2;
+  border-left: 3px solid #ef4444;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 13px;
+  color: #7f1d1d;
+  line-height: 1.6;
+  margin: 10px 0;
+}
+
+/* Tip block */
+.gr-detail-tip {
+  padding: 10px 14px;
+  background: #f0f9ff;
+  border-left: 3px solid #3b82f6;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 13px;
+  color: #1e3a5f;
+  line-height: 1.6;
+  margin: 10px 0;
+}
+
+/* Text block */
+.gr-detail-text {
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--text-secondary);
+  margin: 8px 0;
+}
+
+/* ═══ EXAMPLE CARDS CAROUSEL ═══ */
+.gr-ex-carousel {
+  margin: 12px 0 18px;
+}
+.gr-ex-carousel-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  margin-bottom: 10px;
+}
+.gr-ex-track-wrap {
+  position: relative;
+  overflow: hidden;
+}
+.gr-ex-track {
+  display: flex;
+  transition: transform 0.3s cubic-bezier(0.25, 0, 0, 1);
+}
+.gr-ex-page {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  min-width: 100%;
+  flex-shrink: 0;
+}
+.gr-ex-card {
+  background: var(--bg-app);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+.gr-ex-card-head {
+  text-align: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-light);
+}
+.gr-ex-card-base {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+}
+.gr-ex-card-type {
+  display: inline-block;
+  font-size: 9px;
+  color: var(--text-tertiary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-pill);
+  padding: 1px 7px;
+  margin: 3px 0;
+  font-weight: 500;
+}
+.gr-ex-card-arrow {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin: 1px 0;
+}
+.gr-ex-card-applied {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--primary);
+  font-family: "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+}
+.gr-ex-card-sents {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+.gr-ex-card-sent {
+  padding: 6px 8px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  border-left: 2px solid var(--primary-container);
+}
+.gr-ex-card-kor {
+  font-size: 12px;
+  color: var(--text-primary);
+  line-height: 1.4;
+  font-family: "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+  word-break: keep-all;
+}
+.gr-ex-card-rus {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  margin-top: 1px;
+}
+
+/* Carousel nav */
+.gr-ex-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 10px;
+}
+.gr-ex-nav-btn {
+  width: 28px; height: 28px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.gr-ex-nav-btn:hover { background: var(--bg-surface-hover); color: var(--text-primary); }
+.gr-ex-nav-btn:disabled { opacity: 0.3; cursor: default; }
+.gr-ex-nav-dots {
+  display: flex;
+  gap: 5px;
+}
+.gr-ex-nav-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--border-color);
+  transition: background 0.2s;
+}
+.gr-ex-nav-dot.active {
+  background: var(--primary);
+}
+
+@media (max-width: 600px) {
+  .gr-ex-page {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Examples inside modal */
+.gr-modal-examples-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  margin-bottom: 16px;
+}
+
+.gr-modal-example {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-light);
+}
+.gr-modal-example:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+.gr-modal-example-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.gr-modal-base {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+}
+.gr-modal-type {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  background: var(--bg-app);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-pill);
+  padding: 2px 9px;
+  font-weight: 500;
+}
+.gr-modal-arrow { font-size: 14px; color: var(--text-tertiary); }
+.gr-modal-applied {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--primary);
+  font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+}
+
+.gr-modal-sentences {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gr-modal-sentence {
+  padding: 10px 14px;
+  background: var(--bg-app);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--primary-container);
+}
+.gr-modal-kor {
+  font-size: 15px;
+  color: var(--text-primary);
+  line-height: 1.5;
+  font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+}
+.gr-modal-rus {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+/* ═══ EMPTY STATE ═══ */
+.gr-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-tertiary);
+}
+.gr-empty-icon { font-size: 40px; margin-bottom: 12px; }
+.gr-empty h3 { font-size: 16px; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; }
+.gr-empty p { font-size: 13px; }
+
+/* ═══ MOBILE ═══ */
+@media (max-width: 600px) {
+  .gr-page { padding: 16px 16px 80px; }
+  .gr-row { grid-template-columns: 36px 32px 1fr 16px; }
+  .gr-row-title { display: none; }
+  .gr-modal-overlay { padding: 16px; }
+}
+</style>
+
+<!-- MODAL -->
+<div class="gr-modal-overlay" id="gr-modal-overlay">
+  <div class="gr-modal" id="gr-modal">
+    <div class="gr-modal-header">
+      <div>
+        <div class="gr-modal-title" id="gr-modal-title"></div>
+        <div class="gr-modal-subtitle" id="gr-modal-subtitle"></div>
+      </div>
+      <button class="gr-modal-close" id="gr-modal-close">✕</button>
+    </div>
+    <div class="gr-modal-body" id="gr-modal-body"></div>
+  </div>
+</div>
+
+<div class="gr-page">
+  <div class="gr-topbar">
+    <div class="gr-search-wrap">
+      <input class="gr-search-input" id="search-input" type="text" placeholder="Поиск по грамматике..." autocomplete="off">
+      <button class="gr-search-clear" id="search-clear">✕</button>
+      <div class="gr-search-results" id="search-results"></div>
+    </div>
+  </div>
+  <div class="gr-tabs" id="gr-tabs"></div>
+  <div id="gr-content"></div>
+</div>
+
+{% endblock %}
+
+{% block trainer_js %}
+<script>
+  const grContent     = document.getElementById('gr-content');
+  const grTabs        = document.getElementById('gr-tabs');
+  const searchInput   = document.getElementById('search-input');
+  const searchClear   = document.getElementById('search-clear');
+  const searchResults = document.getElementById('search-results');
+  const modalOverlay  = document.getElementById('gr-modal-overlay');
+  const modalEl       = document.getElementById('gr-modal');
+  const modalTitle    = document.getElementById('gr-modal-title');
+  const modalSubtitle = document.getElementById('gr-modal-subtitle');
+  const modalBody     = document.getElementById('gr-modal-body');
+  const modalClose    = document.getElementById('gr-modal-close');
+
+  const STUDENT_ID = "{{ student.id }}";
+  const LS_KEY = `gr_checked_${STUDENT_ID}`;
+
+  let allData      = {};
+  let currentLevel = null;
+  let searchIndex  = [];
+  let checkedIds   = new Set();
+
+  setInterval(trackExercise, 60000);
+
+  // ── LOAD CHECKBOXES FROM LOCALSTORAGE ──
+  try {
+    const saved = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+    checkedIds = new Set(saved);
+  } catch(e) { checkedIds = new Set(); }
+
+  function saveChecked() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify([...checkedIds])); } catch(e) {}
+  }
+
+  // ── FETCH DATA ──
+  fetch('/static/data/grammar.json')
+    .then(r => { if (!r.ok) throw new Error('Не удалось загрузить grammar.json'); return r.json(); })
+    .then(data => { allData = data; init(data); })
+    .catch(err => {
+      grContent.innerHTML = `<div class="gr-empty"><div class="gr-empty-icon">⚠️</div><h3>Ошибка загрузки</h3><p>${err.message}</p></div>`;
+    });
+
+  function init(data) {
+    searchIndex = [];
+    Object.entries(data).forEach(([level, items]) => {
+      (items || []).forEach(item => { if (item.id) searchIndex.push({ ...item, level }); });
+    });
+    const levels = Object.keys(data);
+    renderTabs(levels);
+    if (levels.length) renderLevel(levels[0]);
+    setupSearch();
+    setupModal();
+    checkOpenParam();
+  }
+
+  // ── TABS ──
+  function renderTabs(levels) {
+    grTabs.innerHTML = '';
+    levels.forEach(level => {
+      const btn = document.createElement('button');
+      btn.className = 'gr-tab';
+      btn.textContent = level.toUpperCase().replace('TOPIK', 'TOPIK ');
+      btn.dataset.level = level;
+      btn.onclick = () => { clearSearch(); renderLevel(level); };
+      grTabs.appendChild(btn);
+    });
+  }
+
+  // ── RENDER LEVEL ──
+  function renderLevel(level) {
+    currentLevel = level;
+    document.querySelectorAll('.gr-tab').forEach(t => t.classList.toggle('active', t.dataset.level === level));
+
+    const items = (allData[level] || []).filter(i => i.id);
+    if (!items.length) {
+      grContent.innerHTML = `<div class="gr-empty"><div class="gr-empty-icon">🚧</div><h3>Раздел в разработке</h3><p>Материалы скоро появятся!</p></div>`;
+      return;
+    }
+
+    const catOrder = [];
+    const catMap   = {};
+    items.forEach(item => {
+      const c = item.category || '—';
+      if (!catMap[c]) { catMap[c] = []; catOrder.push(c); }
+      catMap[c].push(item);
+    });
+
+    grContent.innerHTML = '';
+    let n = 0;
+
+    catOrder.forEach(cat => {
+      const catLabel = document.createElement('div');
+      catLabel.className = 'gr-category';
+      catLabel.textContent = cat;
+      grContent.appendChild(catLabel);
+
+      const table = document.createElement('div');
+      table.className = 'gr-table';
+
+      catMap[cat].forEach(item => {
+        n++;
+        const isChecked = checkedIds.has(item.id);
+
+        const row = document.createElement('div');
+        row.className = 'gr-row' + (isChecked ? ' checked' : '');
+        row.id = 'gr-row-' + item.id;
+
+        // Checkbox cell
+        const checkCell = document.createElement('div');
+        checkCell.className = 'gr-row-check';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.className = 'gr-checkbox';
+        cb.checked = isChecked;
+        cb.title = 'Отметить как разобранное';
+        cb.addEventListener('change', (e) => {
+          e.stopPropagation();
+          if (cb.checked) {
+            checkedIds.add(item.id);
+            row.classList.add('checked');
+          } else {
+            checkedIds.delete(item.id);
+            row.classList.remove('checked');
+          }
+          saveChecked();
+        });
+        checkCell.appendChild(cb);
+
+        // Clickable cells for modal
+        const numCell = document.createElement('span');
+        numCell.className = 'gr-row-num';
+        numCell.textContent = String(n).padStart(2,'0');
+
+        const formulaCell = document.createElement('span');
+        formulaCell.className = 'gr-row-formula';
+        formulaCell.textContent = item.formula;
+
+        const titleCell = document.createElement('span');
+        titleCell.className = 'gr-row-title';
+        titleCell.textContent = item.title;
+
+        const chevronCell = document.createElement('span');
+        chevronCell.className = 'gr-row-chevron';
+        chevronCell.textContent = '▶';
+
+        // Click on row (but not checkbox) opens modal
+        [numCell, formulaCell, titleCell, chevronCell].forEach(el => {
+          el.addEventListener('click', () => openModal(item));
+        });
+
+        row.appendChild(checkCell);
+        row.appendChild(numCell);
+        row.appendChild(formulaCell);
+        row.appendChild(titleCell);
+        row.appendChild(chevronCell);
+
+        table.appendChild(row);
+      });
+
+      grContent.appendChild(table);
+    });
+  }
+
+  // ── CAROUSEL RENDERER ──
+  let carouselCount = 0;
+
+  function renderCardCarousel(items, label) {
+    const id = 'gr-carousel-' + (carouselCount++);
+    const perPage = 3;
+    const pages = [];
+    for (let i = 0; i < items.length; i += perPage) {
+      pages.push(items.slice(i, i + perPage));
+    }
+
+    let h = `<div class="gr-ex-carousel" data-carousel="${id}">`;
+    h += `<div class="gr-ex-carousel-label">${label || 'Примеры'}</div>`;
+    h += `<div class="gr-ex-track-wrap"><div class="gr-ex-track" id="${id}-track">`;
+
+    pages.forEach(page => {
+      h += '<div class="gr-ex-page">';
+      page.forEach(ex => {
+        h += `<div class="gr-ex-card">
+          <div class="gr-ex-card-head">
+            <div class="gr-ex-card-base">${ex.base}</div>
+            <div class="gr-ex-card-type">${ex.type}</div>
+            <div class="gr-ex-card-arrow">↓</div>
+            <div class="gr-ex-card-applied">${ex.applied}</div>
+          </div>
+          <div class="gr-ex-card-sents">
+            ${ex.sentences.map((s, i) => `
+              <div class="gr-ex-card-sent">
+                <div class="gr-ex-card-kor">${s}</div>
+                <div class="gr-ex-card-rus">${ex.translations[i]}</div>
+              </div>`).join('')}
+          </div>
+        </div>`;
+      });
+      h += '</div>';
+    });
+
+    h += '</div></div>';
+
+    if (pages.length > 1) {
+      h += `<div class="gr-ex-nav">
+        <button class="gr-ex-nav-btn" data-dir="-1" data-target="${id}">◂</button>
+        <div class="gr-ex-nav-dots" id="${id}-dots">
+          ${pages.map((_, i) => `<div class="gr-ex-nav-dot${i === 0 ? ' active' : ''}" data-idx="${i}" data-target="${id}"></div>`).join('')}
+        </div>
+        <button class="gr-ex-nav-btn" data-dir="1" data-target="${id}">▸</button>
+      </div>`;
+    }
+
+    h += '</div>';
+    return h;
+  }
+
+  // ── MODAL ──
+  function renderDetailBlocks(blocks) {
+    let html = '<div class="gr-detail-blocks">';
+    let rulesBuffer = [];
+
+    function flushRules() {
+      if (!rulesBuffer.length) return '';
+      let h = `<table class="gr-rules-table"><thead><tr>
+        <th>Условие</th><th>Окончание</th><th>Пример</th></tr></thead><tbody>`;
+      rulesBuffer.forEach(r => {
+        h += `<tr>
+          <td>${r.condition}</td>
+          <td class="gr-rule-result">${r.result}</td>
+          <td class="gr-rule-example">${r.example || ''}</td>
+        </tr>`;
+      });
+      h += '</tbody></table>';
+      rulesBuffer = [];
+      return h;
+    }
+
+    blocks.forEach(b => {
+      if (b.type === 'rule') {
+        rulesBuffer.push(b);
+        return;
+      }
+      html += flushRules();
+
+      if (b.type === 'heading') {
+        html += `<div class="gr-detail-section-title">${b.text}</div>`;
+      } else if (b.type === 'text') {
+        html += `<div class="gr-detail-text">${b.text}</div>`;
+      } else if (b.type === 'note') {
+        html += `<div class="gr-detail-note">${b.text}</div>`;
+      } else if (b.type === 'warning') {
+        html += `<div class="gr-detail-warning">${b.text}</div>`;
+      } else if (b.type === 'tip') {
+        html += `<div class="gr-detail-tip">${b.text}</div>`;
+      } else if (b.type === 'examples') {
+        html += renderCardCarousel(b.items, b.label);
+      }
+    });
+    html += flushRules();
+    html += '</div>';
+    return html;
+  }
+
+  function openModal(item) {
+    carouselCount = 0; // reset carousel IDs
+    modalTitle.textContent = item.title;
+    modalSubtitle.textContent = item.formula;
+
+    const hasBlocks = item.details && item.details.blocks && item.details.blocks.length;
+    const blocksHaveExamples = hasBlocks && item.details.blocks.some(b => b.type === 'examples');
+
+    // Details: new blocks format or old content string
+    let detailsHTML = '';
+    if (hasBlocks) {
+      detailsHTML = renderDetailBlocks(item.details.blocks);
+    } else if (item.details && item.details.content) {
+      detailsHTML = `<div class="gr-modal-desc">${item.details.content}</div>`;
+    }
+
+    // Если примеры уже внутри blocks — не дублируем снизу
+    let bottomExamples = '';
+    if (!blocksHaveExamples && item.examples && item.examples.length) {
+      bottomExamples = renderCardCarousel(item.examples, 'Примеры');
+    }
+
+    modalBody.innerHTML = detailsHTML + bottomExamples;
+
+    // Init carousels
+    initCarousels(modalBody);
+
+    modalOverlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    modalOverlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  // ── CAROUSEL LOGIC ──
+  function initCarousels(container) {
+    const state = {};
+
+    container.querySelectorAll('[data-carousel]').forEach(el => {
+      const id = el.dataset.carousel;
+      const track = document.getElementById(id + '-track');
+      if (!track) return;
+      const pages = track.querySelectorAll('.gr-ex-page');
+      state[id] = { current: 0, total: pages.length, track };
+    });
+
+    container.addEventListener('click', e => {
+      const btn = e.target.closest('.gr-ex-nav-btn');
+      const dot = e.target.closest('.gr-ex-nav-dot');
+
+      if (btn) {
+        const id = btn.dataset.target;
+        const dir = parseInt(btn.dataset.dir);
+        const s = state[id];
+        if (!s) return;
+        s.current = Math.max(0, Math.min(s.total - 1, s.current + dir));
+        updateCarousel(id, s);
+      }
+
+      if (dot) {
+        const id = dot.dataset.target;
+        const idx = parseInt(dot.dataset.idx);
+        const s = state[id];
+        if (!s) return;
+        s.current = idx;
+        updateCarousel(id, s);
+      }
+    });
+
+    // Touch swipe support
+    container.querySelectorAll('.gr-ex-track-wrap').forEach(wrap => {
+      let startX = 0, startY = 0, moved = false;
+      const carousel = wrap.closest('[data-carousel]');
+      if (!carousel) return;
+      const id = carousel.dataset.carousel;
+
+      wrap.addEventListener('touchstart', e => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        moved = false;
+      }, { passive: true });
+
+      wrap.addEventListener('touchmove', e => {
+        const dx = Math.abs(e.touches[0].clientX - startX);
+        const dy = Math.abs(e.touches[0].clientY - startY);
+        if (dx > dy && dx > 10) moved = true;
+      }, { passive: true });
+
+      wrap.addEventListener('touchend', e => {
+        if (!moved) return;
+        const endX = e.changedTouches[0].clientX;
+        const diff = startX - endX;
+        const s = state[id];
+        if (!s) return;
+        if (diff > 40 && s.current < s.total - 1) { s.current++; updateCarousel(id, s); }
+        if (diff < -40 && s.current > 0) { s.current--; updateCarousel(id, s); }
+      }, { passive: true });
+    });
+
+    function updateCarousel(id, s) {
+      s.track.style.transform = `translateX(-${s.current * 100}%)`;
+      const dotsWrap = document.getElementById(id + '-dots');
+      if (dotsWrap) {
+        dotsWrap.querySelectorAll('.gr-ex-nav-dot').forEach((d, i) => {
+          d.classList.toggle('active', i === s.current);
+        });
+      }
+      // Update button states
+      const carousel = s.track.closest('[data-carousel]');
+      if (carousel) {
+        const nav = carousel.querySelector('.gr-ex-nav');
+        if (nav) {
+          const btns = nav.querySelectorAll('.gr-ex-nav-btn');
+          btns.forEach(b => {
+            const dir = parseInt(b.dataset.dir);
+            b.disabled = (dir === -1 && s.current === 0) || (dir === 1 && s.current === s.total - 1);
+          });
+        }
+      }
+    }
+  }
+
+  function setupModal() {
+    modalClose.addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
+    });
+  }
+
+  function openRowFromSearch(item) {
+    if (item.level !== currentLevel) renderLevel(item.level);
+    setTimeout(() => {
+      openModal(item);
+      document.getElementById('gr-row-' + item.id)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+  }
+
+  // ── SEARCH ──
+  function normalize(str) {
+    return str.toLowerCase().replace(/[-\/\(\)\[\]·•.,:;!?]/g,'').replace(/\s+/g,' ').trim();
+  }
+  function expandSlash(str) {
+    const expanded = str.replace(/(\S+)\/(\S+)/g,'$1$2');
+    return [normalize(expanded), ...str.split('/').map(s => normalize(s.replace(/[-\s]/g,'')))];
+  }
+  function searchScore(item, query) {
+    const qv = expandSlash(query);
+    const fields = [
+      normalize(item.title||''), normalize(item.formula||''), normalize(item.category||''),
+      ...expandSlash(item.title||''), ...expandSlash(item.formula||''),
+    ];
+    let score = 0;
+    for (const v of qv) {
+      if (!v) continue;
+      for (const f of fields) {
+        if (f === v) { score += 100; break; }
+        if (f.startsWith(v)) { score += 60; break; }
+        if (f.includes(v)) { score += 30; break; }
+      }
+    }
+    return score;
+  }
+  function highlight(text, q) {
+    const esc = normalize(q).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    if (!esc) return text;
+    try { return text.replace(new RegExp(`(${esc})`,'gi'),'<mark>$1</mark>'); }
+    catch { return text; }
+  }
+
+  function setupSearch() {
+    searchInput.addEventListener('input', () => {
+      const q = searchInput.value.trim();
+      searchClear.classList.toggle('visible', q.length > 0);
+      q.length < 1 ? hideSearch() : runSearch(q);
+    });
+    searchClear.addEventListener('click', clearSearch);
+    searchInput.addEventListener('keydown', e => { if (e.key === 'Escape') clearSearch(); });
+    document.addEventListener('click', e => { if (!e.target.closest('.gr-search-wrap')) hideSearch(); });
+  }
+
+  function clearSearch() {
+    searchInput.value = '';
+    searchClear.classList.remove('visible');
+    hideSearch();
+  }
+  function hideSearch() { searchResults.classList.remove('visible'); }
+
+  function runSearch(query) {
+    searchResults.innerHTML = '';
+    const scored = searchIndex
+      .map(item => ({ item, score: searchScore(item, query) }))
+      .filter(x => x.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 12);
+
+    if (!scored.length) {
+      searchResults.innerHTML = `<div class="gr-search-noresult">Ничего не найдено по «${query}»</div>`;
+      searchResults.classList.add('visible');
+      return;
+    }
+
+    const hdr = document.createElement('div');
+    hdr.className = 'gr-search-result-header';
+    hdr.textContent = `Найдено: ${scored.length}`;
+    searchResults.appendChild(hdr);
+
+    scored.forEach(({ item }) => {
+      const el = document.createElement('div');
+      el.className = 'gr-search-result';
+      el.innerHTML = `
+        <span>${highlight(item.title, query)}</span>
+        <span class="gr-search-result-meta">${item.level.toUpperCase().replace('TOPIK','TOPIK ')} · ${item.category||''}</span>
+      `;
+      el.onclick = () => {
+        clearSearch();
+        openRowFromSearch(item);
+      };
+      searchResults.appendChild(el);
+    });
+    searchResults.classList.add('visible');
+  }
+
+  // ── OPEN FROM URL PARAM ──
+  function checkOpenParam() {
+    const id = new URLSearchParams(location.search).get('open');
+    if (!id) return;
+    // Find item in all data
+    for (const items of Object.values(allData)) {
+      const item = (items || []).find(i => i.id === id);
+      if (item) { openModal(item); return; }
+    }
+  }
+</script>
+{% endblock %}

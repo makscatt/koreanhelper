@@ -1,0 +1,1053 @@
+[
+  {
+    "id": "start-01",
+    "section": "start",
+    "section_label": "Старт урока",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "안녕하세요!",
+      "rus": "Здравствуйте!"
+    },
+    "student": {
+      "kor": "안녕하세요!",
+      "rus": "Здравствуйте!"
+    }
+  },
+  {
+    "id": "start-02",
+    "section": "start",
+    "section_label": "Старт урока",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "한 주 동안 잘 지냈어요?",
+      "rus": "Хорошо провели неделю?"
+    },
+    "student": {
+      "kor": "네, 덕분에요. 선생님도 잘 지내셨어요?",
+      "rus": "Да, спасибо. Вы тоже хорошо?"
+    }
+  },
+  {
+    "id": "start-03",
+    "section": "start",
+    "section_label": "Старт урока",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "자, 그럼 바로 시작해 볼까요?",
+      "rus": "Ну что, тогда сразу начнём?"
+    },
+    "student": {
+      "kor": "네, 준비됐어요!",
+      "rus": "Да, готова!"
+    }
+  },
+  {
+    "id": "start-04",
+    "section": "start",
+    "section_label": "Старт урока",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "공부할 준비됐어요?",
+      "rus": "Готова заниматься?"
+    },
+    "student": {
+      "kor": "네, 준비됐어요!",
+      "rus": "Да, готова!"
+    }
+  },
+  {
+    "id": "start-05",
+    "section": "start",
+    "section_label": "Старт урока",
+    "priority": "regular",
+    "type": "fixed",
+    "teacher": {
+      "kor": "오늘 어때요?",
+      "rus": "Как ты сегодня?"
+    },
+    "student": {
+      "kor": "좋아요! / 그냥 그래요. / 좀 피곤해요.",
+      "rus": "Хорошо! / Так себе. / Немного устала."
+    }
+  },
+  {
+    "id": "start-06",
+    "section": "start",
+    "section_label": "Старт урока",
+    "priority": "regular",
+    "type": "fixed",
+    "teacher": {
+      "kor": "많이 피곤하지 않아요?",
+      "rus": "Сильно устала?"
+    },
+    "student": {
+      "kor": "아니요, 괜찮아요. / 네, 좀 피곤해요.",
+      "rus": "Нет, нормально. / Да, немного устала."
+    }
+  },
+  {
+    "id": "start-07",
+    "section": "start",
+    "section_label": "Старт урока",
+    "priority": "situational",
+    "type": "fixed",
+    "teacher": {
+      "kor": "어디 아파요? 목소리가 안 좋아요.",
+      "rus": "Что-то болит? Голос не очень."
+    },
+    "student": {
+      "kor": "감기에 걸렸어요. / 머리가 아파요.",
+      "rus": "Я простудилась. / Болит голова."
+    }
+  },
+  {
+    "id": "start-08",
+    "section": "start",
+    "section_label": "Старт урока",
+    "priority": "situational",
+    "type": "fixed",
+    "teacher": {
+      "kor": "아이고, 무리하지 마세요.",
+      "rus": "Ох, не перенапрягайтесь."
+    },
+    "student": {
+      "kor": "감사해요, 선생님.",
+      "rus": "Спасибо, учитель."
+    }
+  },
+  {
+    "id": "warmup-01",
+    "section": "warmup",
+    "section_label": "Разминка",
+    "priority": "core",
+    "type": "template",
+    "teacher": {
+      "kor": "오늘 날짜가 뭐예요?",
+      "rus": "Какая сегодня дата?"
+    },
+    "student": {
+      "kor": "오늘은 ___월 ___일이에요.",
+      "rus": "Сегодня ___ месяц, ___ число.",
+      "placeholder_hint": "Подставь сегодняшнюю дату"
+    }
+  },
+  {
+    "id": "warmup-02",
+    "section": "warmup",
+    "section_label": "Разминка",
+    "priority": "core",
+    "type": "template",
+    "teacher": {
+      "kor": "오늘 날씨가 어때요?",
+      "rus": "Как сегодня погода?"
+    },
+    "student": {
+      "kor": "오늘은 ___아요/어요.",
+      "rus": "Сегодня ___.",
+      "placeholder_hint": "맑아요 ясно / 흐려요 пасмурно / 비 와요 дождь / 추워요 холодно / 더워요 жарко"
+    }
+  },
+  {
+    "id": "warmup-03",
+    "section": "warmup",
+    "section_label": "Разминка",
+    "priority": "core",
+    "type": "template",
+    "teacher": {
+      "kor": "오늘 기분은 어때요?",
+      "rus": "Как настроение сегодня?"
+    },
+    "student": {
+      "kor": "기분이 ___아요/어요.",
+      "rus": "Настроение ___.",
+      "placeholder_hint": "좋아요 хорошее / 나쁘지 않아요 неплохое / 그냥 그래요 так себе"
+    }
+  },
+  {
+    "id": "warmup-04",
+    "section": "warmup",
+    "section_label": "Разминка",
+    "priority": "core",
+    "type": "template",
+    "teacher": {
+      "kor": "어제 날짜가 뭐였어요?",
+      "rus": "Какая вчера была дата?"
+    },
+    "student": {
+      "kor": "어제는 ___월 ___일이었어요.",
+      "rus": "Вчера было ___ месяц, ___ число.",
+      "placeholder_hint": "Подставь вчерашнюю дату"
+    }
+  },
+  {
+    "id": "warmup-05",
+    "section": "warmup",
+    "section_label": "Разминка",
+    "priority": "regular",
+    "type": "fixed",
+    "teacher": {
+      "kor": "바깥 날씨 많이 춥죠?",
+      "rus": "На улице сильно холодно, да?"
+    },
+    "student": {
+      "kor": "네, 바람이 많이 불어요. / 쌀쌀해요.",
+      "rus": "Да, дует сильный ветер. / Прохладно."
+    }
+  },
+  {
+    "id": "smalltalk-01",
+    "section": "smalltalk",
+    "section_label": "Светская беседа",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "주말 잘 보냈어요?",
+      "rus": "Хорошо провели выходные?"
+    },
+    "student": {
+      "kor": "네, 잘 보냈어요! / 아니요, 그냥 그랬어요.",
+      "rus": "Да, хорошо провела! / Нет, так себе."
+    }
+  },
+  {
+    "id": "smalltalk-02",
+    "section": "smalltalk",
+    "section_label": "Светская беседа",
+    "priority": "core",
+    "type": "template",
+    "teacher": {
+      "kor": "주말에 뭐 했어요?",
+      "rus": "Что делали на выходных?"
+    },
+    "student": {
+      "kor": "___았어요/었어요.",
+      "rus": "Я ___.",
+      "placeholder_hint": "친구를 만났어요 встречалась с другом / 영화를 봤어요 смотрела кино / 집에서 쉬었어요 отдыхала дома"
+    }
+  },
+  {
+    "id": "smalltalk-03",
+    "section": "smalltalk",
+    "section_label": "Светская беседа",
+    "priority": "regular",
+    "type": "fixed",
+    "teacher": {
+      "kor": "어제 잘 잤어요?",
+      "rus": "Вчера хорошо спали?"
+    },
+    "student": {
+      "kor": "네, 꿀잠 잤어요. / 아니요, 잠을 설쳤어요.",
+      "rus": "Да, спала как младенец. / Нет, спала плохо."
+    }
+  },
+  {
+    "id": "smalltalk-04",
+    "section": "smalltalk",
+    "section_label": "Светская беседа",
+    "priority": "regular",
+    "type": "template",
+    "teacher": {
+      "kor": "아침/점심 먹었어요?",
+      "rus": "Завтракали / обедали?"
+    },
+    "student": {
+      "kor": "네, ___을/를 먹었어요. / 아니요, 아직 안 먹었어요.",
+      "rus": "Да, я ела ___. / Нет, ещё не ела.",
+      "placeholder_hint": "Назови что ела: 빵 хлеб / 밥 рис / 샐러드 салат"
+    }
+  },
+  {
+    "id": "smalltalk-05",
+    "section": "smalltalk",
+    "section_label": "Светская беседа",
+    "priority": "regular",
+    "type": "template",
+    "teacher": {
+      "kor": "오늘 수업 끝나고 뭐 할 거예요?",
+      "rus": "Что будете делать после урока?"
+    },
+    "student": {
+      "kor": "___을/를 할 거예요. / 아직 계획 없어요.",
+      "rus": "Буду ___. / Планов пока нет.",
+      "placeholder_hint": "집에 갈 거예요 пойду домой / 친구를 만날 거예요 встречусь с другом"
+    }
+  },
+  {
+    "id": "smalltalk-06",
+    "section": "smalltalk",
+    "section_label": "Светская беседа",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "요즘 어떻게 지내요?",
+      "rus": "Как вы себя чувствуете в последнее время?"
+    },
+    "student": {
+      "kor": "잘 지내고 있어요. / 좀 바빠요. / 그럭저럭이에요.",
+      "rus": "Всё хорошо. / Немного занят(а). / Так себе."
+    }
+  },
+  {
+    "id": "smalltalk-07",
+    "section": "smalltalk",
+    "section_label": "Светская беседа",
+    "priority": "regular",
+    "type": "fixed",
+    "teacher": {
+      "kor": "요즘 많이 바빠요?",
+      "rus": "Вы сейчас очень заняты?"
+    },
+    "student": {
+      "kor": "네, 요즘 좀 바빠요. / 아니요, 별로 안 바빠요.",
+      "rus": "Да, сейчас немного занят(а). / Нет, не особо."
+    }
+  },
+  {
+    "id": "smalltalk-08",
+    "section": "smalltalk",
+    "section_label": "Светская беседа",
+    "priority": "regular",
+    "type": "fixed",
+    "teacher": {
+      "kor": "요즘 날씨 어때요?",
+      "rus": "Как у вас сейчас погода?"
+    },
+    "student": {
+      "kor": "많이 추워요. / 따뜻해요. / 비가 많이 와요.",
+      "rus": "Очень холодно. / Тепло. / Сильный дождь."
+    }
+  },
+  {
+    "id": "smalltalk-09",
+    "section": "smalltalk",
+    "section_label": "Светская беседа",
+    "priority": "regular",
+    "type": "fixed",
+    "teacher": {
+      "kor": "한국어 공부가 재미있어요?",
+      "rus": "Вам интересно изучать корейский?"
+    },
+    "student": {
+      "kor": "네, 재미있어요! / 좀 어렵지만 재미있어요.",
+      "rus": "Да, интересно! / Немного сложно, но интересно."
+    }
+  },
+  {
+    "id": "smalltalk-10",
+    "section": "smalltalk",
+    "section_label": "Светская беседа",
+    "priority": "situational",
+    "type": "fixed",
+    "teacher": {
+      "kor": "한국에 관심이 생긴 이유가 뭐예요?",
+      "rus": "Почему вы заинтересовались Кореей?"
+    },
+    "student": {
+      "kor": "한국 드라마를 좋아해서요. / K-pop 때문에요. / 한국 문화가 좋아서요.",
+      "rus": "Из-за корейских дорам. / Из-за K-pop. / Нравится корейская культура."
+    }
+  },
+  {
+    "id": "smalltalk-11",
+    "section": "smalltalk",
+    "section_label": "Светская беседа",
+    "priority": "situational",
+    "type": "fixed",
+    "teacher": {
+      "kor": "한국에 가본 적 있어요?",
+      "rus": "Вы были в Корее?"
+    },
+    "student": {
+      "kor": "네, 가봤어요! / 아니요, 아직 못 가봤어요. 언젠가 가고 싶어요.",
+      "rus": "Да, был(а)! / Нет, ещё не был(а). Хочу съездить когда-нибудь."
+    }
+  },
+  {
+    "id": "smalltalk-12",
+    "section": "smalltalk",
+    "section_label": "Светская беседа",
+    "priority": "situational",
+    "type": "fixed",
+    "teacher": {
+      "kor": "좋아하는 한국 음식이 있어요?",
+      "rus": "Есть любимое корейское блюдо?"
+    },
+    "student": {
+      "kor": "___을/를 좋아해요. / 아직 잘 몰라요.",
+      "rus": "Мне нравится ___. / Пока не очень знаком(а)."
+    }
+  },
+  {
+    "id": "mindset-01",
+    "section": "mindset",
+    "section_label": "Настрой",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "실수해도 괜찮아요.",
+      "rus": "Ошибаться — это нормально."
+    },
+    "student": {
+      "kor": "네, 알겠어요!",
+      "rus": "Да, поняла!"
+    }
+  },
+  {
+    "id": "mindset-02",
+    "section": "mindset",
+    "section_label": "Настрой",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "편하게 말해 보세요.",
+      "rus": "Говорите свободно, не стесняйтесь."
+    },
+    "student": {
+      "kor": "네, 해볼게요!",
+      "rus": "Да, попробую!"
+    }
+  },
+  {
+    "id": "mindset-03",
+    "section": "mindset",
+    "section_label": "Настрой",
+    "priority": "regular",
+    "type": "fixed",
+    "teacher": {
+      "kor": "하나씩 천천히 해볼게요.",
+      "rus": "Давайте потихоньку, шаг за шагом."
+    },
+    "student": {
+      "kor": "네!",
+      "rus": "Да!"
+    }
+  },
+  {
+    "id": "homework-01",
+    "section": "homework",
+    "section_label": "Домашнее задание",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "지난 숙제는 어땠어요? 어렵지 않았어요?",
+      "rus": "Как домашнее задание? Не сложно было?"
+    },
+    "student": {
+      "kor": "괜찮았어요. / 조금 어려웠어요.",
+      "rus": "Нормально. / Немного сложно."
+    }
+  },
+  {
+    "id": "homework-02",
+    "section": "homework",
+    "section_label": "Домашнее задание",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "지난 시간 내용 기억나요?",
+      "rus": "Помните содержание прошлого урока?"
+    },
+    "student": {
+      "kor": "네, 기억나요. / 아니요, 잘 기억 안 나요.",
+      "rus": "Да, помню. / Нет, плохо помню."
+    }
+  },
+  {
+    "id": "homework-03",
+    "section": "homework",
+    "section_label": "Домашнее задание",
+    "priority": "regular",
+    "type": "fixed",
+    "teacher": {
+      "kor": "숙제 다 했어요?",
+      "rus": "Сделали всё домашнее задание?"
+    },
+    "student": {
+      "kor": "네, 다 했어요! / 죄송해요, 못 했어요.",
+      "rus": "Да, всё сделала! / Извините, не смогла."
+    }
+  },
+  {
+    "id": "homework-04",
+    "section": "homework",
+    "section_label": "Домашнее задание",
+    "priority": "situational",
+    "type": "fixed",
+    "teacher": {
+      "kor": "왜 못 했어요?",
+      "rus": "Почему не смогли сделать?"
+    },
+    "student": {
+      "kor": "시간이 없어서요. / 너무 어려워서요. / 까먹었어요...",
+      "rus": "Не было времени. / Было слишком сложно. / Забыла..."
+    }
+  },
+  {
+    "id": "during-01",
+    "section": "during",
+    "section_label": "Во время урока",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "이해돼요? / 알겠어요?",
+      "rus": "Понимаете? / Понятно?"
+    },
+    "student": {
+      "kor": "네, 이해돼요. / 아니요, 잘 모르겠어요.",
+      "rus": "Да, понимаю. / Нет, не очень понимаю."
+    }
+  },
+  {
+    "id": "during-02",
+    "section": "during",
+    "section_label": "Во время урока",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "질문 있어요?",
+      "rus": "Есть вопросы?"
+    },
+    "student": {
+      "kor": "네, 질문 있어요. / 아니요, 없어요.",
+      "rus": "Да, есть вопрос. / Нет, нет."
+    }
+  },
+  {
+    "id": "during-03",
+    "section": "during",
+    "section_label": "Во время урока",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "따라 해보세요.",
+      "rus": "Повторяйте за мной."
+    },
+    "student": {
+      "kor": "네! (повторяет)",
+      "rus": "Да! (повторяет)"
+    }
+  },
+  {
+    "id": "during-04",
+    "section": "during",
+    "section_label": "Во время урока",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "잘했어요! / 맞아요!",
+      "rus": "Молодец! / Верно!"
+    },
+    "student": {
+      "kor": "감사해요!",
+      "rus": "Спасибо!"
+    }
+  },
+  {
+    "id": "during-05",
+    "section": "during",
+    "section_label": "Во время урока",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "다시 한번 해볼까요?",
+      "rus": "Попробуем ещё раз?"
+    },
+    "student": {
+      "kor": "네, 해볼게요.",
+      "rus": "Да, попробую."
+    }
+  },
+  {
+    "id": "during-06",
+    "section": "during",
+    "section_label": "Во время урока",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "읽어 보세요.",
+      "rus": "Прочитайте, пожалуйста."
+    },
+    "student": {
+      "kor": "네. (читает)",
+      "rus": "Да. (читает)"
+    }
+  },
+  {
+    "id": "during-07",
+    "section": "during",
+    "section_label": "Во время урока",
+    "priority": "regular",
+    "type": "fixed",
+    "teacher": {
+      "kor": "모르는 단어 있어요?",
+      "rus": "Есть незнакомые слова?"
+    },
+    "student": {
+      "kor": "네, 이 단어를 모르겠어요. / 아니요, 다 알아요.",
+      "rus": "Да, это слово не знаю. / Нет, все знаю."
+    }
+  },
+  {
+    "id": "during-08",
+    "section": "during",
+    "section_label": "Во время урока",
+    "priority": "core",
+    "type": "template",
+    "teacher": {
+      "kor": "이거 무슨 뜻이에요?",
+      "rus": "Что это значит?"
+    },
+    "student": {
+      "kor": "___는/은 ___ 뜻이에요.",
+      "rus": "___ означает ___.",
+      "placeholder_hint": "Студент объясняет значение слова своими словами"
+    }
+  },
+  {
+    "id": "during-09",
+    "section": "during",
+    "section_label": "Во время урока",
+    "priority": "core",
+    "type": "template",
+    "teacher": {
+      "kor": "___가 한국어로 뭐예요?",
+      "rus": "Как будет \"___\" по-корейски?"
+    },
+    "student": {
+      "kor": "___는/은 한국어로 ___이에요/예요.",
+      "rus": "\"___\" по-корейски — это ___.",
+      "placeholder_hint": "Студент переводит слово с русского на корейский"
+    }
+  },
+  {
+    "id": "during-10",
+    "section": "during",
+    "section_label": "Во время урока",
+    "priority": "regular",
+    "type": "fixed",
+    "teacher": {
+      "kor": "잠깐만요, 확인해 볼게요.",
+      "rus": "Секундочку, сейчас проверю."
+    },
+    "student": {
+      "kor": "네, 기다릴게요.",
+      "rus": "Да, подожду."
+    }
+  },
+  {
+    "id": "student-phrases-01",
+    "section": "student_phrases",
+    "section_label": "Фразы студента",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "(пауза / ожидает ответа)",
+      "rus": "(пауза / ожидает ответа)"
+    },
+    "student": {
+      "kor": "잘 모르겠어요.",
+      "rus": "Не знаю / Не уверена."
+    }
+  },
+  {
+    "id": "student-phrases-02",
+    "section": "student_phrases",
+    "section_label": "Фразы студента",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "(пауза / ожидает ответа)",
+      "rus": "(пауза / ожидает ответа)"
+    },
+    "student": {
+      "kor": "다시 한번 말해주세요.",
+      "rus": "Повторите, пожалуйста."
+    }
+  },
+  {
+    "id": "student-phrases-03",
+    "section": "student_phrases",
+    "section_label": "Фразы студента",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "(пауза / ожидает ответа)",
+      "rus": "(пауза / ожидает ответа)"
+    },
+    "student": {
+      "kor": "좀 더 천천히 말해주세요.",
+      "rus": "Говорите немного медленнее, пожалуйста."
+    }
+  },
+  {
+    "id": "student-phrases-04",
+    "section": "student_phrases",
+    "section_label": "Фразы студента",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "(пауза / ожидает ответа)",
+      "rus": "(пауза / ожидает ответа)"
+    },
+    "student": {
+      "kor": "이해가 안 돼요.",
+      "rus": "Не понимаю."
+    }
+  },
+  {
+    "id": "student-phrases-05",
+    "section": "student_phrases",
+    "section_label": "Фразы студента",
+    "priority": "core",
+    "type": "template",
+    "teacher": {
+      "kor": "(пауза / ожидает ответа)",
+      "rus": "(пауза / ожидает ответа)"
+    },
+    "student": {
+      "kor": "___ 한국어로 뭐예요?",
+      "rus": "Как будет \"___\" по-корейски?",
+      "placeholder_hint": "Подставь нужное слово на русском"
+    }
+  },
+  {
+    "id": "student-phrases-06",
+    "section": "student_phrases",
+    "section_label": "Фразы студента",
+    "priority": "regular",
+    "type": "fixed",
+    "teacher": {
+      "kor": "(пауза / ожидает ответа)",
+      "rus": "(пауза / ожидает ответа)"
+    },
+    "student": {
+      "kor": "선생님, 잠깐만요.",
+      "rus": "Учитель, секундочку."
+    }
+  },
+  {
+    "id": "student-phrases-07",
+    "section": "student_phrases",
+    "section_label": "Фразы студента",
+    "priority": "regular",
+    "type": "fixed",
+    "teacher": {
+      "kor": "(пауза / ожидает ответа)",
+      "rus": "(пауза / ожидает ответа)"
+    },
+    "student": {
+      "kor": "이거 무슨 뜻이에요?",
+      "rus": "Что это значит?"
+    }
+  },
+  {
+    "id": "student-08",
+    "section": "student_phrases",
+    "section_label": "Фразы студента",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "(пауза / ожидает ответа)",
+      "rus": null
+    },
+    "student": {
+      "kor": "잠깐만요, 생각해 볼게요.",
+      "rus": "Подождите, дайте подумаю."
+    }
+  },
+  {
+    "id": "student-09",
+    "section": "student_phrases",
+    "section_label": "Фразы студента",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "(пауза / ожидает ответа)",
+      "rus": null
+    },
+    "student": {
+      "kor": "아, 알겠어요!",
+      "rus": "О, понял(а)!"
+    }
+  },
+  {
+    "id": "student-10",
+    "section": "student_phrases",
+    "section_label": "Фразы студента",
+    "priority": "regular",
+    "type": "fixed",
+    "teacher": {
+      "kor": "(пауза / ожидает ответа)",
+      "rus": null
+    },
+    "student": {
+      "kor": "맞아요? / 이렇게 맞아요?",
+      "rus": "Правильно? / Вот так правильно?"
+    }
+  },
+  {
+    "id": "student-11",
+    "section": "student_phrases",
+    "section_label": "Фразы студента",
+    "priority": "regular",
+    "type": "fixed",
+    "teacher": {
+      "kor": "(пауза / ожидает ответа)",
+      "rus": null
+    },
+    "student": {
+      "kor": "발음이 맞아요?",
+      "rus": "Произношение правильное?"
+    }
+  },
+  {
+    "id": "technical-01",
+    "section": "technical",
+    "section_label": "Техника",
+    "priority": "situational",
+    "type": "fixed",
+    "teacher": {
+      "kor": "잘 들려요?",
+      "rus": "Хорошо слышно?"
+    },
+    "student": {
+      "kor": "네, 잘 들려요. / 아니요, 잘 안 들려요.",
+      "rus": "Да, хорошо слышно. / Нет, плохо слышно."
+    }
+  },
+  {
+    "id": "technical-02",
+    "section": "technical",
+    "section_label": "Техника",
+    "priority": "situational",
+    "type": "fixed",
+    "teacher": {
+      "kor": "화면 보여요?",
+      "rus": "Экран видно?"
+    },
+    "student": {
+      "kor": "네, 보여요. / 아니요, 안 보여요.",
+      "rus": "Да, видно. / Нет, не видно."
+    }
+  },
+  {
+    "id": "technical-03",
+    "section": "technical",
+    "section_label": "Техника",
+    "priority": "situational",
+    "type": "fixed",
+    "teacher": {
+      "kor": "(ожидает)",
+      "rus": "(ожидает)"
+    },
+    "student": {
+      "kor": "선생님, 소리가 끊겨요. / 화면이 멈췄어요.",
+      "rus": "Учитель, звук прерывается. / Экран завис."
+    }
+  },
+  {
+    "id": "technical-04",
+    "section": "technical",
+    "section_label": "Техника",
+    "priority": "situational",
+    "type": "fixed",
+    "teacher": {
+      "kor": "(ожидает)",
+      "rus": "(ожидает)"
+    },
+    "student": {
+      "kor": "다시 접속할게요.",
+      "rus": "Я переподключусь."
+    }
+  },
+  {
+    "id": "selfpresent-01",
+    "section": "selfpresent",
+    "section_label": "Самопрезентация",
+    "priority": "regular",
+    "type": "template",
+    "teacher": {
+      "kor": "이름이 뭐예요?",
+      "rus": "Как вас зовут?"
+    },
+    "student": {
+      "kor": "제 이름은 ___이에요/예요.",
+      "rus": "Меня зовут ___.",
+      "placeholder_hint": "Подставь своё имя"
+    }
+  },
+  {
+    "id": "selfpresent-02",
+    "section": "selfpresent",
+    "section_label": "Самопрезентация",
+    "priority": "regular",
+    "type": "template",
+    "teacher": {
+      "kor": "나이가 어떻게 되세요?",
+      "rus": "Сколько вам лет?"
+    },
+    "student": {
+      "kor": "저는 ___살이에요.",
+      "rus": "Мне ___ лет.",
+      "placeholder_hint": "Подставь свой возраст"
+    }
+  },
+  {
+    "id": "selfpresent-03",
+    "section": "selfpresent",
+    "section_label": "Самопрезентация",
+    "priority": "regular",
+    "type": "template",
+    "teacher": {
+      "kor": "어디에 살아요?",
+      "rus": "Где вы живёте?"
+    },
+    "student": {
+      "kor": "저는 ___에 살아요.",
+      "rus": "Я живу в ___.",
+      "placeholder_hint": "Подставь название города / страны"
+    }
+  },
+  {
+    "id": "selfpresent-04",
+    "section": "selfpresent",
+    "section_label": "Самопрезентация",
+    "priority": "regular",
+    "type": "template",
+    "teacher": {
+      "kor": "직업이 뭐예요?",
+      "rus": "Какая у вас профессия?"
+    },
+    "student": {
+      "kor": "저는 ___이에요/예요.",
+      "rus": "Я ___.",
+      "placeholder_hint": "Подставь профессию"
+    }
+  },
+  {
+    "id": "selfpresent-05",
+    "section": "selfpresent",
+    "section_label": "Самопрезентация",
+    "priority": "regular",
+    "type": "template",
+    "teacher": {
+      "kor": "왜 한국어를 배워요?",
+      "rus": "Почему учите корейский?"
+    },
+    "student": {
+      "kor": "___때문에 배워요. / ___고 싶어서요.",
+      "rus": "Учу из-за ___. / Потому что хочу ___.",
+      "placeholder_hint": "한국 드라마 дорамы / K-pop кей-поп / 한국 여행 путешествие в Корею"
+    }
+  },
+  {
+    "id": "end-01",
+    "section": "end",
+    "section_label": "Завершение",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "오늘 수업은 여기까지 할게요.",
+      "rus": "На сегодня закончим урок."
+    },
+    "student": {
+      "kor": "네, 알겠습니다.",
+      "rus": "Да, поняла."
+    }
+  },
+  {
+    "id": "end-02",
+    "section": "end",
+    "section_label": "Завершение",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "수고했어요!",
+      "rus": "Хорошо поработали!"
+    },
+    "student": {
+      "kor": "감사합니다, 선생님!",
+      "rus": "Спасибо, учитель!"
+    }
+  },
+  {
+    "id": "end-03",
+    "section": "end",
+    "section_label": "Завершение",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "이거는 숙제예요.",
+      "rus": "Это домашнее задание."
+    },
+    "student": {
+      "kor": "네, 알겠어요.",
+      "rus": "Да, поняла."
+    }
+  },
+  {
+    "id": "end-04",
+    "section": "end",
+    "section_label": "Завершение",
+    "priority": "core",
+    "type": "fixed",
+    "teacher": {
+      "kor": "다음 시간에 봐요!",
+      "rus": "Увидимся на следующем занятии!"
+    },
+    "student": {
+      "kor": "네, 안녕히 계세요!",
+      "rus": "Да, до свидания!"
+    }
+  },
+  {
+    "id": "end-05",
+    "section": "end",
+    "section_label": "Завершение",
+    "priority": "regular",
+    "type": "template",
+    "teacher": {
+      "kor": "다음 수업은 언제 할까요?",
+      "rus": "Когда проведём следующий урок?"
+    },
+    "student": {
+      "kor": "다음 주 ___요일 어때요?",
+      "rus": "Как насчёт следующего ___?",
+      "placeholder_hint": "월요일 пн / 화요일 вт / 수요일 ср / 목요일 чт / 금요일 пт"
+    }
+  },
+  {
+    "id": "end-06",
+    "section": "end",
+    "section_label": "Конец урока",
+    "priority": "regular",
+    "type": "fixed",
+    "teacher": {
+      "kor": "오늘 정말 잘했어요!",
+      "rus": "Сегодня вы очень хорошо постарались!"
+    },
+    "student": {
+      "kor": "감사해요! 선생님 덕분에요.",
+      "rus": "Спасибо! Это благодаря вам."
+    }
+  },
+  {
+    "id": "end-07",
+    "section": "end",
+    "section_label": "Конец урока",
+    "priority": "situational",
+    "type": "fixed",
+    "teacher": {
+      "kor": "모르는 게 있으면 언제든지 물어보세요.",
+      "rus": "Если что-то непонятно — спрашивайте в любое время."
+    },
+    "student": {
+      "kor": "네, 감사합니다!",
+      "rus": "Хорошо, спасибо!"
+    }
+  }
+]

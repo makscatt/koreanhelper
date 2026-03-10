@@ -1,0 +1,349 @@
+{% extends "trainer_base.html" %}
+
+{% block title %}Построение предложений — {{ student.name }}{% endblock %}
+
+{% block trainer_content %}
+<script>document.body.dataset.module = 'sentences';</script>
+<div class="trainer-header">
+  
+  <span class="trainer-title">Построение предложений</span>
+</div>
+
+<div style="max-width:860px;width:100%;">
+
+  <!-- TOPIK tabs -->
+  <div class="topik-tabs">
+    <button class="topik-btn active" data-topik="all" onclick="setTopik('all', this)">Все</button>
+    <button class="topik-btn" data-topik="1" onclick="setTopik('1', this)">TOPIK I</button>
+    <button class="topik-btn" data-topik="2" onclick="setTopik('2', this)">TOPIK II</button>
+    <button class="topik-btn" data-topik="3" onclick="setTopik('3', this)">TOPIK III</button>
+    <button class="topik-btn" data-topik="4" onclick="setTopik('4', this)">TOPIK IV</button>
+    <button class="topik-btn" data-topik="5" onclick="setTopik('5', this)">TOPIK V</button>
+    <button class="topik-btn" data-topik="6" onclick="setTopik('6', this)">TOPIK VI</button>
+  </div>
+
+  <!-- Controls row -->
+  <div class="controls-row">
+    <div class="mode-switch">
+      <input type="radio" id="mode1" name="mode" value="1" checked onchange="setMode(1)">
+      <label for="mode1" class="mode-label">Перевести</label>
+      <input type="radio" id="mode2" name="mode" value="2" onchange="setMode(2)">
+      <label for="mode2" class="mode-label">Собрать</label>
+    </div>
+    <div class="sent-search-wrap">
+      <input class="sent-search-input" id="sent-search" type="text" placeholder="🔍 Поиск грамматики..." autocomplete="off">
+      <button class="sent-search-clear" id="sent-search-clear">✕</button>
+      <div class="sent-search-dropdown" id="sent-search-dropdown"></div>
+    </div>
+    <select id="topic-select" class="topic-select" onchange="setTopic(this.value)">
+      <option value="">Все грамматики</option>
+    </select>
+    <div class="counter">
+      <b id="cnt-cur">0</b> / <span id="cnt-total">0</span>
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="progress-wrap">
+    <div class="progress-fill" id="progress-bar"></div>
+  </div>
+
+  <!-- Exercise card -->
+  <div class="exercise-card">
+    <div class="exercise-card-badges">
+      <div class="badge-hint" id="badge-hint">—</div>
+      <div class="badge-topik" id="badge-topik">—</div>
+      <div class="badge-num" id="badge-num">#—</div>
+    </div>
+
+    <div class="exercise-card-body">
+      <div class="task-ru" id="task-ru"></div>
+      <div class="task-parts" id="task-parts" style="display:none;"></div>
+
+      <div class="answer-block" id="answer-block">
+        <div class="answer-divider"></div>
+        <div class="answer-kor" id="answer-kor"></div>
+        <div class="answer-rom" id="answer-rom"></div>
+      </div>
+    </div>
+
+    <div class="exercise-card-actions">
+      <div class="btn-row">
+        <button class="btn" onclick="prevSent()">← Назад</button>
+        <button class="btn btn-primary" id="btn-answer" onclick="toggleAnswer()">👁 Ответ</button>
+        <button class="btn" onclick="nextSent()">Далее →</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="btn-speak" onclick="speakAnswer()" disabled>🔊 Озвучить</button>
+        <button class="btn" onclick="randSent()">🎲 Случайное</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="kbd-hints">
+    <kbd>←</kbd><kbd>→</kbd> навигация &nbsp;|&nbsp;
+    <kbd>Пробел</kbd> ответ &nbsp;|&nbsp;
+    <kbd>R</kbd> случайное &nbsp;|&nbsp;
+    <kbd>S</kbd> озвучить
+  </div>
+
+</div>
+{% endblock %}
+
+{% block trainer_js %}
+<script>
+  let allData = [], filtered = [], curIdx = 0, mode = 1;
+  let answerVisible = false, activeTopik = 'all', activeTopic = '';
+  const STUDENT_ID = {{ student.id }};
+
+  // ── LOAD ──
+  async function loadData() {
+    try {
+      const res = await fetch('/static/data/sentences.json');
+      if (!res.ok) throw new Error();
+      allData = await res.json();
+    } catch {
+      allData = [{ topik:1, grammar_id:"i-ga", category:"Основные частицы", title:"-이/가",
+        ru:"Кошка милая.", parts:["고양이","가","귀엽다"], answer:"고양이가 귀여워요", rom:"Коянъига квиёвоё" }];
+    }
+    buildTopicSelect();
+    applyFilters();
+  }
+
+  // ── TOPIC SELECT ──
+  function buildTopicSelect() {
+    const sel = document.getElementById('topic-select');
+    while (sel.options.length > 1) sel.remove(1);
+    const source = activeTopik === 'all' ? allData : allData.filter(d => d.topik === activeTopik);
+    const seen = new Set();
+    source.forEach(d => {
+      if (!seen.has(d.grammar_id)) {
+        seen.add(d.grammar_id);
+        const opt = document.createElement('option');
+        opt.value = d.grammar_id;
+        opt.textContent = d.title + ' — ' + d.category;
+        sel.appendChild(opt);
+      }
+    });
+    sel.value = activeTopic && seen.has(activeTopic) ? activeTopic : '';
+    activeTopic = sel.value;
+  }
+
+  // ── FILTERS ──
+  function setTopik(topik, btn) {
+    activeTopik = topik === 'all' ? 'all' : Number(topik);
+    activeTopic = '';
+    document.querySelectorAll('.topik-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.topik-btn[data-topik]').forEach(b => {
+      const t = b.dataset.topik;
+      if (t === 'all') return;
+      b.style.display = allData.some(d => d.topik === Number(t)) ? '' : 'none';
+    });
+    buildTopicSelect();
+    applyFilters();
+  }
+
+  function setTopic(val) { activeTopic = val; applyFilters(); }
+
+  function applyFilters() {
+    filtered = allData.filter(d => {
+      const topikOk = activeTopik === 'all' || d.topik === activeTopik;
+      const topicOk = !activeTopic || d.grammar_id === activeTopic;
+      return topikOk && topicOk;
+    });
+    curIdx = 0;
+    render();
+  }
+
+  function setMode(m) { mode = m; hideAnswer(); render(); }
+
+  // ── RENDER ──
+  function render() {
+    if (!filtered.length) {
+      ['task-ru','badge-hint','badge-topik','badge-num','cnt-cur','cnt-total'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = id.startsWith('cnt') ? '0' : '—';
+      });
+      document.getElementById('progress-bar').style.width = '0%';
+      return;
+    }
+    const s = filtered[curIdx];
+    document.getElementById('badge-hint').textContent = s.title + ' · ' + s.category;
+    document.getElementById('badge-topik').textContent = 'TOPIK ' + s.topik;
+    document.getElementById('badge-num').textContent = '#' + (curIdx + 1);
+    document.getElementById('cnt-cur').textContent = curIdx + 1;
+    document.getElementById('cnt-total').textContent = filtered.length;
+    document.getElementById('progress-bar').style.width = ((curIdx + 1) / filtered.length * 100) + '%';
+    document.getElementById('answer-kor').textContent = s.answer;
+    document.getElementById('answer-rom').textContent = s.rom || '';
+
+    const ruEl = document.getElementById('task-ru');
+    const partsEl = document.getElementById('task-parts');
+
+    if (mode === 1) {
+      ruEl.style.display = 'block'; ruEl.textContent = s.ru;
+      partsEl.style.display = 'none';
+    } else {
+      ruEl.style.display = 'none';
+      partsEl.style.display = 'flex';
+      renderParts(s.parts);
+    }
+    hideAnswer();
+  }
+
+  function renderParts(parts) {
+    const container = document.getElementById('task-parts');
+    container.innerHTML = '';
+    const shuffled = [...parts];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    shuffled.forEach(p => {
+      const chip = document.createElement('div');
+      chip.className = 'part-chip';
+      chip.textContent = p;
+      container.appendChild(chip);
+    });
+  }
+
+  // ── ANSWER ──
+  function toggleAnswer() { answerVisible ? hideAnswer() : showAnswer(); }
+  function showAnswer() {
+    answerVisible = true;
+    document.getElementById('answer-block').classList.add('visible');
+    document.getElementById('exercise-card-body') && document.getElementById('exercise-card-body').classList.add('answer-open');
+    document.querySelector('.exercise-card-body')?.classList.add('answer-open');
+    document.getElementById('btn-answer').textContent = '🙈 Скрыть';
+    document.getElementById('btn-speak').disabled = false;
+  }
+  function hideAnswer() {
+    answerVisible = false;
+    document.getElementById('answer-block').classList.remove('visible');
+    document.querySelector('.exercise-card-body')?.classList.remove('answer-open');
+    document.getElementById('btn-answer').innerHTML = '👁 Ответ';
+    document.getElementById('btn-speak').disabled = true;
+  }
+
+  // ── NAV ──
+  function nextSent() { if (!filtered.length) return; curIdx = (curIdx + 1) % filtered.length; render(); }
+  function prevSent() { if (!filtered.length) return; curIdx = (curIdx - 1 + filtered.length) % filtered.length; render(); }
+  function randSent() {
+    if (filtered.length <= 1) return;
+    let next;
+    do { next = Math.floor(Math.random() * filtered.length); } while (next === curIdx);
+    curIdx = next; render();
+  }
+
+  // ── TTS ──
+  function speakAnswer() {
+    if (!filtered.length || !answerVisible) return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(filtered[curIdx].answer);
+    utter.lang = 'ko-KR'; utter.rate = 0.85;
+    window.speechSynthesis.speak(utter);
+  }
+
+  // ── KEYBOARD ──
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'SELECT') return;
+    if (e.key === 'ArrowRight') nextSent();
+    else if (e.key === 'ArrowLeft') prevSent();
+    else if (e.key === ' ') { e.preventDefault(); toggleAnswer(); }
+    else if (['r','к','К'].includes(e.key)) randSent();
+    else if (['s','ы','Ы'].includes(e.key) && answerVisible) speakAnswer();
+  });
+
+  // ── SEARCH ──
+  function setupSentSearch() {
+    const input = document.getElementById('sent-search');
+    const clear = document.getElementById('sent-search-clear');
+    const dropdown = document.getElementById('sent-search-dropdown');
+
+    function normalize(str) {
+      return str.toLowerCase().replace(/[-\/\(\)\[\]·•.,:;!?]/g,'').replace(/\s+/g,' ').trim();
+    }
+    function score(item, q) {
+      const qn = normalize(q);
+      const fields = [normalize(item.title||''), normalize(item.category||''), normalize(item.grammar_id||'')];
+      for (const f of fields) {
+        if (f === qn) return 100;
+        if (f.startsWith(qn)) return 60;
+        if (f.includes(qn)) return 30;
+      }
+      return 0;
+    }
+    function highlight(text, q) {
+      const qn = normalize(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      try { return text.replace(new RegExp('('+qn+')','gi'),'<mark>$1</mark>'); } catch { return text; }
+    }
+
+    input.addEventListener('input', () => {
+      const q = input.value.trim();
+      clear.classList.toggle('visible', q.length > 0);
+      if (q.length < 1) { dropdown.classList.remove('visible'); return; }
+
+      // build unique grammar list from allData
+      const seen = new Set();
+      const items = [];
+      const source = activeTopik === 'all' ? allData : allData.filter(d => d.topik === activeTopik);
+      source.forEach(d => {
+        if (!seen.has(d.grammar_id)) { seen.add(d.grammar_id); items.push(d); }
+      });
+
+      const results = items
+        .map(item => ({ item, s: score(item, q) }))
+        .filter(x => x.s > 0)
+        .sort((a,b) => b.s - a.s)
+        .slice(0, 10);
+
+      dropdown.innerHTML = '';
+      if (!results.length) {
+        dropdown.innerHTML = '<div class="sent-search-noresult">Ничего не найдено</div>';
+        dropdown.classList.add('visible');
+        return;
+      }
+      results.forEach(({ item }) => {
+        const el = document.createElement('div');
+        el.className = 'sent-search-result';
+        el.innerHTML = `<span>${highlight(item.title, q)}</span><span class="sent-search-meta">${item.category||''}</span>`;
+        el.onclick = () => {
+          activeTopic = item.grammar_id;
+          document.getElementById('topic-select').value = item.grammar_id;
+          input.value = item.title;
+          dropdown.classList.remove('visible');
+          clear.classList.add('visible');
+          applyFilters();
+        };
+        dropdown.appendChild(el);
+      });
+      dropdown.classList.add('visible');
+    });
+
+    clear.addEventListener('click', () => {
+      input.value = '';
+      clear.classList.remove('visible');
+      dropdown.classList.remove('visible');
+      activeTopic = '';
+      document.getElementById('topic-select').value = '';
+      applyFilters();
+    });
+
+    document.addEventListener('click', e => {
+      if (!e.target.closest('.sent-search-wrap')) dropdown.classList.remove('visible');
+    });
+    input.addEventListener('keydown', e => { if (e.key === 'Escape') { dropdown.classList.remove('visible'); input.blur(); } });
+  }
+
+  // ── INIT ──
+  loadData().then(() => {
+    document.querySelectorAll('.topik-btn[data-topik]').forEach(b => {
+      const t = b.dataset.topik;
+      if (t === 'all') return;
+      if (!allData.some(d => d.topik === Number(t))) b.style.display = 'none';
+    });
+    setupSentSearch();
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,346 @@
+======================================================================
+АНАЛИЗ ПРОЕКТА: TECHERCAB 2.0
+Путь: C:\Users\MakscattSchool\Desktop\techercab 2.0
+Дата анализа: 2026-03-10 11:35
+Всего файлов: 44
+======================================================================
+
+
+🔧 ТЕХНОЛОГИЧЕСКИЙ СТЕК
+----------------------------------------
+  Flask
+
+
+📁 СТРУКТУРА ПРОЕКТА
+----------------------------------------
+  analyze_project.py  (37.0 KB)
+  app.py  (14.9 KB)
+  get-pip.py  (2142.0 KB)
+  korean-roadmap.html  (19.8 KB)
+  README.md  (1.7 KB)
+  requirements.txt  (53 B)
+  static\css\style.css  (100.1 KB)
+  static\css\style1.css  (41.6 KB)
+  static\data\cards.json  (20.8 KB)
+  static\data\grammar.json  (265.9 KB)
+  static\data\lesson_1.json  (9.8 KB)
+  static\data\phrases.json  (30.1 KB)
+  static\data\pictures.json  (5.5 KB)
+  static\data\sentences.json  (137.8 KB)
+  static\data\texts.json  (75.5 KB)
+  static\data\verbs.json  (21.5 KB)
+  static\data\words-data.json  (20.6 KB)
+  templates\base.html  (10.4 KB)
+  templates\dashboard.html  (1.4 KB)
+  templates\history.html  (3.2 KB)
+  templates\login.html  (839 B)
+  templates\register.html  (871 B)
+  templates\select_student.html  (1.1 KB)
+  templates\trainer_alphabet.html  (6.4 KB)
+  templates\trainer_base.html  (39.8 KB)
+  templates\trainer_cards.html  (13.4 KB)
+  templates\trainer_colors.html  (1.9 KB)
+  templates\trainer_dates.html  (917 B)
+  templates\trainer_grammar.html  (32.4 KB)
+  templates\trainer_locations.html  (3.8 KB)
+  templates\trainer_menu.html  (3.8 KB)
+  templates\trainer_money.html  (1.8 KB)
+  templates\trainer_numbers.html  (2.0 KB)
+  templates\trainer_phrases.html  (21.1 KB)
+  templates\trainer_pictures.html  (9.2 KB)
+  templates\trainer_quiz.html  (20.5 KB)
+  templates\trainer_sentences.html  (13.2 KB)
+  templates\trainer_text.html  (10.8 KB)
+  templates\trainer_time.html  (1.1 KB)
+  templates\trainer_verbs.html  (3.7 KB)
+  templates\trainer_video.html  (6.1 KB)
+  templates\trainer_weather.html  (2.5 KB)
+  templates\trainer_weekdays.html  (1.7 KB)
+  templates\trainer_words.html  (8.4 KB)
+
+  --- Статистика ---
+  html: 28 файл(ов)
+  json: 9 файл(ов)
+  python: 3 файл(ов)
+  css: 2 файл(ов)
+  markdown: 1 файл(ов)
+  other: 1 файл(ов)
+
+
+📦 ЗАВИСИМОСТИ
+----------------------------------------
+
+  📄 requirements.txt
+     packages:
+       - Flask==3.0.0
+       - Flask-SQLAlchemy==3.1.1
+       - Werkzeug==3.0.1
+
+
+⚙️  КОНФИГУРАЦИЯ
+----------------------------------------
+  Конфигурационные файлы не найдены
+
+
+🐍 PYTHON: КЛАССЫ И ФУНКЦИИ
+----------------------------------------
+
+  📄 analyze_project.py
+     def should_skip_dir(dir_name, dir_path_parts)
+       """Проверяет, нужно ли пропустить директорию."""
+     def collect_files(root_dir)
+       """Собирает все релевантные файлы проекта."""
+     def get_file_language(path)
+       """Определяет язык файла."""
+     def analyze_python_imports(content)
+       """Извлекает импорты."""
+     def analyze_python_structure(content, filepath)
+       """Извлекает классы, функции и их docstrings."""
+     def _find_block_end(content, start)
+       """Грубо находит конец блока Python по отступам."""
+     def analyze_js_imports(content)
+       """Извлекает import/require."""
+     def analyze_js_structure(content, filepath)
+       """Извлекает функции, классы, компоненты."""
+     def analyze_html_templates(content, filepath)
+       """Анализирует HTML-шаблоны."""
+     def analyze_sql_file(content, filepath)
+       """Извлекает таблицы и основные операции из SQL."""
+     def analyze_config_file(content, filepath)
+       """Извлекает ключевую информацию из конфигов."""
+     def detect_tech_stack(all_files, all_content)
+       """Автоматически определяет технологии проекта."""
+     def analyze_bot_commands(content, filepath)
+       """Находит команды бота (мульти-фреймворк)."""
+     def analyze_bot_callbacks(content, filepath)
+       """Находит callback обработчики (мульти-фреймворк)."""
+     def analyze_django_urls(content, filepath)
+       """Извлекает Django URL patterns."""
+     def analyze_django_models(content, filepath)
+       """Извлекает Django модели и их поля."""
+     def analyze_project(root_dir)
+       """Главная функция анализа."""
+
+  📄 app.py
+     class Teacher(db.Model)
+     class Student(db.Model)
+     class Note(db.Model)
+     class ModuleProgress(db.Model)
+       """Прогресс ученика по каждому модулю-тренажёру"""
+     class SessionLog(db.Model)
+       """Лог каждого посещения тренажёра"""
+     def index()
+     def login()
+     def register()
+     def logout()
+     def select_student()
+     def add_student()
+     def delete_student(student_id)
+     def dashboard(student_id)
+     def progress_ping()
+       """Вызывается при входе в тренажёр — логирует начало сессии"""
+     def progress_update()
+       """Вызывается при каждом выполненном упражнении"""
+     def trainer_menu(student_id)
+     def trainer_alphabet(student_id)
+     def trainer_numbers(student_id)
+     def trainer_time(student_id)
+     def trainer_money(student_id)
+     def trainer_dates(student_id)
+     def trainer_colors(student_id)
+     def trainer_weekdays(student_id)
+     def trainer_weather(student_id)
+     def trainer_locations(student_id)
+     def trainer_verbs(student_id)
+     def trainer_sentences(student_id)
+     def trainer_grammar(student_id)
+     def trainer_text(student_id)
+     def trainer_cards(student_id)
+     def trainer_words(student_id)
+     def trainer_quiz(student_id)
+     def trainer_video(student_id)
+     def trainer_pictures(student_id)
+     def trainer_phrases(student_id)
+     def history(student_id)
+
+
+🌐 РОУТЫ / ЭНДПОИНТЫ (Python)
+----------------------------------------
+  [ROUTE] /  →  index()  (app.py)
+  [GET, POST] /login  →  login()  (app.py)
+  [GET, POST] /register  →  register()  (app.py)
+  [ROUTE] /logout  →  logout()  (app.py)
+  [ROUTE] /students  →  select_student()  (app.py)
+  [POST] /students/add  →  add_student()  (app.py)
+  [POST] /students/<int:student_id>/delete  →  delete_student()  (app.py)
+  [ROUTE] /dashboard/<int:student_id>  →  dashboard()  (app.py)
+  [POST] /api/progress/ping  →  progress_ping()  (app.py)
+  [POST] /api/progress/update  →  progress_update()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainers  →  trainer_menu()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/alphabet  →  trainer_alphabet()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/numbers  →  trainer_numbers()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/time  →  trainer_time()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/money  →  trainer_money()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/dates  →  trainer_dates()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/colors  →  trainer_colors()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/weekdays  →  trainer_weekdays()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/weather  →  trainer_weather()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/locations  →  trainer_locations()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/verbs  →  trainer_verbs()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/sentences  →  trainer_sentences()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/grammar  →  trainer_grammar()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/text  →  trainer_text()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/cards  →  trainer_cards()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/words  →  trainer_words()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/quiz  →  trainer_quiz()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/video  →  trainer_video()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/pictures  →  trainer_pictures()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/phrases  →  trainer_phrases()  (app.py)
+  [ROUTE] /student/<int:student_id>/history  →  history()  (app.py)
+
+
+📄 HTML-ШАБЛОНЫ
+----------------------------------------
+
+  📄 korean-roadmap.html
+     title: Приложение для изучения корейского — План разработки
+
+  📄 templates\base.html
+     title: {% block title %}한국어{% endblock %}
+     blocks: extra_css, title, extra_js, content
+
+  📄 templates\dashboard.html
+     extends: base.html
+     blocks: extra_js, title, content
+
+  📄 templates\history.html
+     extends: base.html
+     blocks: extra_js, title, content
+
+  📄 templates\login.html
+     extends: base.html
+     blocks: title, content
+
+  📄 templates\register.html
+     extends: base.html
+     blocks: title, content
+
+  📄 templates\select_student.html
+     extends: base.html
+     blocks: title, content
+     forms: {{ url_for(
+
+  📄 templates\trainer_alphabet.html
+     extends: trainer_base.html
+     blocks: title, trainer_js, trainer_content
+
+  📄 templates\trainer_base.html
+     extends: base.html
+     blocks: extra_js, trainer_js, trainer_content, content
+     api_calls: /api/progress/update, /static/data/grammar.json, /api/progress/ping
+
+  📄 templates\trainer_cards.html
+     extends: trainer_base.html
+     blocks: title, trainer_js, trainer_content
+     api_calls: /static/data/cards.json
+
+  📄 templates\trainer_colors.html
+     extends: trainer_base.html
+     blocks: title, trainer_js, trainer_content
+
+  📄 templates\trainer_dates.html
+     extends: trainer_base.html
+     blocks: title, trainer_js, trainer_content
+
+  📄 templates\trainer_grammar.html
+     extends: trainer_base.html
+     blocks: title, trainer_js, trainer_content
+     api_calls: /static/data/grammar.json
+
+  📄 templates\trainer_locations.html
+     extends: trainer_base.html
+     blocks: title, trainer_js, trainer_content
+
+  📄 templates\trainer_menu.html
+     extends: trainer_base.html
+     blocks: title, trainer_content
+
+  📄 templates\trainer_money.html
+     extends: trainer_base.html
+     blocks: title, trainer_js, trainer_content
+
+  📄 templates\trainer_numbers.html
+     extends: trainer_base.html
+     blocks: title, trainer_js, trainer_content
+
+  📄 templates\trainer_phrases.html
+     extends: trainer_base.html
+     blocks: title, trainer_js, trainer_content
+     api_calls: {{ url_for(
+
+  📄 templates\trainer_pictures.html
+     extends: trainer_base.html
+     blocks: title, trainer_js, trainer_content
+     api_calls: /static/data/pictures.json
+
+  📄 templates\trainer_quiz.html
+     extends: trainer_base.html
+     blocks: title, trainer_js, trainer_content
+     api_calls: /static/data/grammar.json
+
+  📄 templates\trainer_sentences.html
+     extends: trainer_base.html
+     blocks: title, trainer_js, trainer_content
+     api_calls: /static/data/sentences.json
+
+  📄 templates\trainer_text.html
+     extends: trainer_base.html
+     blocks: title, trainer_js, trainer_content
+     api_calls: /static/data/texts.json
+
+  📄 templates\trainer_time.html
+     extends: trainer_base.html
+     blocks: title, trainer_js, trainer_content
+
+  📄 templates\trainer_verbs.html
+     extends: trainer_base.html
+     blocks: title, trainer_js, trainer_content
+     api_calls: {{ url_for(
+
+  📄 templates\trainer_video.html
+     extends: trainer_base.html
+     blocks: title, trainer_js, trainer_content
+
+  📄 templates\trainer_weather.html
+     extends: trainer_base.html
+     blocks: title, trainer_js, trainer_content
+
+  📄 templates\trainer_weekdays.html
+     extends: trainer_base.html
+     blocks: title, trainer_js, trainer_content
+
+  📄 templates\trainer_words.html
+     extends: trainer_base.html
+     blocks: title, trainer_js, trainer_content
+     api_calls: /static/data/words-data.json
+
+
+🔗 API-ВЫЗОВЫ ИЗ ФРОНТЕНДА
+----------------------------------------
+  /api/progress/ping  ← templates\trainer_base.html
+  /api/progress/update  ← templates\trainer_base.html
+  /static/data/grammar.json  ← templates\trainer_base.html
+  /static/data/cards.json  ← templates\trainer_cards.html
+  /static/data/grammar.json  ← templates\trainer_grammar.html
+  {{ url_for(  ← templates\trainer_phrases.html
+  /static/data/pictures.json  ← templates\trainer_pictures.html
+  /static/data/grammar.json  ← templates\trainer_quiz.html
+  /static/data/sentences.json  ← templates\trainer_sentences.html
+  /static/data/texts.json  ← templates\trainer_text.html
+  {{ url_for(  ← templates\trainer_verbs.html
+  /static/data/words-data.json  ← templates\trainer_words.html
+
+
+======================================================================
+КОНЕЦ АНАЛИЗА
+======================================================================

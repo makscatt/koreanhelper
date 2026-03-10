@@ -1,0 +1,77 @@
+{% extends "trainer_base.html" %}
+{% block title %}Тренажёры — {{ student.name }}{% endblock %}
+
+{% block trainer_content %}
+<div class="trainer-header">
+  <h1 class="trainer-title">Тренажёры</h1>
+</div>
+
+{% macro trainer_url(module) %}
+  {%- if student_mode -%}
+    {{ url_for('student_trainer', module=module) }}
+  {%- else -%}
+    {{ url_for('trainer_' ~ module, student_id=student.id) }}
+  {%- endif -%}
+{% endmacro %}
+
+<div class="trainer-menu-grid">
+  <a class="trainer-menu-card" href="{{ trainer_url('alphabet') }}">
+    <span class="tmcard-icon">가</span><span class="tmcard-title">Алфавит</span>
+  </a>
+  <a class="trainer-menu-card" href="{{ trainer_url('numbers') }}">
+    <span class="tmcard-icon">🔢</span><span class="tmcard-title">Цифры</span>
+  </a>
+  <a class="trainer-menu-card" href="{{ trainer_url('time') }}">
+    <span class="tmcard-icon">⏰</span><span class="tmcard-title">Время</span>
+  </a>
+  <a class="trainer-menu-card" href="{{ trainer_url('money') }}">
+    <span class="tmcard-icon">💸</span><span class="tmcard-title">Деньги</span>
+  </a>
+  <a class="trainer-menu-card" href="{{ trainer_url('dates') }}">
+    <span class="tmcard-icon">📅</span><span class="tmcard-title">Даты</span>
+  </a>
+  <a class="trainer-menu-card" href="{{ trainer_url('colors') }}">
+    <span class="tmcard-icon">🎨</span><span class="tmcard-title">Цвета</span>
+  </a>
+  <a class="trainer-menu-card" href="{{ trainer_url('weekdays') }}">
+    <span class="tmcard-icon">📆</span><span class="tmcard-title">Дни недели</span>
+  </a>
+  <a class="trainer-menu-card" href="{{ trainer_url('weather') }}">
+    <span class="tmcard-icon">🌦️</span><span class="tmcard-title">Погода</span>
+  </a>
+  <a class="trainer-menu-card" href="{{ trainer_url('locations') }}">
+    <span class="tmcard-icon">📦</span><span class="tmcard-title">Место</span>
+  </a>
+  <a class="trainer-menu-card" href="{{ trainer_url('verbs') }}">
+    <span class="tmcard-icon">🏃</span><span class="tmcard-title">Глаголы</span>
+  </a>
+  <a class="trainer-menu-card" href="{{ trainer_url('grammar') }}">
+    <span class="tmcard-icon">🗝</span><span class="tmcard-title">Грамматика</span>
+  </a>
+  <a class="trainer-menu-card" href="{{ trainer_url('sentences') }}">
+    <span class="tmcard-icon">🧩</span><span class="tmcard-title">Предложения</span>
+  </a>
+  <a class="trainer-menu-card" href="{{ trainer_url('cards') }}">
+    <span class="tmcard-icon">🃏</span><span class="tmcard-title">Карточки</span>
+  </a>
+  <a class="trainer-menu-card" href="{{ trainer_url('text') }}">
+    <span class="tmcard-icon">📓</span><span class="tmcard-title">Тексты</span>
+  </a>
+  <a class="trainer-menu-card" href="{{ trainer_url('quiz') }}">
+    <span class="tmcard-icon">❓</span><span class="tmcard-title">Квиз</span>
+  </a>
+  <a class="trainer-menu-card" href="{{ trainer_url('words') }}">
+    <span class="tmcard-icon">📝</span><span class="tmcard-title">Слова</span>
+  </a>
+  <a class="trainer-menu-card" href="{{ trainer_url('phrases') }}">
+    <span class="tmcard-icon">🗣</span><span class="tmcard-title">Фразы</span>
+  </a>
+  <a class="trainer-menu-card" href="{{ trainer_url('pictures') }}">
+    <span class="tmcard-icon">🖼</span><span class="tmcard-title">Картинки</span>
+  </a>
+  <a class="trainer-menu-card" href="{{ trainer_url('video') }}">
+    <span class="tmcard-icon">📹</span><span class="tmcard-title">Видео</span>
+  </a>
+</div>
+
+{% endblock %}

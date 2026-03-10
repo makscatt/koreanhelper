@@ -1,0 +1,28 @@
+{% extends "trainer_base.html" %}
+{% block title %}Деньги — {{ student.name }}{% endblock %}
+{% block trainer_content %}
+<div class="trainer-header">
+  
+  <h1 class="trainer-title">Деньги</h1>
+</div>
+<div class="display-container">
+  <div class="big-text" id="money-display">0원</div>
+  <div class="answer-slot" id="money-text" style="color:#007bff;font-weight:700;">영</div>
+  <div class="controls">
+    <button class="action-btn warning" onclick="toggleMoney()">👁️</button>
+    <button class="action-btn secondary" onclick="speakMoney()">🔊</button>
+    <button class="action-btn" onclick="generateMoney()">🎲</button>
+  </div>
+</div>
+{% endblock %}
+{% block trainer_js %}
+<script>
+document.body.dataset.module = 'money';
+let curMoney=0,lastMoney=-1;
+function numToKor(n){const d=['','일','이','삼','사','오','육','칠','팔','구'],u=['','십','백','천'],b=['','만','억'];if(n===0)return'영';let r='',bi=0;while(n>0){let c=n%10000;if(c>0){let cs='',ui=0,t=c;while(t>0){let dg=t%10;if(dg>0){let ds=(dg===1&&ui>0)?'':d[dg];cs=ds+u[ui]+cs;}t=Math.floor(t/10);ui++;}r=cs+b[bi]+r;}n=Math.floor(n/10000);bi++;}if(r.startsWith('일만'))r=r.substring(1);return r;}
+function generateMoney(){trackExercise();let a;do{const r=Math.random();if(r<0.4)a=(Math.floor(Math.random()*18)+2)*500;else if(r<0.8)a=(Math.floor(Math.random()*40)+10)*1000;else a=(Math.floor(Math.random()*51)+10)*5000;}while(a===lastMoney);lastMoney=a;curMoney=a;document.getElementById('money-display').textContent=a.toLocaleString()+'원';const el=document.getElementById('money-text');el.textContent=numToKor(a);el.style.visibility='hidden';}
+function toggleMoney(){const el=document.getElementById('money-text');el.style.visibility=el.style.visibility==='hidden'?'visible':'hidden';}
+function speakMoney(){speakText(curMoney+'원');}
+generateMoney();
+</script>
+{% endblock %}

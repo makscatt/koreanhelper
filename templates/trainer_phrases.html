@@ -1,0 +1,470 @@
+{% extends "trainer_base.html" %}
+{% block title %}Фразы урока — {{ student.name }}{% endblock %}
+
+{% block trainer_content %}
+<div class="trainer-header">
+  <h1 class="trainer-title">💬 Фразы урока</h1>
+</div>
+
+<div class="phrases-layout">
+
+  <!-- LEFT SIDEBAR -->
+  <div class="phrases-sidebar">
+
+    <div class="ph-sidebar-block">
+      <div class="ph-sidebar-label">Вид</div>
+      <button class="ph-sidebar-btn active" data-mode="card" onclick="setMode('card',this)">🃏 Карточки</button>
+      <button class="ph-sidebar-btn" data-mode="list" onclick="setMode('list',this)">📋 Список</button>
+      <button class="ph-sidebar-btn" data-mode="outline" onclick="setMode('outline',this)">🗂 Блоки</button>
+    </div>
+
+    <div class="ph-sidebar-block">
+      <div class="ph-sidebar-label">Уровень</div>
+      <button class="ph-sidebar-btn active" data-p="all"         onclick="setPriority('all',this)">Все</button>
+      <button class="ph-sidebar-btn"        data-p="core"        onclick="setPriority('core',this)">● Базовые</button>
+      <button class="ph-sidebar-btn"        data-p="regular"     onclick="setPriority('regular',this)">● Обычные</button>
+      <button class="ph-sidebar-btn"        data-p="situational" onclick="setPriority('situational',this)">● Ситуативные</button>
+    </div>
+
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="phrases-main">
+
+    <!-- Секции -->
+    <div class="ph-section-tabs" id="section-tabs"></div>
+
+    <!-- MODE 1: Cards -->
+    <div class="ph-mode-card-area active" id="mode-card-area">
+      <div class="ph-progress-area">
+        <div class="ph-progress-wrap"><div class="ph-progress-bar" id="progress-bar" style="width:0%"></div></div>
+        <div class="ph-counter"><span id="cnt-cur">1</span>/<span id="cnt-total">0</span></div>
+      </div>
+
+      <div class="ph-mastered-row">
+        <span>Выучено:</span>
+        <span class="ph-mastered-pill" id="mastered-count">0</span>
+        <span>из <span id="mastered-total">0</span></span>
+      </div>
+
+      <div class="ph-card" id="card">
+        <div class="ph-card-meta">
+          <div class="ph-card-meta-left">
+            <span class="ph-tag ph-tag-section" id="tag-section"></span>
+            <span class="ph-tag" id="tag-priority"></span>
+            <span class="ph-tag ph-tag-template" id="tag-template" style="display:none">шаблон</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="ph-mastered-star" id="mastered-star">⭐</span>
+            <span class="ph-card-num" id="card-num">#1</span>
+          </div>
+        </div>
+        <div class="ph-dialog" id="dialog"></div>
+      </div>
+
+      <div class="ph-btn-row">
+        <button class="ph-btn ph-btn-nav"      onclick="prev()">⬅</button>
+        <button class="ph-btn ph-btn-dunno"    onclick="markDunno()">✗ Не знаю</button>
+        <button class="ph-btn ph-btn-translate" id="btn-translate" onclick="toggleAnswer()">👁 Перевод</button>
+        <button class="ph-btn ph-btn-know"     onclick="markKnow()">✓ Знаю</button>
+        <button class="ph-btn ph-btn-speak"    id="btn-speak" onclick="speakKor()" disabled>🔊</button>
+        <button class="ph-btn ph-btn-nav"      onclick="next()">➡</button>
+      </div>
+
+      <div class="ph-kbd-hint">
+        <kbd>←</kbd><kbd>→</kbd> навигация &nbsp;|&nbsp;
+        <kbd>Пробел</kbd> перевод &nbsp;|&nbsp;
+        <kbd>K</kbd> знаю &nbsp;|&nbsp;
+        <kbd>S</kbd> озвучить
+      </div>
+    </div>
+
+    <!-- MODE 2: List -->
+    <div class="ph-mode-list-area" id="mode-list-area">
+      <div class="ph-list-view" id="list-view"></div>
+    </div>
+
+    <!-- MODE 3: Outline -->
+    <div class="ph-mode-outline-area" id="mode-outline-area">
+      <div class="ph-outline-view" id="outline-view"></div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block trainer_js %}
+<script>
+  let allPairs = [];
+  let filtered = [];
+  let curIdx = 0;
+  let answerVisible = false;
+  let activeSection = 'all';
+  let activePriority = 'all';
+  let activeMode = 'card';
+
+  const PROGRESS_KEY = 'phrases_progress_v2';
+  let progress = {};
+  const STUDENT_ID = typeof student !== 'undefined' ? {{ student.id }} : 0;
+  const SECTION_DONE_KEY = `phrases_sections_done_${STUDENT_ID}`;
+  let sectionsDone = {};
+
+  const sectionIcons = {
+    start: '👋', homework: '📝', review: '🔄', new: '✨',
+    practice: '💪', feedback: '💬', close: '🏁'
+  };
+  function getSectionIcon(section) {
+    for (const key of Object.keys(sectionIcons)) {
+      if (section.includes(key)) return sectionIcons[key];
+    }
+    return '📌';
+  }
+
+  async function loadData() {
+    try { progress = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}'); } catch { progress = {}; }
+    try { sectionsDone = JSON.parse(localStorage.getItem(SECTION_DONE_KEY) || '{}'); } catch { sectionsDone = {}; }
+    try {
+      const res = await fetch('{{ url_for("static", filename="data/phrases.json") }}');
+      if (!res.ok) throw new Error();
+      allPairs = await res.json();
+    } catch {
+      allPairs = [
+        { id:"demo-01", section:"start", section_label:"Старт урока", priority:"core", type:"fixed",
+          teacher:{ kor:"안녕하세요!", rus:"Здравствуйте!" },
+          student:{ kor:"안녕하세요!", rus:"Здравствуйте!" } }
+      ];
+    }
+    buildSectionTabs();
+    applyFilters();
+  }
+
+  function setMode(mode, btn) {
+    activeMode = mode;
+    document.querySelectorAll('.ph-sidebar-btn[data-mode]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('mode-card-area').classList.toggle('active', mode === 'card');
+    document.getElementById('mode-list-area').classList.toggle('active', mode === 'list');
+    document.getElementById('mode-outline-area').classList.toggle('active', mode === 'outline');
+    renderCurrentMode();
+  }
+
+  function buildSectionTabs() {
+    const container = document.getElementById('section-tabs');
+    container.innerHTML = '';
+    container.appendChild(makeTabBtn('Все', 'all', true));
+    const seen = new Set();
+    allPairs.forEach(p => {
+      if (!seen.has(p.section)) {
+        seen.add(p.section);
+        container.appendChild(makeTabBtn(p.section_label, p.section, false));
+      }
+    });
+  }
+
+  function saveSectionsDone() {
+    try { localStorage.setItem(SECTION_DONE_KEY, JSON.stringify(sectionsDone)); } catch {}
+  }
+
+  function toggleSectionDone(section, e) {
+    e.stopPropagation();
+    if (section === 'all') return;
+    sectionsDone[section] = !sectionsDone[section];
+    saveSectionsDone();
+    buildSectionTabs();
+    // restore active section highlight
+    document.querySelectorAll('.ph-section-btn').forEach(b => {
+      if (b.dataset.section === activeSection) b.classList.add('active');
+    });
+  }
+
+  function makeTabBtn(label, value, isActive) {
+    const btn = document.createElement('button');
+    btn.className = 'ph-section-btn' + (isActive ? ' active' : '') + (sectionsDone[value] ? ' done' : '');
+    btn.dataset.section = value;
+    if (value !== 'all') {
+      const cb = document.createElement('span');
+      cb.className = 'ph-section-cb' + (sectionsDone[value] ? ' checked' : '');
+      cb.title = sectionsDone[value] ? 'Пройдено' : 'Отметить пройденным';
+      cb.innerHTML = sectionsDone[value] ? '✓' : '';
+      cb.onclick = (e) => toggleSectionDone(value, e);
+      btn.appendChild(cb);
+      const lbl = document.createElement('span');
+      lbl.textContent = label;
+      btn.appendChild(lbl);
+    } else {
+      btn.textContent = label;
+    }
+    btn.onclick = (e) => {
+      if (e.target.classList.contains('ph-section-cb')) return;
+      activeSection = value;
+      document.querySelectorAll('.ph-section-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      curIdx = 0;
+      applyFilters();
+    };
+    return btn;
+  }
+
+  function setPriority(val, btn) {
+    activePriority = val;
+    document.querySelectorAll('.ph-sidebar-btn[data-p]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    curIdx = 0;
+    applyFilters();
+  }
+
+  function applyFilters() {
+    filtered = allPairs.filter(p => {
+      const secOk = activeSection === 'all' || p.section === activeSection;
+      const priOk = activePriority === 'all' || p.priority === activePriority;
+      return secOk && priOk;
+    });
+    renderCurrentMode();
+  }
+
+  function renderCurrentMode() {
+    if (activeMode === 'card') renderCard();
+    else if (activeMode === 'list') renderList();
+    else if (activeMode === 'outline') renderOutline();
+  }
+
+  /* ── CARD ── */
+  function renderCard() {
+    hideAnswer();
+    const total = filtered.length;
+    const masteredCount = filtered.filter(p => progress[p.id] === 'know').length;
+    document.getElementById('cnt-total').textContent = total;
+    document.getElementById('mastered-total').textContent = total;
+    document.getElementById('mastered-count').textContent = masteredCount;
+
+    if (!total) {
+      document.getElementById('cnt-cur').textContent = '0';
+      document.getElementById('progress-bar').style.width = '0%';
+      document.getElementById('dialog').innerHTML = '<p style="color:#8b92a0;text-align:center;padding:30px 0">Нет пар в этом фильтре</p>';
+      document.getElementById('card').style.borderColor = '#e4e8ef';
+      return;
+    }
+
+    const pair = filtered[curIdx];
+    const isMastered = progress[pair.id] === 'know';
+    document.getElementById('cnt-cur').textContent = curIdx + 1;
+    document.getElementById('progress-bar').style.width = ((curIdx + 1) / total * 100) + '%';
+    document.getElementById('card-num').textContent = '#' + (curIdx + 1);
+    document.getElementById('tag-section').textContent = pair.section_label;
+
+    const tp = document.getElementById('tag-priority');
+    const priorityLabels = { core: '● Базовая', regular: '● Обычная', situational: '● Ситуативная' };
+    tp.textContent = priorityLabels[pair.priority] || pair.priority;
+    tp.className = 'ph-tag ph-tag-' + pair.priority;
+
+    document.getElementById('tag-template').style.display = pair.type === 'template' ? '' : 'none';
+    document.getElementById('mastered-star').classList.toggle('visible', isMastered);
+    document.getElementById('card').style.borderColor = isMastered ? '#bbf7d0' : '#e4e8ef';
+
+    buildDialog(pair);
+  }
+
+  function buildDialog(pair) {
+    const container = document.getElementById('dialog');
+    container.innerHTML = '';
+    const isTemplate = pair.type === 'template';
+
+    if (pair.teacher && pair.teacher.kor) {
+      const isNA = pair.teacher.kor.startsWith('(');
+      const turn = document.createElement('div');
+      turn.className = 'ph-turn';
+      if (!isNA) {
+        const lbl = document.createElement('div');
+        lbl.className = 'ph-turn-label t';
+        lbl.textContent = '👩‍🏫 Учитель';
+        turn.appendChild(lbl);
+      }
+      const bubble = document.createElement('div');
+      bubble.className = 'ph-bubble ' + (isNA ? 'na' : 't');
+      const korEl = document.createElement('div');
+      korEl.className = 'ph-kor';
+      korEl.innerHTML = pair.teacher.kor;
+      bubble.appendChild(korEl);
+      if (!isNA) {
+        const spkBtn = document.createElement('button');
+        spkBtn.className = 'ph-speak-inline';
+        spkBtn.textContent = '🔊';
+        spkBtn.title = 'Прослушать';
+        spkBtn.onclick = (e) => { e.stopPropagation(); speakText(pair.teacher.kor.replace(/<[^>]+>/g,'')); };
+        bubble.appendChild(spkBtn);
+      }
+      if (pair.teacher.rus && !isNA) {
+        const rusEl = document.createElement('div');
+        rusEl.className = 'ph-rus';
+        rusEl.innerHTML = pair.teacher.rus;
+        bubble.appendChild(rusEl);
+      }
+      turn.appendChild(bubble);
+      container.appendChild(turn);
+    }
+
+    if (pair.teacher && pair.student) {
+      container.appendChild(Object.assign(document.createElement('div'), { className: 'ph-divider' }));
+    }
+
+    if (pair.student && pair.student.kor) {
+      const turn = document.createElement('div');
+      turn.className = 'ph-turn';
+      const lbl = document.createElement('div');
+      lbl.className = 'ph-turn-label s';
+      lbl.textContent = '👤 Студент';
+      turn.appendChild(lbl);
+      const bubble = document.createElement('div');
+      bubble.className = 'ph-bubble s';
+      const korEl = document.createElement('div');
+      korEl.className = 'ph-kor';
+      korEl.innerHTML = pair.student.kor.replace(/___/g, '<span class="blank">___</span>');
+      bubble.appendChild(korEl);
+      const spkBtnS = document.createElement('button');
+      spkBtnS.className = 'ph-speak-inline';
+      spkBtnS.textContent = '🔊';
+      spkBtnS.title = 'Прослушать';
+      spkBtnS.onclick = (e) => { e.stopPropagation(); speakText(pair.student.kor.replace(/___/g,'').replace(/<[^>]+>/g,'')); };
+      bubble.appendChild(spkBtnS);
+      if (pair.student.rus) {
+        const rusEl = document.createElement('div');
+        rusEl.className = 'ph-rus';
+        rusEl.innerHTML = pair.student.rus;
+        bubble.appendChild(rusEl);
+      }
+      if (isTemplate && pair.student.placeholder_hint) {
+        const hint = document.createElement('div');
+        hint.className = 'ph-hint-box';
+        hint.innerHTML = pair.student.placeholder_hint;
+        bubble.appendChild(hint);
+      }
+      turn.appendChild(bubble);
+      container.appendChild(turn);
+    }
+  }
+
+  /* ── LIST ── */
+  function renderList() {
+    const container = document.getElementById('list-view');
+    container.innerHTML = '';
+    if (!filtered.length) { container.innerHTML = '<p style="color:#8b92a0;text-align:center;padding:30px 0">Нет пар в этом фильтре</p>'; return; }
+    const sections = [], sectionMap = {};
+    filtered.forEach(pair => {
+      if (!sectionMap[pair.section]) { sectionMap[pair.section] = { label: pair.section_label, section: pair.section, pairs: [] }; sections.push(sectionMap[pair.section]); }
+      sectionMap[pair.section].pairs.push(pair);
+    });
+    sections.forEach(sec => {
+      const block = document.createElement('div'); block.className = 'ph-list-section-block';
+      const header = document.createElement('div'); header.className = 'ph-list-section-header';
+      header.innerHTML = `${getSectionIcon(sec.section)} ${sec.label} <span class="ph-list-section-count">${sec.pairs.length}</span>`;
+      block.appendChild(header);
+      const pairsEl = document.createElement('div'); pairsEl.className = 'ph-list-pairs';
+      sec.pairs.forEach(pair => {
+        const pairEl = document.createElement('div'); pairEl.className = 'ph-list-pair';
+        const turnsEl = document.createElement('div'); turnsEl.className = 'ph-list-turns';
+        if (pair.teacher && pair.teacher.kor) {
+          const isNA = pair.teacher.kor.startsWith('(');
+          const turnEl = document.createElement('div'); turnEl.className = 'ph-list-turn';
+          const dot = document.createElement('div'); dot.className = `ph-list-priority-dot ${pair.priority}`; turnEl.appendChild(dot);
+          const roleEl = document.createElement('div'); roleEl.className = 'ph-list-turn-role ' + (isNA ? 'na' : 't'); roleEl.textContent = isNA ? '—' : '👩‍🏫 Учитель'; turnEl.appendChild(roleEl);
+          const phraseEl = document.createElement('div'); phraseEl.className = 'ph-list-phrase';
+          phraseEl.innerHTML = `<div class="ph-list-kor">${pair.teacher.kor}</div>`;
+          if (pair.teacher.rus && !isNA) phraseEl.innerHTML += `<div class="ph-list-rus">${pair.teacher.rus}</div>`;
+          turnEl.appendChild(phraseEl); turnsEl.appendChild(turnEl);
+        }
+        if (pair.student && pair.student.kor) {
+          const turnEl = document.createElement('div'); turnEl.className = 'ph-list-turn';
+          const dot = document.createElement('div'); dot.className = `ph-list-priority-dot ${pair.priority}`; dot.style.opacity = '0'; turnEl.appendChild(dot);
+          const roleEl = document.createElement('div'); roleEl.className = 'ph-list-turn-role s'; roleEl.textContent = '👤 Студент'; turnEl.appendChild(roleEl);
+          const phraseEl = document.createElement('div'); phraseEl.className = 'ph-list-phrase';
+          phraseEl.innerHTML = `<div class="ph-list-kor">${pair.student.kor.replace(/___/g, '<span class="blank">___</span>')}</div>`;
+          if (pair.student.rus) phraseEl.innerHTML += `<div class="ph-list-rus">${pair.student.rus}</div>`;
+          turnEl.appendChild(phraseEl); turnsEl.appendChild(turnEl);
+        }
+        pairEl.appendChild(turnsEl); pairsEl.appendChild(pairEl);
+      });
+      block.appendChild(pairsEl); container.appendChild(block);
+    });
+  }
+
+  /* ── OUTLINE ── */
+  function renderOutline() {
+    const container = document.getElementById('outline-view');
+    container.innerHTML = '';
+    if (!filtered.length) { container.innerHTML = '<p style="color:#8b92a0;text-align:center;padding:30px 0">Нет пар в этом фильтре</p>'; return; }
+    const sections = [], sectionMap = {};
+    filtered.forEach(pair => {
+      if (!sectionMap[pair.section]) { sectionMap[pair.section] = { label: pair.section_label, section: pair.section, count: 0 }; sections.push(sectionMap[pair.section]); }
+      sectionMap[pair.section].count++;
+    });
+    sections.forEach((sec, idx) => {
+      const block = document.createElement('div');
+      block.className = 'ph-outline-block';
+      block.style.cursor = 'pointer';
+      block.onclick = () => {
+        activeSection = sec.section;
+        document.querySelectorAll('.ph-section-btn').forEach(b => {
+          b.classList.toggle('active', b.textContent === sec.label);
+        });
+        activeMode = 'card';
+        curIdx = 0;
+        document.querySelectorAll('.ph-sidebar-btn[data-mode]').forEach(b => {
+          b.classList.toggle('active', b.dataset.mode === 'card');
+        });
+        document.getElementById('mode-card-area').classList.add('active');
+        document.getElementById('mode-list-area').classList.remove('active');
+        document.getElementById('mode-outline-area').classList.remove('active');
+        applyFilters();
+      };
+      const left = document.createElement('div'); left.className = 'ph-outline-block-left';
+      const iconEl = document.createElement('div'); iconEl.className = 'ph-outline-block-icon'; iconEl.textContent = getSectionIcon(sec.section); left.appendChild(iconEl);
+      const textEl = document.createElement('div');
+      textEl.innerHTML = `<div class="ph-outline-block-title">${sec.label}</div><div class="ph-outline-block-subtitle">Блок ${idx + 1} из ${sections.length}</div>`;
+      left.appendChild(textEl);
+      const badge = document.createElement('div'); badge.className = 'ph-outline-block-badge';
+      badge.textContent = sec.count + ' фраз' + (sec.count === 1 ? 'а' : sec.count < 5 ? 'ы' : '');
+      block.appendChild(left); block.appendChild(badge); container.appendChild(block);
+    });
+  }
+
+  /* ── CONTROLS ── */
+  function toggleAnswer() { answerVisible ? hideAnswer() : showAnswer(); }
+  function showAnswer() {
+    answerVisible = true;
+    document.querySelectorAll('.ph-rus').forEach(el => el.classList.add('visible'));
+    document.querySelectorAll('.ph-hint-box').forEach(el => el.classList.add('visible'));
+    document.getElementById('btn-translate').textContent = '🙈 Скрыть';
+    document.getElementById('btn-speak').disabled = false;
+  }
+  function hideAnswer() {
+    answerVisible = false;
+    document.querySelectorAll('.ph-rus').forEach(el => el.classList.remove('visible'));
+    document.querySelectorAll('.ph-hint-box').forEach(el => el.classList.remove('visible'));
+    const btnT = document.getElementById('btn-translate'); if (btnT) btnT.textContent = '👁 Перевод';
+    const btnS = document.getElementById('btn-speak'); if (btnS) btnS.disabled = true;
+  }
+  function markKnow() { if (!filtered.length) return; progress[filtered[curIdx].id] = 'know'; saveProgress(); renderCard(); setTimeout(() => next(), 400); }
+  function markDunno() { if (!filtered.length) return; delete progress[filtered[curIdx].id]; saveProgress(); renderCard(); setTimeout(() => next(), 300); }
+  function saveProgress() { try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress)); } catch {} }
+  function next() { if (!filtered.length) return; curIdx = (curIdx + 1) % filtered.length; renderCard(); }
+  function prev() { if (!filtered.length) return; curIdx = (curIdx - 1 + filtered.length) % filtered.length; renderCard(); }
+  function speakKor() {
+    if (!filtered.length || !answerVisible) return;
+    const pair = filtered[curIdx];
+    const parts = [];
+    if (pair.teacher && !pair.teacher.kor.startsWith('(')) parts.push(pair.teacher.kor);
+    if (pair.student) parts.push(pair.student.kor.replace(/___/g, ''));
+    speakText(parts.join('. ').replace(/<[^>]+>/g, ''));
+  }
+  document.addEventListener('keydown', e => {
+    if (activeMode !== 'card') return;
+    if (e.key === 'ArrowRight') next();
+    else if (e.key === 'ArrowLeft') prev();
+    else if (e.key === ' ') { e.preventDefault(); toggleAnswer(); }
+    else if (['k','л','Л'].includes(e.key)) markKnow();
+    else if (['s','ы','Ы'].includes(e.key) && answerVisible) speakKor();
+  });
+
+  loadData();
+</script>
+{% endblock %}

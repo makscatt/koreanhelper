@@ -1,0 +1,184 @@
+{% extends "trainer_base.html" %}
+{% block title %}Видео — {{ student.name }}{% endblock %}
+
+{% block trainer_content %}
+<div class="trainer-header">
+  
+  <h1 class="trainer-title">Видео урок</h1>
+</div>
+
+<div class="video-layout">
+
+  <!-- SIDEBAR -->
+  <nav class="video-sidebar">
+    <div class="video-sidebar-title">Настройки</div>
+    <div class="video-control-group">
+      <label class="video-control-label">Файл урока</label>
+      <select id="main-lesson-selector" class="video-select"></select>
+    </div>
+    <div class="video-control-group">
+      <label class="video-control-label">Тема (Блок)</label>
+      <select id="block-selector" class="video-select"></select>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <div class="video-content">
+    <div class="video-section-block">
+      <div class="video-wrapper">
+        <button class="video-nav-btn" id="prev-btn">◀</button>
+        <div class="video-frame">
+          <video id="main-video" controls></video>
+        </div>
+        <button class="video-nav-btn" id="next-btn">▶</button>
+      </div>
+
+      <div class="video-text-area">
+        <div class="video-text-row">
+          <button class="video-reveal-btn" id="btn-show-korean">🇰🇷 Корейский</button>
+          <div class="video-text-content" id="korean-text"></div>
+        </div>
+        <div class="video-text-row">
+          <button class="video-reveal-btn" id="btn-show-russian">🇷🇺 Русский</button>
+          <div class="video-text-content" id="russian-text"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block trainer_js %}
+<script>
+document.body.dataset.module = 'video';
+
+const mainVideo     = document.getElementById('main-video');
+const prevBtn       = document.getElementById('prev-btn');
+const nextBtn       = document.getElementById('next-btn');
+const btnShowKorean = document.getElementById('btn-show-korean');
+const divKorean     = document.getElementById('korean-text');
+const btnShowRussian= document.getElementById('btn-show-russian');
+const divRussian    = document.getElementById('russian-text');
+const lessonSel     = document.getElementById('main-lesson-selector');
+const blockSel      = document.getElementById('block-selector');
+
+const blockTitles = {
+  b1: '1. Знакомство',
+  b2: '2. Возраст и работа',
+  b3: '3. В ресторане',
+  b4: '4. Блок 4',
+  b5: '5. Блок 5'
+};
+
+const availableLessons = [
+  { id: 1, file: '/static/data/lesson_1.json' },
+];
+
+let allLessonBlocks = {};
+let lessonVideoData = [];
+let currentItemIndex = 0;
+
+async function fetchAndPopulateBlocks(filePath) {
+  try {
+    const r = await fetch(filePath);
+    if (!r.ok) throw new Error();
+    allLessonBlocks = await r.json();
+
+    blockSel.innerHTML = '';
+    let hasVideo = false;
+    Object.keys(allLessonBlocks).forEach(key => {
+      const items = allLessonBlocks[key];
+      if (items && items.some(i => i.type === 'videos')) {
+        hasVideo = true;
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = blockTitles[key] || `Блок ${key.replace('b','')}`;
+        blockSel.appendChild(opt);
+      }
+    });
+
+    if (!hasVideo) {
+      blockSel.innerHTML = '<option>Нет видео</option>';
+      lessonVideoData = [];
+      displayCurrentItem();
+      return;
+    }
+
+    const savedBlock = localStorage.getItem('video_selectedBlock');
+    const exists = Array.from(blockSel.options).some(o => o.value === savedBlock);
+    if (savedBlock && exists) {
+      blockSel.value = savedBlock;
+      loadBlockData(savedBlock);
+    } else {
+      loadBlockData(blockSel.options[0].value);
+    }
+  } catch(e) { console.error('Ошибка загрузки урока', e); }
+}
+
+function loadBlockData(blockId) {
+  const blockData = allLessonBlocks[blockId];
+  lessonVideoData = [];
+  if (blockData) {
+    blockData.forEach(item => { if (item.type === 'videos') lessonVideoData = item.data; });
+  }
+  currentItemIndex = 0;
+  displayCurrentItem();
+}
+
+function displayCurrentItem() {
+  divKorean.classList.remove('visible');
+  divRussian.classList.remove('visible');
+  divKorean.textContent = '';
+  divRussian.textContent = '';
+
+  if (!lessonVideoData || !lessonVideoData.length) {
+    mainVideo.src = '';
+    divKorean.textContent = 'Видео в этом блоке нет';
+    divKorean.classList.add('visible');
+    prevBtn.style.visibility = 'hidden';
+    nextBtn.style.visibility = 'hidden';
+    return;
+  }
+
+  trackExercise();
+  const item = lessonVideoData[currentItemIndex];
+  mainVideo.src = '/static/' + item.video;
+  divKorean.textContent  = item.korean      || 'Текст отсутствует';
+  divRussian.textContent = item.translation || item.russian || 'Перевод отсутствует';
+
+  prevBtn.style.visibility = currentItemIndex === 0 ? 'hidden' : 'visible';
+  nextBtn.style.visibility = currentItemIndex === lessonVideoData.length - 1 ? 'hidden' : 'visible';
+}
+
+btnShowKorean.addEventListener('click',  () => divKorean.classList.toggle('visible'));
+btnShowRussian.addEventListener('click', () => divRussian.classList.toggle('visible'));
+
+nextBtn.addEventListener('click', () => { if (currentItemIndex < lessonVideoData.length - 1) { currentItemIndex++; displayCurrentItem(); } });
+prevBtn.addEventListener('click', () => { if (currentItemIndex > 0) { currentItemIndex--; displayCurrentItem(); } });
+
+lessonSel.addEventListener('change', e => {
+  localStorage.setItem('video_selectedFile', e.target.value);
+  localStorage.removeItem('video_selectedBlock');
+  fetchAndPopulateBlocks(e.target.value);
+});
+
+blockSel.addEventListener('change', e => {
+  localStorage.setItem('video_selectedBlock', e.target.value);
+  loadBlockData(e.target.value);
+});
+
+// Init
+availableLessons.forEach(l => {
+  const opt = document.createElement('option');
+  opt.value = l.file;
+  opt.textContent = `Урок ${l.id}`;
+  lessonSel.appendChild(opt);
+});
+
+const savedFile = localStorage.getItem('video_selectedFile');
+const fileToLoad = savedFile && availableLessons.some(l => l.file === savedFile) ? savedFile : availableLessons[0].file;
+lessonSel.value = fileToLoad;
+fetchAndPopulateBlocks(fileToLoad);
+</script>
+{% endblock %}

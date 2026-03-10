@@ -1,0 +1,33 @@
+{% extends "trainer_base.html" %}
+{% block title %}Дни недели — {{ student.name }}{% endblock %}
+{% block trainer_content %}
+<div class="trainer-header">
+  
+  <h1 class="trainer-title">Дни недели</h1>
+</div>
+<div class="display-container">
+  <div class="big-text" id="wd-rus">Понедельник</div>
+  <div class="answer-slot" id="wd-kor">월요일</div>
+  <div class="controls">
+    <button class="action-btn warning" onclick="toggleWd()">👁️</button>
+    <button class="action-btn secondary" onclick="speakWd()">🔊</button>
+    <button class="action-btn" onclick="prevWd()">⬅️</button>
+    <button class="action-btn" onclick="nextWd()">➡️</button>
+    <button class="action-btn" onclick="generateWd()">🎲</button>
+  </div>
+</div>
+{% endblock %}
+{% block trainer_js %}
+<script>
+document.body.dataset.module = 'weekdays';
+const wds=[{rus:'Понедельник',kor:'월요일'},{rus:'Вторник',kor:'화요일'},{rus:'Среда',kor:'수요일'},{rus:'Четверг',kor:'목요일'},{rus:'Пятница',kor:'금요일'},{rus:'Суббота',kor:'토요일'},{rus:'Воскресенье',kor:'일요일'}];
+let wi=0;
+function setWd(i){trackExercise();wi=i;document.getElementById('wd-rus').textContent=wds[i].rus;const el=document.getElementById('wd-kor');el.textContent=wds[i].kor;el.style.visibility='hidden';}
+function toggleWd(){const el=document.getElementById('wd-kor');el.style.visibility=el.style.visibility==='hidden'?'visible':'hidden';}
+function speakWd(){speakText(wds[wi].kor);}
+function prevWd(){setWd((wi-1+wds.length)%wds.length);}
+function nextWd(){setWd((wi+1)%wds.length);}
+function generateWd(){setWd(randExcept(wds.length,wi));}
+setWd(0);
+</script>
+{% endblock %}

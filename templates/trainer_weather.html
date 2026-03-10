@@ -1,0 +1,42 @@
+{% extends "trainer_base.html" %}
+{% block title %}Погода — {{ student.name }}{% endblock %}
+{% block trainer_content %}
+<div class="trainer-header">
+  
+  <h1 class="trainer-title">Погода</h1>
+</div>
+<div class="tabs-wrapper" id="weather-tabs"></div>
+<div class="display-container">
+  <div class="big-text" id="weather-icon" style="font-size:7rem;">☀️</div>
+  <div class="answer-slot" id="weather-kor">맑아요</div>
+  <div class="controls">
+    <button class="action-btn warning" onclick="toggleWeather()">👁️</button>
+    <button class="action-btn secondary" onclick="speakWeather()">🔊</button>
+    <button class="action-btn" onclick="prevWeather()">⬅️</button>
+    <button class="action-btn" onclick="nextWeather()">➡️</button>
+    <button class="action-btn" onclick="generateWeather()">🎲</button>
+  </div>
+</div>
+{% endblock %}
+{% block trainer_js %}
+<script>
+document.body.dataset.module = 'weather';
+const wLevels=[
+  {name:'Уровень 1 (База)',data:[{icon:'☀️',kor:'맑아요'},{icon:'☁️',kor:'흐려요'},{icon:'🌧️',kor:'비가 와요'},{icon:'❄️',kor:'눈이 와요'},{icon:'🥶',kor:'추워요'},{icon:'🌡️',kor:'더워요'}]},
+  {name:'Уровень 2 (Доп)',data:[{icon:'😊',kor:'따뜻해요'},{icon:'🌬️',kor:'시원해요'},{icon:'🧣',kor:'쌀쌀해요'},{icon:'🌫️',kor:'안개가 꼈어요'},{icon:'💧',kor:'습해요'},{icon:'💨',kor:'바람이 불어요'},{icon:'🌦️',kor:'소나기가 와요'},{icon:'⛈️',kor:'천둥번개가 쳐요'}]}
+];
+let wList=[],wi=0;
+const tabsEl=document.getElementById('weather-tabs');
+wLevels.forEach((l,i)=>{
+  const btn=document.createElement('button');btn.className='tab-btn';btn.textContent=l.name;
+  btn.onclick=()=>{tabsEl.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');wList=l.data;setWeather(0);};
+  tabsEl.appendChild(btn);if(i===0)btn.click();
+});
+function setWeather(i){trackExercise();wi=i;document.getElementById('weather-icon').textContent=wList[i].icon;const el=document.getElementById('weather-kor');el.textContent=wList[i].kor;el.style.visibility='hidden';}
+function toggleWeather(){const el=document.getElementById('weather-kor');el.style.visibility=el.style.visibility==='hidden'?'visible':'hidden';}
+function speakWeather(){speakText(wList[wi].kor);}
+function prevWeather(){setWeather((wi-1+wList.length)%wList.length);}
+function nextWeather(){setWeather((wi+1)%wList.length);}
+function generateWeather(){setWeather(randExcept(wList.length,wi));}
+</script>
+{% endblock %}

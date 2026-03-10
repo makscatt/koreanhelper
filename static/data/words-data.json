@@ -1,0 +1,170 @@
+{
+  "animals": {
+    "title": "Животные",
+    "emoji": "🐾",
+    "words": [
+      {
+        "korean": "강아지",
+        "russian": "щенок",
+        "transcription": "кангаджи",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#D2691E\" x=\"20\" y=\"16\" width=\"24\" height=\"20\"/><rect fill=\"#8B4513\" x=\"16\" y=\"20\" width=\"4\" height=\"8\"/><rect fill=\"#8B4513\" x=\"44\" y=\"20\" width=\"4\" height=\"8\"/><rect fill=\"#FFF\" x=\"24\" y=\"24\" width=\"4\" height=\"4\"/><rect fill=\"#FFF\" x=\"36\" y=\"24\" width=\"4\" height=\"4\"/><rect fill=\"#000\" x=\"26\" y=\"26\" width=\"2\" height=\"2\"/><rect fill=\"#000\" x=\"38\" y=\"26\" width=\"2\" height=\"2\"/><rect fill=\"#000\" x=\"30\" y=\"30\" width=\"4\" height=\"2\"/><rect fill=\"#000\" x=\"30\" y=\"32\" width=\"4\" height=\"4\"/><rect fill=\"#D2691E\" x=\"20\" y=\"36\" width=\"6\" height=\"12\"/><rect fill=\"#D2691E\" x=\"38\" y=\"36\" width=\"6\" height=\"12\"/><rect fill=\"#FF69B4\" x=\"28\" y=\"40\" width=\"8\" height=\"2\"/></svg>"
+      },
+      {
+        "korean": "고양이",
+        "russian": "кошка",
+        "transcription": "коянъи",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#FFB366\" x=\"16\" y=\"12\" width=\"6\" height=\"8\"/><rect fill=\"#FFB366\" x=\"42\" y=\"12\" width=\"6\" height=\"8\"/><rect fill=\"#FFB366\" x=\"18\" y=\"20\" width=\"28\" height=\"24\"/><rect fill=\"#FFF\" x=\"22\" y=\"26\" width=\"6\" height=\"6\"/><rect fill=\"#FFF\" x=\"36\" y=\"26\" width=\"6\" height=\"6\"/><rect fill=\"#000\" x=\"24\" y=\"28\" width=\"2\" height=\"2\"/><rect fill=\"#000\" x=\"38\" y=\"28\" width=\"2\" height=\"2\"/><rect fill=\"#FFB366\" x=\"28\" y=\"34\" width=\"8\" height=\"4\"/><rect fill=\"#000\" x=\"30\" y=\"36\" width=\"4\" height=\"2\"/><rect fill=\"#000\" x=\"26\" y=\"38\" width=\"4\" height=\"2\"/><rect fill=\"#000\" x=\"34\" y=\"38\" width=\"4\" height=\"2\"/><rect fill=\"#FFB366\" x=\"20\" y=\"44\" width=\"6\" height=\"8\"/><rect fill=\"#FFB366\" x=\"38\" y=\"44\" width=\"6\" height=\"8\"/></svg>"
+      },
+      {
+        "korean": "토끼",
+        "russian": "кролик",
+        "transcription": "токки",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#FFE4E1\" x=\"22\" y=\"8\" width=\"6\" height=\"16\"/><rect fill=\"#FFE4E1\" x=\"36\" y=\"8\" width=\"6\" height=\"16\"/><rect fill=\"#FFC0CB\" x=\"24\" y=\"10\" width=\"2\" height=\"12\"/><rect fill=\"#FFC0CB\" x=\"38\" y=\"10\" width=\"2\" height=\"12\"/><rect fill=\"#FFE4E1\" x=\"20\" y=\"24\" width=\"24\" height=\"20\"/><rect fill=\"#000\" x=\"26\" y=\"30\" width=\"4\" height=\"4\"/><rect fill=\"#000\" x=\"34\" y=\"30\" width=\"4\" height=\"4\"/><rect fill=\"#FFC0CB\" x=\"30\" y=\"36\" width=\"4\" height=\"2\"/><rect fill=\"#000\" x=\"28\" y=\"38\" width=\"2\" height=\"2\"/><rect fill=\"#000\" x=\"34\" y=\"38\" width=\"2\" height=\"2\"/><rect fill=\"#000\" x=\"30\" y=\"40\" width=\"4\" height=\"2\"/><rect fill=\"#FFE4E1\" x=\"22\" y=\"44\" width=\"6\" height=\"8\"/><rect fill=\"#FFE4E1\" x=\"36\" y=\"44\" width=\"6\" height=\"8\"/></svg>"
+      },
+      {
+        "korean": "새",
+        "russian": "птица",
+        "transcription": "сэ",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#87CEEB\" x=\"28\" y=\"20\" width=\"16\" height=\"16\"/><rect fill=\"#87CEEB\" x=\"20\" y=\"24\" width=\"8\" height=\"4\"/><rect fill=\"#87CEEB\" x=\"44\" y=\"24\" width=\"8\" height=\"4\"/><rect fill=\"#000\" x=\"34\" y=\"26\" width=\"4\" height=\"4\"/><rect fill=\"#FFA500\" x=\"26\" y=\"30\" width=\"4\" height=\"2\"/><rect fill=\"#FFA500\" x=\"24\" y=\"32\" width=\"4\" height=\"2\"/><rect fill=\"#87CEEB\" x=\"30\" y=\"36\" width=\"8\" height=\"12\"/><rect fill=\"#FFA500\" x=\"30\" y=\"48\" width=\"2\" height=\"6\"/><rect fill=\"#FFA500\" x=\"36\" y=\"48\" width=\"2\" height=\"6\"/><rect fill=\"#FFD700\" x=\"36\" y=\"16\" width=\"4\" height=\"4\"/><rect fill=\"#FFD700\" x=\"40\" y=\"18\" width=\"4\" height=\"2\"/></svg>"
+      },
+      {
+        "korean": "물고기",
+        "russian": "рыба",
+        "transcription": "мульгоги",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#4169E1\" x=\"24\" y=\"26\" width=\"20\" height=\"12\"/><rect fill=\"#4169E1\" x=\"44\" y=\"28\" width=\"6\" height=\"8\"/><rect fill=\"#4169E1\" x=\"50\" y=\"30\" width=\"4\" height=\"4\"/><rect fill=\"#000\" x=\"38\" y=\"30\" width=\"4\" height=\"4\"/><rect fill=\"#4169E1\" x=\"20\" y=\"30\" width=\"4\" height=\"4\"/><rect fill=\"#4169E1\" x=\"16\" y=\"32\" width=\"4\" height=\"2\"/><rect fill=\"#87CEEB\" x=\"28\" y=\"22\" width=\"12\" height=\"4\"/><rect fill=\"#87CEEB\" x=\"28\" y=\"38\" width=\"12\" height=\"4\"/><rect fill=\"#ADD8E6\" x=\"26\" y=\"28\" width=\"16\" height=\"8\"/></svg>"
+      },
+      {
+        "korean": "곰",
+        "russian": "медведь",
+        "transcription": "ком",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#8B4513\" x=\"18\" y=\"16\" width=\"8\" height=\"8\"/><rect fill=\"#8B4513\" x=\"38\" y=\"16\" width=\"8\" height=\"8\"/><rect fill=\"#8B4513\" x=\"20\" y=\"24\" width=\"24\" height=\"20\"/><rect fill=\"#FFF\" x=\"24\" y=\"30\" width=\"4\" height=\"4\"/><rect fill=\"#FFF\" x=\"36\" y=\"30\" width=\"4\" height=\"4\"/><rect fill=\"#000\" x=\"26\" y=\"32\" width=\"2\" height=\"2\"/><rect fill=\"#000\" x=\"38\" y=\"32\" width=\"2\" height=\"2\"/><rect fill=\"#000\" x=\"30\" y=\"36\" width=\"4\" height=\"4\"/><rect fill=\"#8B4513\" x=\"22\" y=\"44\" width=\"6\" height=\"10\"/><rect fill=\"#8B4513\" x=\"36\" y=\"44\" width=\"6\" height=\"10\"/><rect fill=\"#D2691E\" x=\"28\" y=\"38\" width=\"8\" height=\"4\"/></svg>"
+      },
+      {
+        "korean": "호랑이",
+        "russian": "тигр",
+        "transcription": "хоранъи",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#FFA500\" x=\"20\" y=\"20\" width=\"24\" height=\"24\"/><rect fill=\"#000\" x=\"18\" y=\"24\" width=\"4\" height=\"2\"/><rect fill=\"#000\" x=\"22\" y=\"22\" width=\"4\" height=\"2\"/><rect fill=\"#000\" x=\"38\" y=\"22\" width=\"4\" height=\"2\"/><rect fill=\"#000\" x=\"42\" y=\"24\" width=\"4\" height=\"2\"/><rect fill=\"#000\" x=\"26\" y=\"28\" width=\"4\" height=\"4\"/><rect fill=\"#000\" x=\"34\" y=\"28\" width=\"4\" height=\"4\"/><rect fill=\"#000\" x=\"30\" y=\"34\" width=\"4\" height=\"2\"/><rect fill=\"#FFF\" x=\"28\" y=\"36\" width=\"8\" height=\"4\"/><rect fill=\"#000\" x=\"24\" y=\"38\" width=\"4\" height=\"2\"/><rect fill=\"#000\" x=\"36\" y=\"38\" width=\"4\" height=\"2\"/><rect fill=\"#FFA500\" x=\"22\" y=\"44\" width=\"6\" height=\"10\"/><rect fill=\"#FFA500\" x=\"36\" y=\"44\" width=\"6\" height=\"10\"/></svg>"
+      },
+      {
+        "korean": "코끼리",
+        "russian": "слон",
+        "transcription": "кокири",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#A9A9A9\" x=\"22\" y=\"20\" width=\"20\" height=\"20\"/><rect fill=\"#A9A9A9\" x=\"26\" y=\"40\" width=\"4\" height=\"2\"/><rect fill=\"#A9A9A9\" x=\"28\" y=\"42\" width=\"4\" height=\"10\"/><rect fill=\"#000\" x=\"28\" y=\"26\" width=\"4\" height=\"4\"/><rect fill=\"#FFF\" x=\"28\" y=\"26\" width=\"2\" height=\"2\"/><rect fill=\"#A9A9A9\" x=\"16\" y=\"28\" width=\"6\" height=\"4\"/><rect fill=\"#A9A9A9\" x=\"42\" y=\"28\" width=\"6\" height=\"4\"/><rect fill=\"#A9A9A9\" x=\"22\" y=\"40\" width=\"6\" height=\"10\"/><rect fill=\"#A9A9A9\" x=\"36\" y=\"40\" width=\"6\" height=\"10\"/><rect fill=\"#808080\" x=\"24\" y=\"22\" width=\"16\" height=\"16\"/></svg>"
+      },
+      {
+        "korean": "원숭이",
+        "russian": "обезьяна",
+        "transcription": "вонсунъи",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#D2691E\" x=\"20\" y=\"18\" width=\"24\" height=\"24\"/><rect fill=\"#8B4513\" x=\"16\" y=\"22\" width=\"4\" height=\"8\"/><rect fill=\"#8B4513\" x=\"44\" y=\"22\" width=\"4\" height=\"8\"/><rect fill=\"#FFE4C4\" x=\"24\" y=\"26\" width=\"16\" height=\"12\"/><rect fill=\"#000\" x=\"26\" y=\"28\" width=\"4\" height=\"4\"/><rect fill=\"#000\" x=\"34\" y=\"28\" width=\"4\" height=\"4\"/><rect fill=\"#FFC0CB\" x=\"30\" y=\"34\" width=\"4\" height=\"4\"/><rect fill=\"#D2691E\" x=\"22\" y=\"42\" width=\"6\" height=\"10\"/><rect fill=\"#D2691E\" x=\"36\" y=\"42\" width=\"6\" height=\"10\"/><rect fill=\"#FFE4C4\" x=\"24\" y=\"44\" width=\"4\" height=\"6\"/><rect fill=\"#FFE4C4\" x=\"36\" y=\"44\" width=\"4\" height=\"6\"/></svg>"
+      },
+      {
+        "korean": "소",
+        "russian": "корова",
+        "transcription": "со",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#FFF\" x=\"20\" y=\"22\" width=\"24\" height=\"20\"/><rect fill=\"#000\" x=\"16\" y=\"18\" width=\"6\" height=\"4\"/><rect fill=\"#000\" x=\"42\" y=\"18\" width=\"6\" height=\"4\"/><rect fill=\"#FFF\" x=\"18\" y=\"22\" width=\"4\" height=\"4\"/><rect fill=\"#FFF\" x=\"42\" y=\"22\" width=\"4\" height=\"4\"/><rect fill=\"#000\" x=\"26\" y=\"28\" width=\"4\" height=\"4\"/><rect fill=\"#000\" x=\"34\" y=\"28\" width=\"4\" height=\"4\"/><rect fill=\"#FFC0CB\" x=\"28\" y=\"34\" width=\"8\" height=\"4\"/><rect fill=\"#000\" x=\"24\" y=\"36\" width=\"4\" height=\"2\"/><rect fill=\"#000\" x=\"36\" y=\"36\" width=\"4\" height=\"2\"/><rect fill=\"#FFF\" x=\"22\" y=\"42\" width=\"6\" height=\"10\"/><rect fill=\"#FFF\" x=\"36\" y=\"42\" width=\"6\" height=\"10\"/></svg>"
+      },
+      {
+        "korean": "말",
+        "russian": "лошадь",
+        "transcription": "маль",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#8B4513\" x=\"22\" y=\"16\" width=\"6\" height=\"8\"/><rect fill=\"#8B4513\" x=\"36\" y=\"16\" width=\"6\" height=\"8\"/><rect fill=\"#A0522D\" x=\"20\" y=\"24\" width=\"24\" height=\"18\"/><rect fill=\"#000\" x=\"26\" y=\"30\" width=\"4\" height=\"4\"/><rect fill=\"#000\" x=\"34\" y=\"30\" width=\"4\" height=\"4\"/><rect fill=\"#FFF\" x=\"28\" y=\"32\" width=\"2\" height=\"2\"/><rect fill=\"#FFF\" x=\"36\" y=\"32\" width=\"2\" height=\"2\"/><rect fill=\"#A0522D\" x=\"22\" y=\"42\" width=\"4\" height=\"12\"/><rect fill=\"#A0522D\" x=\"38\" y=\"42\" width=\"4\" height=\"12\"/><rect fill=\"#8B4513\" x=\"28\" y=\"18\" width=\"8\" height=\"6\"/></svg>"
+      },
+      {
+        "korean": "양",
+        "russian": "овца",
+        "transcription": "янъ",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#F5F5DC\" x=\"18\" y=\"18\" width=\"6\" height=\"6\"/><rect fill=\"#F5F5DC\" x=\"40\" y=\"18\" width=\"6\" height=\"6\"/><rect fill=\"#F5F5DC\" x=\"24\" y=\"16\" width=\"16\" height=\"6\"/><rect fill=\"#F5F5DC\" x=\"20\" y=\"22\" width=\"24\" height=\"18\"/><rect fill=\"#FFE4C4\" x=\"24\" y=\"26\" width=\"16\" height=\"12\"/><rect fill=\"#000\" x=\"26\" y=\"30\" width=\"4\" height=\"4\"/><rect fill=\"#000\" x=\"34\" y=\"30\" width=\"4\" height=\"4\"/><rect fill=\"#FFE4C4\" x=\"22\" y=\"40\" width=\"6\" height=\"10\"/><rect fill=\"#FFE4C4\" x=\"36\" y=\"40\" width=\"6\" height=\"10\"/><rect fill=\"#F5F5DC\" x=\"16\" y=\"24\" width=\"4\" height=\"12\"/><rect fill=\"#F5F5DC\" x=\"44\" y=\"24\" width=\"4\" height=\"12\"/></svg>"
+      },
+      {
+        "korean": "돼지",
+        "russian": "свинья",
+        "transcription": "двэджи",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#FFB6C1\" x=\"20\" y=\"22\" width=\"24\" height=\"20\"/><rect fill=\"#FFB6C1\" x=\"18\" y=\"18\" width=\"6\" height=\"6\"/><rect fill=\"#FFB6C1\" x=\"40\" y=\"18\" width=\"6\" height=\"6\"/><rect fill=\"#000\" x=\"26\" y=\"28\" width=\"4\" height=\"4\"/><rect fill=\"#000\" x=\"34\" y=\"28\" width=\"4\" height=\"4\"/><rect fill=\"#FFC0CB\" x=\"28\" y=\"34\" width=\"8\" height=\"6\"/><rect fill=\"#000\" x=\"30\" y=\"36\" width=\"2\" height=\"2\"/><rect fill=\"#000\" x=\"34\" y=\"36\" width=\"2\" height=\"2\"/><rect fill=\"#FFB6C1\" x=\"22\" y=\"42\" width=\"6\" height=\"8\"/><rect fill=\"#FFB6C1\" x=\"36\" y=\"42\" width=\"6\" height=\"8\"/></svg>"
+      },
+      {
+        "korean": "오리",
+        "russian": "утка",
+        "transcription": "ори",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#FFD700\" x=\"24\" y=\"20\" width=\"16\" height=\"16\"/><rect fill=\"#000\" x=\"30\" y=\"26\" width=\"4\" height=\"4\"/><rect fill=\"#FFA500\" x=\"20\" y=\"28\" width=\"4\" height=\"4\"/><rect fill=\"#FFD700\" x=\"28\" y=\"36\" width=\"12\" height=\"10\"/><rect fill=\"#FFA500\" x=\"30\" y=\"46\" width=\"4\" height=\"6\"/><rect fill=\"#FFA500\" x=\"36\" y=\"46\" width=\"4\" height=\"6\"/><rect fill=\"#FFF\" x=\"32\" y=\"26\" width=\"2\" height=\"2\"/><rect fill=\"#FFD700\" x=\"26\" y=\"16\" width=\"4\" height=\"4\"/><rect fill=\"#FFD700\" x=\"36\" y=\"16\" width=\"4\" height=\"4\"/></svg>"
+      },
+      {
+        "korean": "닭",
+        "russian": "курица",
+        "transcription": "так",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#FF0000\" x=\"28\" y=\"16\" width=\"8\" height=\"6\"/><rect fill=\"#FFF\" x=\"24\" y=\"22\" width=\"16\" height=\"16\"/><rect fill=\"#000\" x=\"28\" y=\"28\" width=\"4\" height=\"4\"/><rect fill=\"#FFA500\" x=\"22\" y=\"32\" width=\"4\" height=\"4\"/><rect fill=\"#FF0000\" x=\"26\" y=\"36\" width=\"4\" height=\"4\"/><rect fill=\"#FFF\" x=\"28\" y=\"38\" width=\"12\" height=\"10\"/><rect fill=\"#FFA500\" x=\"30\" y=\"48\" width=\"4\" height=\"6\"/><rect fill=\"#FFA500\" x=\"36\" y=\"48\" width=\"4\" height=\"6\"/><rect fill=\"#FFD700\" x=\"40\" y=\"28\" width=\"8\" height=\"6\"/></svg>"
+      },
+      {
+        "korean": "거북이",
+        "russian": "черепаха",
+        "transcription": "кобуги",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#228B22\" x=\"22\" y=\"26\" width=\"20\" height=\"16\"/><rect fill=\"#90EE90\" x=\"16\" y=\"32\" width=\"6\" height=\"4\"/><rect fill=\"#90EE90\" x=\"42\" y=\"32\" width=\"6\" height=\"4\"/><rect fill=\"#90EE90\" x=\"26\" y=\"20\" width=\"12\" height=\"6\"/><rect fill=\"#000\" x=\"30\" y=\"22\" width=\"4\" height=\"2\"/><rect fill=\"#8FBC8F\" x=\"24\" y=\"28\" width=\"6\" height=\"6\"/><rect fill=\"#8FBC8F\" x=\"34\" y=\"28\" width=\"6\" height=\"6\"/><rect fill=\"#8FBC8F\" x=\"28\" y=\"34\" width=\"8\" height=\"6\"/><rect fill=\"#90EE90\" x=\"24\" y=\"42\" width=\"4\" height=\"6\"/><rect fill=\"#90EE90\" x=\"36\" y=\"42\" width=\"4\" height=\"6\"/></svg>"
+      }
+    ]
+  },
+  "food": {
+    "title": "Еда",
+    "emoji": "🍜",
+    "words": [
+      {
+        "korean": "밥",
+        "russian": "рис",
+        "transcription": "пап",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#F5F5DC\" x=\"20\" y=\"24\" width=\"24\" height=\"24\"/><rect fill=\"#FFF\" x=\"22\" y=\"26\" width=\"20\" height=\"20\"/><rect fill=\"#F0E68C\" x=\"24\" y=\"28\" width=\"4\" height=\"4\"/><rect fill=\"#F0E68C\" x=\"30\" y=\"28\" width=\"4\" height=\"4\"/><rect fill=\"#F0E68C\" x=\"36\" y=\"28\" width=\"4\" height=\"4\"/><rect fill=\"#F0E68C\" x=\"24\" y=\"34\" width=\"4\" height=\"4\"/><rect fill=\"#F0E68C\" x=\"30\" y=\"34\" width=\"4\" height=\"4\"/><rect fill=\"#F0E68C\" x=\"36\" y=\"34\" width=\"4\" height=\"4\"/><rect fill=\"#F0E68C\" x=\"24\" y=\"40\" width=\"4\" height=\"4\"/><rect fill=\"#F0E68C\" x=\"30\" y=\"40\" width=\"4\" height=\"4\"/><rect fill=\"#F0E68C\" x=\"36\" y=\"40\" width=\"4\" height=\"4\"/></svg>"
+      },
+      {
+        "korean": "김치",
+        "russian": "кимчи",
+        "transcription": "кимчхи",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#DC143C\" x=\"24\" y=\"20\" width=\"16\" height=\"24\"/><rect fill=\"#FF6347\" x=\"26\" y=\"22\" width=\"12\" height=\"20\"/><rect fill=\"#228B22\" x=\"28\" y=\"16\" width=\"8\" height=\"6\"/><rect fill=\"#32CD32\" x=\"28\" y=\"18\" width=\"2\" height=\"4\"/><rect fill=\"#32CD32\" x=\"34\" y=\"18\" width=\"2\" height=\"4\"/><rect fill=\"#8B0000\" x=\"28\" y=\"26\" width=\"2\" height=\"12\"/><rect fill=\"#8B0000\" x=\"34\" y=\"28\" width=\"2\" height=\"10\"/></svg>"
+      },
+      {
+        "korean": "라면",
+        "russian": "рамён",
+        "transcription": "рамён",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#8B4513\" x=\"18\" y=\"28\" width=\"28\" height=\"20\"/><rect fill=\"#FFD700\" x=\"20\" y=\"30\" width=\"24\" height=\"16\"/><rect fill=\"#FFA500\" x=\"22\" y=\"32\" width=\"4\" height=\"2\"/><rect fill=\"#FFA500\" x=\"28\" y=\"34\" width=\"6\" height=\"2\"/><rect fill=\"#FFA500\" x=\"24\" y=\"38\" width=\"4\" height=\"2\"/><rect fill=\"#FFA500\" x=\"32\" y=\"36\" width=\"4\" height=\"2\"/><rect fill=\"#FFA500\" x=\"36\" y=\"40\" width=\"4\" height=\"2\"/><rect fill=\"#CD853F\" x=\"22\" y=\"24\" width=\"2\" height=\"4\"/><rect fill=\"#CD853F\" x=\"40\" y=\"24\" width=\"2\" height=\"4\"/></svg>"
+      },
+      {
+        "korean": "사과",
+        "russian": "яблоко",
+        "transcription": "сагва",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#228B22\" x=\"30\" y=\"16\" width=\"4\" height=\"6\"/><rect fill=\"#32CD32\" x=\"32\" y=\"18\" width=\"4\" height=\"4\"/><rect fill=\"#FF0000\" x=\"22\" y=\"22\" width=\"20\" height=\"20\"/><rect fill=\"#DC143C\" x=\"24\" y=\"24\" width=\"16\" height=\"16\"/><rect fill=\"#FFF\" x=\"28\" y=\"28\" width=\"4\" height=\"4\"/></svg>"
+      },
+      {
+        "korean": "물",
+        "russian": "вода",
+        "transcription": "муль",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#87CEEB\" x=\"20\" y=\"24\" width=\"24\" height=\"24\"/><rect fill=\"#ADD8E6\" x=\"22\" y=\"26\" width=\"20\" height=\"20\"/><rect fill=\"#E0F6FF\" x=\"24\" y=\"28\" width=\"6\" height=\"6\"/><rect fill=\"#4682B4\" x=\"22\" y=\"42\" width=\"20\" height=\"4\"/></svg>"
+      },
+      {
+        "korean": "빵",
+        "russian": "хлеб",
+        "transcription": "ппанъ",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#D2691E\" x=\"20\" y=\"26\" width=\"24\" height=\"18\"/><rect fill=\"#CD853F\" x=\"22\" y=\"28\" width=\"20\" height=\"14\"/><rect fill=\"#F4A460\" x=\"24\" y=\"30\" width=\"16\" height=\"10\"/><rect fill=\"#8B4513\" x=\"26\" y=\"32\" width=\"4\" height=\"2\"/><rect fill=\"#8B4513\" x=\"34\" y=\"34\" width=\"4\" height=\"2\"/></svg>"
+      },
+      {
+        "korean": "우유",
+        "russian": "молоко",
+        "transcription": "ую",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#FFF\" x=\"24\" y=\"20\" width=\"16\" height=\"28\"/><rect fill=\"#F0F0F0\" x=\"26\" y=\"22\" width=\"12\" height=\"24\"/><rect fill=\"#4169E1\" x=\"24\" y=\"18\" width=\"16\" height=\"4\"/><rect fill=\"#1E90FF\" x=\"26\" y=\"20\" width=\"12\" height=\"2\"/></svg>"
+      },
+      {
+        "korean": "커피",
+        "russian": "кофе",
+        "transcription": "кхопхи",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#8B4513\" x=\"20\" y=\"28\" width=\"20\" height=\"16\"/><rect fill=\"#654321\" x=\"22\" y=\"30\" width=\"16\" height=\"12\"/><rect fill=\"#A0522D\" x=\"24\" y=\"32\" width=\"12\" height=\"8\"/><rect fill=\"#D2691E\" x=\"40\" y=\"32\" width=\"4\" height=\"8\"/><rect fill=\"#FFF\" x=\"26\" y=\"24\" width=\"2\" height=\"4\"/><rect fill=\"#FFF\" x=\"32\" y=\"22\" width=\"2\" height=\"6\"/></svg>"
+      },
+      {
+        "korean": "고기",
+        "russian": "мясо",
+        "transcription": "коги",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#8B4513\" x=\"20\" y=\"24\" width=\"24\" height=\"20\"/><rect fill=\"#A0522D\" x=\"22\" y=\"26\" width=\"20\" height=\"16\"/><rect fill=\"#CD853F\" x=\"24\" y=\"28\" width=\"16\" height=\"12\"/><rect fill=\"#D2691E\" x=\"26\" y=\"30\" width=\"12\" height=\"8\"/><rect fill=\"#FFF\" x=\"28\" y=\"32\" width=\"4\" height=\"2\"/><rect fill=\"#FFF\" x=\"34\" y=\"34\" width=\"4\" height=\"2\"/></svg>"
+      },
+      {
+        "korean": "계란",
+        "russian": "яйцо",
+        "transcription": "керан",
+        "svg": "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"#FFFACD\" x=\"24\" y=\"22\" width=\"16\" height=\"20\"/><rect fill=\"#FFF\" x=\"26\" y=\"24\" width=\"12\" height=\"16\"/><rect fill=\"#F0E68C\" x=\"28\" y=\"26\" width=\"8\" height=\"12\"/><rect fill=\"#FFD700\" x=\"30\" y=\"28\" width=\"4\" height=\"8\"/></svg>"
+      }
+    ]
+  }
+}

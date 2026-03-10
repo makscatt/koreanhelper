@@ -1,0 +1,1180 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="trainer-wrap">
+  {% block trainer_content %}{% endblock %}
+</div>
+
+<!-- ── GLOBAL GRAMMAR MODAL ── -->
+<div class="g-modal-overlay" id="g-modal-overlay">
+  <div class="g-modal" id="g-modal">
+    <div class="g-modal-head">
+      <div class="g-modal-titles">
+        <div class="g-modal-title" id="g-modal-title"></div>
+        <div class="g-modal-formula" id="g-modal-formula"></div>
+      </div>
+      <span class="g-modal-badge" id="g-modal-badge"></span>
+      <a class="g-modal-goto" id="g-modal-goto" href="#">↗ В грамматике</a>
+      <button class="g-modal-close" id="g-modal-close">✕</button>
+    </div>
+    <div class="g-modal-body" id="g-modal-body"></div>
+  </div>
+</div>
+
+<!-- NOTES OVERLAY (modal stays separate) -->
+<div id="note-overlay" class="note-overlay">
+  <div class="note-modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:12px;font-weight:500;color:var(--ink3);">Заметки</span>
+      <div style="display:flex;gap:8px;">
+        <a href="{{ url_for('history', student_id=session.get('current_student_id')) if session.role == 'teacher' else '#' }}" class="note-save-btn">📋 История</a>
+        <button id="note-save-btn" class="note-save-btn">💾 В архив</button>
+      </div>
+    </div>
+    <textarea id="note-area" placeholder="Заметки по упражнениям..." style="font-size: 2em;"></textarea>
+    <div class="note-modal-footer">
+      <span id="note-saved-msg" style="font-size:11px;color:#28a745;opacity:0;transition:opacity 0.3s;">✔ Сохранено</span>
+      <button id="note-close-btn" class="note-close-btn">Скрыть</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── REPETITION COUNTER FAB ── -->
+<div id="rep-counter" class="rep-counter">
+  <div class="rep-display">
+    <span class="rep-current" id="rep-current">0</span>
+    <span class="rep-slash">/</span>
+    <span class="rep-goal" id="rep-goal" title="Нажми чтобы изменить цель">10</span>
+  </div>
+  <div class="rep-bar-wrap">
+    <div class="rep-bar" id="rep-bar"></div>
+  </div>
+  <div class="rep-actions">
+    <button class="rep-btn rep-btn-plus" id="rep-plus" title="+ повторение">＋</button>
+    <button class="rep-btn rep-btn-reset" id="rep-reset" title="Сбросить">↺</button>
+  </div>
+  <div class="rep-reactions">
+    <button class="rep-react" data-emoji="👍" title="Класс!">👍</button>
+    <button class="rep-react" data-emoji="❤️" title="Сердечко">❤️</button>
+    <button class="rep-react" data-emoji="🔥" title="Огонь!">🔥</button>
+  </div>
+  <button class="rep-btn rep-btn-note" id="note-fab" title="Заметки">✎</button>
+</div>
+<!-- Fountain particles container (fullscreen, pointer-events: none) -->
+<div id="rep-fountain" style="position:fixed;inset:0;z-index:9999;pointer-events:none;overflow:hidden;"></div>
+<!-- Goal picker dropdown -->
+<div class="rep-goal-picker" id="rep-goal-picker">
+  <div class="rep-goal-opt" data-val="3">3</div>
+  <div class="rep-goal-opt" data-val="5">5</div>
+  <div class="rep-goal-opt" data-val="10">10</div>
+  <div class="rep-goal-opt" data-val="15">15</div>
+  <div class="rep-goal-opt" data-val="25">25</div>
+  <div class="rep-goal-opt" data-val="50">50</div>
+</div>
+<style>
+  .rep-counter {
+    position: fixed;
+    z-index: 900;
+    background: var(--bg-surface, #fff);
+    border: 1px solid var(--border-color, #e2e5ec);
+    border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.12), 0 1px 4px rgba(0,0,0,.06);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    user-select: none;
+    transition: box-shadow 0.2s;
+    cursor: grab;
+    touch-action: none;
+  }
+  .rep-counter.dragging {
+    cursor: grabbing;
+    box-shadow: 0 10px 36px rgba(0,0,0,.22), 0 3px 10px rgba(0,0,0,.10);
+    opacity: 0.92;
+  }
+
+  /* Reaction buttons */
+  .rep-reactions {
+    display: flex;
+    gap: 3px;
+    border-left: 1px solid var(--border-light, #eee);
+    border-right: 1px solid var(--border-light, #eee);
+    padding: 0 8px;
+    margin: 0 2px;
+  }
+  .rep-react {
+    width: 34px; height: 34px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s, background 0.12s;
+    position: relative;
+  }
+  .rep-react:hover {
+    background: var(--bg-app, #f5f6fa);
+    transform: scale(1.15);
+  }
+  .rep-react:active {
+    transform: scale(0.9);
+  }
+
+  /* Fountain particle */
+  .rep-particle {
+    position: fixed;
+    pointer-events: none;
+    z-index: 10000;
+    will-change: transform, opacity;
+  }
+  .rep-counter:hover {
+    box-shadow: 0 6px 28px rgba(0,0,0,.16), 0 2px 6px rgba(0,0,0,.08);
+  }
+  .rep-counter.done {
+    border-color: #22c55e;
+    background: #f0fdf4;
+  }
+  .rep-display {
+    display: flex;
+    align-items: baseline;
+    gap: 1px;
+    min-width: 48px;
+    justify-content: center;
+  }
+  .rep-current {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--primary, #4758d6);
+    font-family: var(--font-mono, monospace);
+    line-height: 1;
+  }
+  .rep-counter.done .rep-current { color: #22c55e; }
+  .rep-slash {
+    font-size: 14px;
+    color: var(--text-tertiary, #999);
+    margin: 0 1px;
+  }
+  .rep-goal {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-tertiary, #999);
+    cursor: pointer;
+    border-bottom: 1px dashed var(--border-color, #ccc);
+    line-height: 1;
+  }
+  .rep-goal:hover { color: var(--text-primary); }
+  .rep-bar-wrap {
+    width: 40px;
+    height: 40px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .rep-bar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: conic-gradient(
+      var(--primary, #4758d6) calc(var(--pct, 0) * 1%),
+      var(--border-light, #eee) 0
+    );
+    mask: radial-gradient(circle, transparent 13px, #000 14px);
+    -webkit-mask: radial-gradient(circle, transparent 13px, #000 14px);
+    transition: background 0.3s;
+  }
+  .rep-counter.done .rep-bar {
+    background: conic-gradient(#22c55e 100%, #22c55e 0);
+  }
+  .rep-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .rep-btn {
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: var(--font-main, inherit);
+    font-weight: 700;
+    transition: all 0.12s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .rep-btn-plus {
+    width: 36px;
+    height: 26px;
+    font-size: 18px;
+    background: var(--primary, #4758d6);
+    color: #fff;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+  .rep-btn-plus:hover { filter: brightness(1.1); transform: scale(1.05); }
+  .rep-btn-plus:active { transform: scale(0.95); }
+  .rep-counter.done .rep-btn-plus {
+    background: #22c55e;
+  }
+  .rep-btn-reset {
+    width: 36px;
+    height: 18px;
+    font-size: 11px;
+    background: var(--bg-app, #f5f6fa);
+    color: var(--text-tertiary, #999);
+    border: 1px solid var(--border-light, #eee);
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+  .rep-btn-reset:hover { background: #fef2f2; color: #ef4444; border-color: #fecaca; }
+
+  .rep-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  /* Note button inside counter */
+  .rep-btn-note {
+    width: 34px;
+    height: 34px;
+    font-size: 16px;
+    background: var(--bg-app, #f5f6fa);
+    color: var(--text-secondary, #666);
+    border: 1px solid var(--border-color, #e2e5ec);
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+  .rep-btn-note:hover {
+    background: var(--primary-container, #e8eaf6);
+    color: var(--primary, #4758d6);
+    border-color: var(--primary-container, #e8eaf6);
+  }
+
+  /* Goal picker dropdown */
+  .rep-goal-picker {
+    position: fixed;
+    z-index: 901;
+    display: none;
+    background: var(--bg-surface, #fff);
+    border: 1px solid var(--border-color, #e2e5ec);
+    border-radius: 10px;
+    box-shadow: 0 8px 28px rgba(0,0,0,.16), 0 2px 8px rgba(0,0,0,.06);
+    padding: 4px;
+    flex-direction: column;
+    gap: 2px;
+    animation: repPickIn .12s ease;
+  }
+  .rep-goal-picker.open { display: flex; }
+  @keyframes repPickIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .rep-goal-opt {
+    padding: 7px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: var(--font-mono, monospace);
+    color: var(--text-primary, #1a1d2e);
+    border-radius: 7px;
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.1s;
+  }
+  .rep-goal-opt:hover {
+    background: var(--primary-container, #e8eaf6);
+    color: var(--primary, #4758d6);
+  }
+  .rep-goal-opt.active {
+    background: var(--primary, #4758d6);
+    color: #fff;
+  }
+
+  /* Pulse animation on + */
+  @keyframes repPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+  .rep-current.pulse { animation: repPulse 0.25s ease; }
+
+  /* Celebration on done */
+  @keyframes repDone {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+  }
+  .rep-counter.celebrate { animation: repDone 0.4s ease; }
+
+  @media (max-width: 600px) {
+    .rep-counter {
+      bottom: 16px;
+      left: 16px;
+      padding: 8px 10px;
+      gap: 8px;
+    }
+    .rep-current { font-size: 18px; }
+    .rep-bar-wrap, .rep-bar { width: 32px; height: 32px; }
+  }
+</style>
+
+<!-- ── SELECTION CONTEXT MENU ── -->
+<div id="sel-popup" class="sel-popup">
+  <button id="sel-search" class="sel-btn sel-btn-search">🔍 Найти</button>
+  <button id="sel-note"   class="sel-btn sel-btn-note">📝 В заметки</button>
+</div>
+<style>
+  .sel-popup {
+    position: absolute;
+    display: none;
+    z-index: 3000;
+    background: var(--bg-surface, #fff);
+    border: 1px solid var(--border-color, #e2e5ec);
+    border-radius: 10px;
+    box-shadow: 0 8px 28px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.08);
+    padding: 4px;
+    gap: 2px;
+    flex-direction: row;
+    animation: selPopIn .15s cubic-bezier(.2,0,0,1);
+    pointer-events: auto;
+  }
+  .sel-popup.open { display: inline-flex; }
+  @keyframes selPopIn {
+    from { opacity:0; transform: translateY(6px) scale(.95); }
+    to   { opacity:1; transform: translateY(0) scale(1); }
+  }
+  .sel-btn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 7px 14px;
+    font-size: 13px; font-weight: 600;
+    font-family: var(--font-main, inherit);
+    border: none; border-radius: 7px;
+    cursor: pointer; white-space: nowrap;
+    transition: background .12s, color .12s;
+  }
+  .sel-btn-search {
+    background: var(--primary-container, #e8eaf6);
+    color: var(--primary, #4758d6);
+  }
+  .sel-btn-search:hover {
+    background: var(--primary, #4758d6);
+    color: #fff;
+  }
+  .sel-btn-note {
+    background: var(--bg-app, #f5f6fa);
+    color: var(--text-primary, #1a1d2e);
+  }
+  .sel-btn-note:hover {
+    background: #d4edda;
+    color: #155724;
+  }
+  /* подсказка после добавления в заметки */
+  .sel-popup .sel-toast {
+    font-size: 12px; font-weight: 600; color: #28a745;
+    padding: 7px 12px; white-space: nowrap;
+    animation: selToastIn .2s ease;
+  }
+  @keyframes selToastIn {
+    from { opacity: 0; } to { opacity: 1; }
+  }
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function speakText(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'ko-KR';
+  u.rate = 0.85;
+  window.speechSynthesis.speak(u);
+}
+
+function randExcept(len, cur) {
+  if (len <= 1) return 0;
+  let i;
+  do { i = Math.floor(Math.random() * len); } while (i === cur);
+  return i;
+}
+
+const studentId = "{{ session.get('student_id') or session.get('current_student_id', '') }}";
+const DRAFT_KEY = `draft_trainer_${studentId}`;
+const HISTORY_KEY = `history_${studentId}`;
+
+// ── PROGRESS TRACKING ──
+const MODULE_NAME = document.body.dataset.module || 'unknown';
+let sessionId = null;
+let exercisesDone = 0;
+const sessionStart = Date.now();
+
+async function trackPing() {
+  if (!studentId) return;
+  try {
+    const r = await fetch('/api/progress/ping', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ student_id: parseInt(studentId), module: MODULE_NAME })
+    });
+    const data = await r.json();
+    if (data.ok) sessionId = data.session_id;
+  } catch(e) {}
+}
+
+async function trackExercise() {
+  exercisesDone++;
+  if (!studentId) return;
+  try {
+    await fetch('/api/progress/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        student_id: parseInt(studentId),
+        module: MODULE_NAME,
+        session_id: sessionId,
+        duration_sec: Math.round((Date.now() - sessionStart) / 1000)
+      })
+    });
+  } catch(e) {}
+}
+
+trackPing();
+
+// ── GLOBAL GRAMMAR SEARCH ──
+(function() {
+  const searchInput  = document.getElementById('g-search-input');
+  const dropdown     = document.getElementById('g-search-dropdown');
+  const overlay      = document.getElementById('g-modal-overlay');
+  const modalTitle   = document.getElementById('g-modal-title');
+  const modalFormula = document.getElementById('g-modal-formula');
+  const modalBadge   = document.getElementById('g-modal-badge');
+  const modalBody    = document.getElementById('g-modal-body');
+  const modalClose   = document.getElementById('g-modal-close');
+
+  if (!searchInput) return; // not logged in / no student
+
+  let grammarIndex = [];
+  window._grammarIndex = grammarIndex;
+  // Load grammar.json once
+  fetch('/static/data/grammar.json')
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (!data) return;
+      Object.entries(data).forEach(([level, items]) => {
+        (items || []).forEach(item => {
+          if (item.id) grammarIndex.push({ ...item, level });
+        });
+      });
+    })
+    .catch(() => {});
+
+  // ── Search helpers ──
+  function norm(str) {
+    return str.toLowerCase().replace(/[-\/\(\)\[\]·•.,:;!?]/g,'').replace(/\s+/g,' ').trim();
+  }
+  function exSlash(str) {
+    const ex = str.replace(/(\S+)\/(\S+)/g,'$1$2');
+    return [norm(ex), ...str.split('/').map(s => norm(s.replace(/[-\s]/g,'')))];
+  }
+  function score(item, q) {
+    const qv = exSlash(q);
+    const fields = [
+      norm(item.title||''), norm(item.formula||''), norm(item.category||''),
+      ...exSlash(item.title||''), ...exSlash(item.formula||''),
+    ];
+    let s = 0;
+    for (const v of qv) {
+      if (!v) continue;
+      for (const f of fields) {
+        if (f === v) { s += 100; break; }
+        if (f.startsWith(v)) { s += 60; break; }
+        if (f.includes(v)) { s += 30; break; }
+      }
+    }
+    return s;
+  }
+  function hl(text, q) {
+    const esc = norm(q).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    if (!esc) return text;
+    try { return text.replace(new RegExp(`(${esc})`,'gi'),'<mark>$1</mark>'); }
+    catch { return text; }
+  }
+
+  // ── Dropdown ──
+  function runSearch(q) {
+    dropdown.innerHTML = '';
+    const hits = grammarIndex
+      .map(item => ({ item, s: score(item, q) }))
+      .filter(x => x.s > 0)
+      .sort((a,b) => b.s - a.s)
+      .slice(0, 10);
+
+    if (!hits.length) {
+      dropdown.innerHTML = `<div class="g-sd-noresult">Ничего не найдено по «${q}»</div>`;
+      dropdown.classList.add('open');
+      return;
+    }
+
+    const hdr = document.createElement('div');
+    hdr.className = 'g-sd-header';
+    hdr.textContent = `Найдено: ${hits.length}`;
+    dropdown.appendChild(hdr);
+
+    hits.forEach(({ item }) => {
+      const el = document.createElement('div');
+      el.className = 'g-sd-item';
+      el.innerHTML = `
+        <span class="g-sd-main">${hl(item.title, q)}</span>
+        <span class="g-sd-meta">${item.level.toUpperCase().replace('TOPIK','TOPIK ')} · ${item.category||''}</span>
+      `;
+      el.onclick = () => { closeDropdown(); openGrammarModal(item); };
+      dropdown.appendChild(el);
+    });
+    dropdown.classList.add('open');
+  }
+
+  function closeDropdown() {
+    dropdown.classList.remove('open');
+    searchInput.value = '';
+  }
+
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.trim();
+    q.length < 1 ? dropdown.classList.remove('open') : runSearch(q);
+  });
+  searchInput.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeDropdown();
+  });
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#g-search-wrap')) closeDropdown();
+  });
+
+  // ⌘K / Ctrl+K shortcut
+  document.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      searchInput.focus();
+      searchInput.select();
+    }
+  });
+
+  // ── Modal card carousel renderer ──
+  let gCarN = 0;
+  function renderExCards(items, label) {
+    const id = 'g-car-' + (gCarN++);
+    const pp = 3;
+    const pages = [];
+    for (let i = 0; i < items.length; i += pp) pages.push(items.slice(i, i + pp));
+
+    let h = `<div data-gcar="${id}" style="margin:12px 0 16px;">`;
+    h += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-tertiary);margin-bottom:10px;">${label || 'Примеры'}</div>`;
+    h += `<div style="overflow:hidden;position:relative;"><div id="${id}-t" style="display:flex;transition:transform .3s ease;">`;
+
+    pages.forEach(page => {
+      h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;min-width:100%;flex-shrink:0;">';
+      page.forEach(ex => {
+        h += `<div style="background:var(--bg-app,#f5f6fa);border:1px solid var(--border-color,#e2e5ec);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px;">
+          <div style="text-align:center;padding-bottom:8px;border-bottom:1px solid var(--border-light,#eee);">
+            <div style="font-size:16px;font-weight:700;color:var(--text-primary);">${ex.base}</div>
+            <div style="display:inline-block;font-size:9px;color:var(--text-tertiary);background:var(--bg-surface,#fff);border:1px solid var(--border-light,#eee);border-radius:20px;padding:2px 7px;margin:3px 0;">${ex.type}</div>
+            <div style="font-size:11px;color:var(--text-tertiary);">↓</div>
+            <div style="font-size:18px;font-weight:700;color:var(--primary,#4758d6);">${ex.applied}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:5px;flex:1;">
+            ${ex.sentences.map((s,i) => `<div style="padding:6px 8px;background:var(--bg-surface,#fff);border-radius:4px;border-left:2px solid var(--primary-container,#dde);">
+              <div style="font-size:12px;color:var(--text-primary);line-height:1.4;">${s}</div>
+              <div style="font-size:10px;color:var(--text-tertiary);margin-top:1px;">${ex.translations[i]}</div>
+            </div>`).join('')}
+          </div>
+        </div>`;
+      });
+      h += '</div>';
+    });
+    h += '</div></div>';
+
+    if (pages.length > 1) {
+      h += `<div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:8px;">
+        <button data-gdir="-1" data-gt="${id}" style="width:24px;height:24px;border:1px solid var(--border-color);background:var(--bg-surface);border-radius:50%;cursor:pointer;font-size:11px;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;">◂</button>
+        <span id="${id}-pg" style="font-size:11px;color:var(--text-tertiary);">1 / ${pages.length}</span>
+        <button data-gdir="1" data-gt="${id}" style="width:24px;height:24px;border:1px solid var(--border-color);background:var(--bg-surface);border-radius:50%;cursor:pointer;font-size:11px;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;">▸</button>
+      </div>`;
+    }
+    h += '</div>';
+    return h;
+  }
+
+  // ── Modal ──
+  function renderGlobalBlocks(blocks) {
+    let html = '<div style="margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--border-light);">';
+    let rules = [];
+    function flush() {
+      if (!rules.length) return '';
+      let h = '<table style="width:100%;border-collapse:collapse;font-size:12px;margin:6px 0 10px;">';
+      h += '<tr style="background:var(--bg-app);"><th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text-tertiary);border-bottom:1px solid var(--border-color);">Условие</th><th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text-tertiary);border-bottom:1px solid var(--border-color);">Окончание</th><th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text-tertiary);border-bottom:1px solid var(--border-color);">Пример</th></tr>';
+      rules.forEach(r => {
+        h += `<tr><td style="padding:6px 10px;border-bottom:1px solid var(--border-light);">${r.condition}</td><td style="padding:6px 10px;border-bottom:1px solid var(--border-light);font-weight:600;color:var(--primary);font-family:var(--font-mono);">${r.result}</td><td style="padding:6px 10px;border-bottom:1px solid var(--border-light);color:var(--text-secondary);font-size:11px;">${r.example||''}</td></tr>`;
+      });
+      h += '</table>';
+      rules = [];
+      return h;
+    }
+    blocks.forEach(b => {
+      if (b.type === 'rule') { rules.push(b); return; }
+      html += flush();
+      if (b.type === 'heading') html += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-tertiary);margin:14px 0 6px;">${b.text}</div>`;
+      else if (b.type === 'text') html += `<div style="font-size:13px;color:var(--text-secondary);margin:6px 0;line-height:1.7;">${b.text}</div>`;
+      else if (b.type === 'note') html += `<div style="padding:8px 12px;background:#fff8e1;border-left:3px solid #ffc107;border-radius:0 4px 4px 0;font-size:12px;color:#6d5800;margin:8px 0;line-height:1.6;">${b.text}</div>`;
+      else if (b.type === 'warning') html += `<div style="padding:8px 12px;background:#fef2f2;border-left:3px solid #ef4444;border-radius:0 4px 4px 0;font-size:12px;color:#7f1d1d;margin:8px 0;line-height:1.6;">${b.text}</div>`;
+      else if (b.type === 'tip') html += `<div style="padding:8px 12px;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:0 4px 4px 0;font-size:12px;color:#1e3a5f;margin:8px 0;line-height:1.6;">${b.text}</div>`;
+      else if (b.type === 'examples') html += renderExCards(b.items, b.label);
+    });
+    html += flush();
+    html += '</div>';
+    return html;
+  }
+
+  function openGrammarModal(item) {
+    gCarN = 0; // reset carousel IDs
+    modalTitle.textContent = item.title;
+    modalFormula.textContent = item.formula;
+    modalBadge.textContent = item.level.toUpperCase().replace('TOPIK','TOPIK ') + (item.category ? ' · ' + item.category : '');
+
+    const grammarUrl = "{{ url_for('student_trainer', module='grammar') if session.role == 'student' else '/student/' ~ (session.get('current_student_id', '') | string) ~ '/trainer/grammar' }}";
+    document.getElementById('g-modal-goto').href = grammarUrl + '?open=' + encodeURIComponent(item.id);
+
+    const hasBlocks = item.details && item.details.blocks && item.details.blocks.length;
+    const blocksHaveExamples = hasBlocks && item.details.blocks.some(b => b.type === 'examples');
+
+    let detailsHTML = '';
+    if (hasBlocks) {
+      detailsHTML = renderGlobalBlocks(item.details.blocks);
+    } else if (item.details && item.details.content) {
+      detailsHTML = `<div class="g-modal-desc">${item.details.content}</div>`;
+    }
+
+    let bottomExamples = '';
+    if (!blocksHaveExamples && item.examples && item.examples.length) {
+      bottomExamples = renderExCards(item.examples, 'Примеры');
+    }
+
+    modalBody.innerHTML = detailsHTML + bottomExamples;
+
+    // Init global modal carousels
+    const gCarState = {};
+    modalBody.querySelectorAll('[data-gcar]').forEach(el => {
+      const id = el.dataset.gcar;
+      const track = document.getElementById(id + '-t');
+      if (!track) return;
+      const total = track.querySelectorAll('div[style*="grid-template"]').length;
+      gCarState[id] = { cur: 0, total, track };
+    });
+    modalBody.addEventListener('click', e => {
+      const btn = e.target.closest('[data-gdir]');
+      if (!btn) return;
+      const id = btn.dataset.gt;
+      const dir = parseInt(btn.dataset.gdir);
+      const s = gCarState[id];
+      if (!s) return;
+      s.cur = Math.max(0, Math.min(s.total - 1, s.cur + dir));
+      s.track.style.transform = `translateX(-${s.cur * 100}%)`;
+      const pg = document.getElementById(id + '-pg');
+      if (pg) pg.textContent = `${s.cur + 1} / ${s.total}`;
+    });
+
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeGrammarModal() {
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  modalClose.addEventListener('click', closeGrammarModal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeGrammarModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && overlay.classList.contains('open')) closeGrammarModal(); });
+
+  // Expose globally so trainer_grammar can call it too
+  window.openGrammarModal = openGrammarModal;
+  window._grammarSearch = runSearch;
+  window._grammarScore = score;
+})();
+
+// ── NOTES ──
+const noteFab = document.getElementById('note-fab');
+const noteOverlay = document.getElementById('note-overlay');
+const noteArea = document.getElementById('note-area');
+
+noteArea.value = localStorage.getItem(DRAFT_KEY) || '';
+noteArea.addEventListener('input', () => localStorage.setItem(DRAFT_KEY, noteArea.value));
+
+// Блокируем всплытие клавиатурных событий из textarea,
+// чтобы тренажёры не перехватывали пробел, Enter и т.д.
+noteArea.addEventListener('keydown', e => e.stopPropagation());
+noteArea.addEventListener('keyup', e => e.stopPropagation());
+noteArea.addEventListener('keypress', e => e.stopPropagation());
+
+// Глобальный флаг — тренажёры могут проверять window.noteActive
+window.noteActive = false;
+noteFab.addEventListener('click', () => {
+  noteOverlay.classList.add('active');
+  window.noteActive = true;
+  noteArea.focus();
+});
+document.getElementById('note-close-btn').addEventListener('click', () => {
+  noteOverlay.classList.remove('active');
+  window.noteActive = false;
+});
+
+document.getElementById('note-save-btn').addEventListener('click', () => {
+  const text = noteArea.value.trim();
+  if (!text) return;
+  const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  const now = new Date();
+  const fullTime = now.toLocaleString('ru-RU') + ' (Тренажер)';
+  const todayStr = now.toLocaleDateString('ru-RU');
+  if (history.length > 0 && history[0].date.startsWith(todayStr)) {
+    history[0].text += '\n\n_____\n\n' + text;
+    history[0].date = fullTime;
+  } else {
+    history.unshift({ date: fullTime, text });
+  }
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  const msg = document.getElementById('note-saved-msg');
+  msg.style.opacity = 1;
+  setTimeout(() => msg.style.opacity = 0, 1500);
+});
+
+// ── REPETITION COUNTER ──
+(function() {
+  const counter   = document.getElementById('rep-counter');
+  const curEl     = document.getElementById('rep-current');
+  const goalEl    = document.getElementById('rep-goal');
+  const barEl     = document.getElementById('rep-bar');
+  const btnPlus   = document.getElementById('rep-plus');
+  const btnReset  = document.getElementById('rep-reset');
+  if (!counter) return;
+
+  const REP_KEY = `rep_counter_${studentId}`;
+
+  // Load state
+  let state = { current: 0, goal: 10 };
+  try {
+    const saved = JSON.parse(localStorage.getItem(REP_KEY));
+    if (saved && typeof saved.current === 'number') state = saved;
+  } catch(e) {}
+
+  function save() {
+    localStorage.setItem(REP_KEY, JSON.stringify(state));
+  }
+
+  function render() {
+    curEl.textContent = state.current;
+    goalEl.textContent = state.goal;
+    const pct = Math.min(100, Math.round((state.current / state.goal) * 100));
+    barEl.style.setProperty('--pct', pct);
+
+    const done = state.current >= state.goal;
+    counter.classList.toggle('done', done);
+  }
+
+  // + button
+  btnPlus.addEventListener('click', () => {
+    state.current++;
+    save();
+    render();
+
+    // Pulse animation
+    curEl.classList.remove('pulse');
+    void curEl.offsetWidth;
+    curEl.classList.add('pulse');
+
+    // Celebration when goal reached
+    if (state.current === state.goal) {
+      counter.classList.add('celebrate');
+      setTimeout(() => counter.classList.remove('celebrate'), 500);
+    }
+  });
+
+  // Reset
+  btnReset.addEventListener('click', () => {
+    if (state.current === 0) return;
+    state.current = 0;
+    save();
+    render();
+    counter.classList.remove('done');
+  });
+
+  // Goal picker
+  const picker = document.getElementById('rep-goal-picker');
+
+  function positionPicker() {
+    const goalRect = goalEl.getBoundingClientRect();
+    picker.style.left = goalRect.left + 'px';
+    // Show above if counter is in lower half, below if upper half
+    if (goalRect.top > window.innerHeight / 2) {
+      picker.style.bottom = (window.innerHeight - goalRect.top + 8) + 'px';
+      picker.style.top = '';
+    } else {
+      picker.style.top = (goalRect.bottom + 8) + 'px';
+      picker.style.bottom = '';
+    }
+  }
+
+  function openPicker() {
+    // Mark active option
+    picker.querySelectorAll('.rep-goal-opt').forEach(o => {
+      o.classList.toggle('active', parseInt(o.dataset.val) === state.goal);
+    });
+    positionPicker();
+    picker.classList.add('open');
+  }
+
+  function closePicker() {
+    picker.classList.remove('open');
+  }
+
+  goalEl.addEventListener('click', e => {
+    e.stopPropagation();
+    picker.classList.contains('open') ? closePicker() : openPicker();
+  });
+
+  picker.addEventListener('click', e => {
+    const opt = e.target.closest('.rep-goal-opt');
+    if (!opt) return;
+    state.goal = parseInt(opt.dataset.val);
+    save();
+    render();
+    closePicker();
+  });
+
+  // Close picker on outside click
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.rep-goal-picker, .rep-goal')) closePicker();
+  });
+
+  // ── DRAG ──
+  const POS_KEY = `rep_pos_${studentId}`;
+  let dragging = false, dragMoved = false, startX, startY, origLeft, origTop;
+
+  // Restore saved position or default to bottom-left
+  function initPosition() {
+    try {
+      const pos = JSON.parse(localStorage.getItem(POS_KEY));
+      if (pos && typeof pos.left === 'number') {
+        counter.style.left = Math.min(pos.left, window.innerWidth - 60) + 'px';
+        counter.style.top = Math.min(pos.top, window.innerHeight - 60) + 'px';
+        return;
+      }
+    } catch(e) {}
+    counter.style.left = '24px';
+    counter.style.top = (window.innerHeight - counter.offsetHeight - 24) + 'px';
+  }
+
+  function savePosition() {
+    localStorage.setItem(POS_KEY, JSON.stringify({
+      left: parseInt(counter.style.left),
+      top: parseInt(counter.style.top)
+    }));
+  }
+
+  function clamp() {
+    let l = parseInt(counter.style.left);
+    let t = parseInt(counter.style.top);
+    const w = counter.offsetWidth, h = counter.offsetHeight;
+    l = Math.max(0, Math.min(l, window.innerWidth - w));
+    t = Math.max(0, Math.min(t, window.innerHeight - h));
+    counter.style.left = l + 'px';
+    counter.style.top = t + 'px';
+  }
+
+  function onDragStart(x, y) {
+    dragging = true;
+    dragMoved = false;
+    startX = x;
+    startY = y;
+    origLeft = parseInt(counter.style.left) || 0;
+    origTop = parseInt(counter.style.top) || 0;
+    counter.classList.add('dragging');
+  }
+
+  function onDragMove(x, y) {
+    if (!dragging) return;
+    const dx = x - startX, dy = y - startY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragMoved = true;
+    counter.style.left = (origLeft + dx) + 'px';
+    counter.style.top = (origTop + dy) + 'px';
+  }
+
+  function onDragEnd() {
+    if (!dragging) return;
+    dragging = false;
+    counter.classList.remove('dragging');
+    clamp();
+    if (dragMoved) savePosition();
+  }
+
+  // Mouse
+  counter.addEventListener('mousedown', e => {
+    if (e.target.closest('.rep-btn, .rep-react, .rep-goal, .rep-goal-picker')) return;
+    e.preventDefault();
+    onDragStart(e.clientX, e.clientY);
+  });
+  document.addEventListener('mousemove', e => onDragMove(e.clientX, e.clientY));
+  document.addEventListener('mouseup', onDragEnd);
+
+  // Touch
+  counter.addEventListener('touchstart', e => {
+    if (e.target.closest('.rep-btn, .rep-react, .rep-goal, .rep-goal-picker')) return;
+    const t = e.touches[0];
+    onDragStart(t.clientX, t.clientY);
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    const t = e.touches[0];
+    onDragMove(t.clientX, t.clientY);
+  }, { passive: true });
+  document.addEventListener('touchend', onDragEnd);
+
+  // Reposition on resize
+  window.addEventListener('resize', () => { clamp(); savePosition(); });
+
+  // ── REACTION FOUNTAIN ──
+  const fountain = document.getElementById('rep-fountain');
+
+  function spawnFountain(emoji, originEl) {
+    const rect = originEl.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top;
+    const count = 10 + Math.floor(Math.random() * 6);
+
+    for (let i = 0; i < count; i++) {
+      const p = document.createElement('div');
+      p.className = 'rep-particle';
+      p.textContent = emoji;
+      p.style.fontSize = (18 + Math.random() * 16) + 'px';
+      p.style.left = cx + 'px';
+      p.style.top = cy + 'px';
+      fountain.appendChild(p);
+
+      // Physics: shoot upward with slight horizontal spread
+      let vx = (Math.random() - 0.5) * 3.5;
+      let vy = -(6 + Math.random() * 5); // strong upward
+      const gravity = 0.18;
+      const rot = (Math.random() - 0.5) * 4;
+      let x = 0, y = 0, r = 0, opacity = 1;
+      let frame = 0;
+      const maxFrames = 50 + Math.floor(Math.random() * 20);
+      const delay = Math.floor(Math.random() * 6);
+
+      let started = false;
+      function tick() {
+        frame++;
+        if (frame <= delay) { requestAnimationFrame(tick); return; }
+        if (!started) { started = true; p.style.opacity = '1'; }
+
+        vy += gravity;
+        x += vx;
+        y += vy;
+        r += rot;
+        opacity = Math.max(0, 1 - (frame - delay) / maxFrames);
+
+        p.style.transform = `translate(${x}px, ${y}px) rotate(${r}deg) scale(${0.6 + opacity * 0.4})`;
+        p.style.opacity = opacity;
+
+        if (frame - delay < maxFrames && opacity > 0) {
+          requestAnimationFrame(tick);
+        } else {
+          p.remove();
+        }
+      }
+
+      p.style.opacity = '0';
+      requestAnimationFrame(tick);
+    }
+  }
+
+  // Attach to reaction buttons
+  counter.querySelectorAll('.rep-react').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const emoji = btn.dataset.emoji;
+      spawnFountain(emoji, btn);
+    });
+  });
+
+  initPosition();
+  render();
+})();
+
+// ── SELECTION CONTEXT MENU ──
+(function() {
+  const popup     = document.getElementById('sel-popup');
+  const btnSearch = document.getElementById('sel-search');
+  const btnNote   = document.getElementById('sel-note');
+  if (!popup) return;
+
+  let selectedText = '';
+
+  function getSelectedText() {
+    const sel = window.getSelection();
+    return sel ? sel.toString().trim() : '';
+  }
+
+  function showPopup() {
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    const range = sel.getRangeAt(0);
+    const selRect = range.getBoundingClientRect();
+    if (!selRect.width) return;
+
+    popup.classList.add('open');
+    // Сначала ставим в 0,0 чтобы измерить размер
+    popup.style.left = '0'; popup.style.top = '0';
+    const pw = popup.offsetWidth, ph = popup.offsetHeight;
+
+    // Центрируем по горизонтали относительно выделения
+    let left = selRect.left + selRect.width / 2 - pw / 2 + window.scrollX;
+    // Ставим ПОД выделением с отступом
+    let top = selRect.bottom + 8 + window.scrollY;
+
+    // Если снизу не влезает — ставим СВЕРХУ
+    if (selRect.bottom + 8 + ph > window.innerHeight) {
+      top = selRect.top - ph - 8 + window.scrollY;
+    }
+
+    // Не даём уехать за края экрана по горизонтали
+    left = Math.max(8, Math.min(left, window.innerWidth - pw - 8 + window.scrollX));
+
+    popup.style.left = left + 'px';
+    popup.style.top  = top + 'px';
+  }
+
+  function hidePopup() {
+    popup.classList.remove('open');
+    selectedText = '';
+  }
+
+  // Показываем popup при выделении (мышь)
+  document.addEventListener('mouseup', e => {
+    // Не реагируем если клик внутри popup / модалки / заметок / поиска
+    if (e.target.closest('.sel-popup, .g-modal, .note-modal, .g-search-wrap, textarea, input')) return;
+    setTimeout(() => {
+      const txt = getSelectedText();
+      if (txt.length >= 1) {
+        selectedText = txt;
+        showPopup();
+      } else {
+        hidePopup();
+      }
+    }, 10);
+  });
+
+  // Тач: показываем при selectionchange (после long-press)
+  let touchTimer = null;
+  document.addEventListener('selectionchange', () => {
+    if (!('ontouchstart' in window)) return;
+    clearTimeout(touchTimer);
+    touchTimer = setTimeout(() => {
+      const txt = getSelectedText();
+      if (txt.length >= 1) {
+        selectedText = txt;
+        showPopup();
+      }
+    }, 300);
+  });
+
+  // Скрываем при клике мимо
+  document.addEventListener('mousedown', e => {
+    if (!e.target.closest('.sel-popup')) hidePopup();
+  });
+
+  // ── Кнопка «Найти» ──
+  btnSearch.addEventListener('click', e => {
+    e.preventDefault(); e.stopPropagation();
+    const q = selectedText;
+    if (!q) return;
+
+    // Ищем совпадения в grammarIndex
+    const gi = window._grammarIndex || [];
+    const scoreF = window._grammarScore;
+    if (gi.length && scoreF) {
+      const hits = gi
+        .map(item => ({ item, s: scoreF(item, q) }))
+        .filter(x => x.s > 0)
+        .sort((a, b) => b.s - a.s);
+
+      if (hits.length === 1) {
+        // Одно совпадение — сразу модалка
+        hidePopup();
+        window.getSelection().removeAllRanges();
+        window.openGrammarModal(hits[0].item);
+        return;
+      }
+      if (hits.length > 1) {
+        // Несколько — вбиваем в поиск в хедере и открываем dropdown
+        const searchInput = document.getElementById('g-search-input');
+        if (searchInput && window._grammarSearch) {
+          hidePopup();
+          window.getSelection().removeAllRanges();
+          searchInput.value = q;
+          searchInput.focus();
+          window._grammarSearch(q);
+          return;
+        }
+      }
+    }
+
+    // Если грамматика не загрузилась или нет результатов — всё равно вбиваем в поиск
+    const searchInput = document.getElementById('g-search-input');
+    if (searchInput) {
+      hidePopup();
+      window.getSelection().removeAllRanges();
+      searchInput.value = q;
+      searchInput.focus();
+      if (window._grammarSearch) window._grammarSearch(q);
+    }
+  });
+
+  // ── Кнопка «В заметки» ──
+  btnNote.addEventListener('click', e => {
+    e.preventDefault(); e.stopPropagation();
+    const txt = selectedText;
+    if (!txt) return;
+
+    const noteArea = document.getElementById('note-area');
+    if (!noteArea) return;
+
+    // Добавляем текст в заметки
+    const cur = noteArea.value;
+    const sep = cur.trim() ? '\n' : '';
+    noteArea.value = cur + sep + txt;
+    // Сохраняем черновик
+    noteArea.dispatchEvent(new Event('input'));
+
+    // Показываем «Добавлено ✓» вместо кнопок
+    btnSearch.style.display = 'none';
+    btnNote.style.display = 'none';
+    let toast = popup.querySelector('.sel-toast');
+    if (!toast) {
+      toast = document.createElement('span');
+      toast.className = 'sel-toast';
+      popup.appendChild(toast);
+    }
+    toast.textContent = '✓ Добавлено в заметки';
+    toast.style.display = '';
+    window.getSelection().removeAllRanges();
+    setTimeout(() => {
+      toast.style.display = 'none';
+      btnSearch.style.display = '';
+      btnNote.style.display = '';
+      hidePopup();
+    }, 900);
+  });
+})();
+</script>
+{% block trainer_js %}{% endblock %}
+{% endblock %}

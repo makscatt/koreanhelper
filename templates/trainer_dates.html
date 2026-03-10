@@ -1,0 +1,24 @@
+{% extends "trainer_base.html" %}
+{% block title %}Даты — {{ student.name }}{% endblock %}
+{% block trainer_content %}
+<div class="trainer-header">
+  
+  <h1 class="trainer-title">Даты</h1>
+</div>
+<div class="display-container">
+  <div class="big-text" id="date-display">1월 1일</div>
+  <div class="controls">
+    <button class="action-btn secondary" onclick="speakDate()">🔊</button>
+    <button class="action-btn" onclick="generateDate()">🎲</button>
+  </div>
+</div>
+{% endblock %}
+{% block trainer_js %}
+<script>
+document.body.dataset.module = 'dates';
+let dM=1,dD=1,lastD='';
+function generateDate(){trackExercise();let s;do{dM=Math.floor(Math.random()*12)+1;dD=Math.floor(Math.random()*28)+1;s=dM+':'+dD;}while(s===lastD);lastD=s;document.getElementById('date-display').textContent=dM+'월 '+dD+'일';}
+function speakDate(){speakText(dM+'월 '+dD+'일');}
+generateDate();
+</script>
+{% endblock %}

@@ -1,0 +1,208 @@
+{
+    "b1": [
+        {
+            "type": "videos",
+            "title": "1. Знакомство",
+            "data": [
+                {
+                    "video": "video/allkdrama/이름이 뭐예요.webm",
+                    "korean": "이름이 뭐예요?",
+                    "translation": "Как тебя зовут?"
+                },
+                {
+                    "video": "video/vincenco/어느 나라 다녀오셨어요.webm",
+                    "korean": "어느 나라 다녀오셨어요?",
+                    "translation": "В какой стране вы были?"
+                },
+                {
+                    "video": "video/demon/이름 뭐야.webm",
+                    "korean": "이름 뭐야?",
+                    "translation": "Как тебя зовут? (панмаль)"
+                },
+                {
+                    "video": "video/weakhero/너 이름이 뭐지.webm",
+                    "korean": "너 이름이 뭐지?",
+                    "translation": "Как, говоришь, тебя зовут?"
+                },
+                {
+                    "video": "video/lookism/안녕하세요 처음 뵙겠습니다.webm",
+                    "korean": "안녕하세요 처음 뵙겠습니다",
+                    "translation": "Здравствуйте, приятно познакомиться."
+                },
+                {
+                    "video": "video/healer/미국으로 돌아가고 싶으신데.webm",
+                    "korean": "미국으로 돌아가고 싶으신데",
+                    "translation": "Вы хотите вернуться в Америку."
+                },
+                {
+                    "video": "video/vincenco/이름이 멋지네요.webm",
+                    "korean": "이름이 멋지네요",
+                    "translation": "У вас классное имя."
+                },
+                {
+                    "video": "video/moon lovers/한국에서 살게 됐다고 좋아하시던 거.webm",
+                    "korean": "한국에서 살게 됐다고 좋아하시던 거",
+                    "translation": "Ему нравилось, что он будет жить в Корее."
+                },
+                {
+                    "video": "video/lookism/학생 이름을 안 물어봤네.webm",
+                    "korean": "학생 이름을 안 물어봤네",
+                    "translation": "Я не спросил имя ученика."
+                },
+                {
+                    "video": "video/runbts/자기소개 한번 해주세요.webm",
+                    "korean": "자기소개 한번 해주세요",
+                    "translation": "Пожалуйста, представьтесь."
+                }
+            ]
+        }
+    ],
+    "b2": [
+        {
+            "type": "videos",
+            "title": "2. Возраст и работа",
+            "data": [
+                {
+                    "video": "video/runbts/몇 살이에요.webm",
+                    "korean": "몇 살이에요?",
+                    "translation": "Сколько вам лет?"
+                },
+                {
+                    "video": "video/allkdrama/몇살이야.webm",
+                    "korean": "몇살이야?",
+                    "translation": "Сколько тебе лет? (панмаль)"
+                },
+                {
+                    "video": "video/bloodhounds/어떤 일을 하시는 거죠.webm",
+                    "korean": "어떤 일을 하시는 거죠?",
+                    "translation": "Кем вы работаете? / Чем занимаетесь?"
+                },
+                {
+                    "video": "video/runbts/열 아홉 살.webm",
+                    "korean": "열 아홉 살",
+                    "translation": "Девятнадцать лет."
+                },
+                {
+                    "video": "video/lookism/편의점 야간 알바요.webm",
+                    "korean": "편의점 야간 알바요",
+                    "translation": "Ночная подработка в магазине."
+                },
+                {
+                    "video": "video/squidgame 2/우리는 경찰이야.webm",
+                    "korean": "우리는 경찰이야",
+                    "translation": "Мы — полицейские."
+                },
+                {
+                    "video": "video/deathgame/제가 (5)다섯 살 때.webm",
+                    "korean": "제가 다섯 살 때",
+                    "translation": "Когда мне было пять лет."
+                },
+                {
+                    "video": "video/bloodhounds/나 해병이야.webm",
+                    "korean": "나 해병이야",
+                    "translation": "Я морпех."
+                },
+                {
+                    "video": "video/vincenco/변호사 신분이었습니다.webm",
+                    "korean": "변호사 신분이었습니다",
+                    "translation": "Я был в статусе адвоката."
+                },
+                {
+                    "video": "video/bloodhounds/너 몇 살인데.webm",
+                    "korean": "너 몇 살인데?",
+                    "translation": "Тебе сколько лет-то?"
+                },
+                {
+                    "video": "video/vincenco/배우 해 보는 게 어떻겠니.webm",
+                    "korean": "배우 해 보는 게 어떻겠니?",
+                    "translation": "Как насчет того, чтобы попробовать стать актером?"
+                }
+            ]
+        }
+    ],
+    "b3": [
+        {
+            "type": "videos",
+            "title": "3. В ресторане",
+            "data": [
+                {
+                    "video": "video/lookism/어서 오세요.webm",
+                    "korean": "어서 오세요",
+                    "translation": "Добро пожаловать."
+                },
+                {
+                    "video": "video/lookism/어떤 거 드실래요.webm",
+                    "korean": "어떤 거 드실래요?",
+                    "translation": "Что будете есть?"
+                },
+                {
+                    "video": "video/theglory/아이스 아메리카노에 샷 추가해 드려요.webm",
+                    "korean": "아이스 아메리카노에 샷 추가해 드려요?",
+                    "translation": "Вам добавить шот в айс-американо?"
+                },
+                {
+                    "video": "video/allkdrama/뭐 더 필요한거 있으세요.webm",
+                    "korean": "뭐 더 필요한거 있으세요?",
+                    "translation": "Вам нужно что-нибудь еще?"
+                },
+                {
+                    "video": "video/theglory/그거 주세요.webm",
+                    "korean": "그거 주세요",
+                    "translation": "Дайте это, пожалуйста."
+                },
+                {
+                    "video": "video/theglory/차가운 거 주시고.webm",
+                    "korean": "차가운 거 주시고",
+                    "translation": "Дайте холодное, и..."
+                },
+                {
+                    "video": "video/theglory/제일 진한 거 주세요.webm",
+                    "korean": "제일 진한 거 주세요",
+                    "translation": "Дайте самый крепкий."
+                },
+                {
+                    "video": "video/healer/약 좀 먹게 물 좀 주실 수 있어요.webm",
+                    "korean": "약 좀 먹게 물 좀 주실 수 있어요?",
+                    "translation": "Можете дать воды запить лекарство?"
+                },
+                {
+                    "video": "video/runbts/밥 줘.webm",
+                    "korean": "밥 줘",
+                    "translation": "Дай поесть/рис."
+                },
+                {
+                    "video": "video/runbts/사장님 거기 가서 그 김치 좀 더 갖고 와요.webm",
+                    "korean": "사장님 거기 가서 그 김치 좀 더 갖고 와요",
+                    "translation": "Хозяин, сходи туда и принеси еще того кимчи."
+                },
+                {
+                    "video": "video/runbts/뭐 먹을 거예요.webm",
+                    "korean": "뭐 먹을 거예요?",
+                    "translation": "Что будете есть?"
+                },
+                {
+                    "video": "video/allkdrama/라면 먹고 갈래.webm",
+                    "korean": "라면 먹고 갈래?",
+                    "translation": "Хочешь поесть рамен? (Зайдешь ко мне на рамен?)"
+                },
+                {
+                    "video": "video/squid game/근데 난 떡볶이가 훨씬 더 맛있어.webm",
+                    "korean": "근데 난 떡볶이가 훨씬 더 맛있어",
+                    "translation": "Но мне токпокки намного вкуснее."
+                },
+                {
+                    "video": "video/runbts/맛있게 드세요.webm",
+                    "korean": "맛있게 드세요",
+                    "translation": "Приятного аппетита."
+                },
+                {
+                    "video": "video/demon/죄송하지만 오늘은 예약이 꽉 찼습니다.webm",
+                    "korean": "죄송하지만 오늘은 예약이 꽉 찼습니다",
+                    "translation": "Извините, но на сегодня все забронировано."
+                }
+            ]
+        }
+    ],
+    "b4": [],
+    "b5": []
+}

@@ -1,0 +1,222 @@
+{% extends "trainer_base.html" %}
+{% block title %}Слова — {{ student.name }}{% endblock %}
+
+{% block trainer_content %}
+<div class="trainer-header">
+  
+  <h1 class="trainer-title" id="set-title">🐾 Животные</h1>
+</div>
+
+<div class="words-wrap">
+
+  <!-- ЛЕВАЯ КОЛОНКА -->
+  <div class="words-left">
+
+    <!-- Настройки + Режим в одну строку -->
+    <div class="words-top-row">
+      <div class="words-settings-card">
+        <div class="words-select-wrap">
+          <label class="words-select-label">Набор:</label>
+          <select id="word-set-select" class="words-select"></select>
+        </div>
+        <div class="words-settings-row">
+          <label class="words-toggle-label">
+            <input type="checkbox" id="show-transcription" checked>
+            <span>Транскрипция</span>
+          </label>
+          <label class="words-toggle-label">
+            <input type="checkbox" id="show-question-text" checked>
+            <span>Текст вопроса</span>
+          </label>
+          <label class="words-toggle-label">
+            <span>Ответы:</span>
+            <select id="answer-language" class="words-select-sm">
+              <option value="russian">Русский</option>
+              <option value="korean">한국어</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="words-mode-switch">
+        <input type="radio" name="mode" id="mode-kor-ru" value="kor-ru" checked>
+        <label for="mode-kor-ru" class="words-mode-label">한국어 → RU</label>
+        <input type="radio" name="mode" id="mode-ru-kor" value="ru-kor">
+        <label for="mode-ru-kor" class="words-mode-label">RU → 한국어</label>
+      </div>
+    </div>
+
+    <!-- Основная карточка -->
+    <div class="words-main-card">
+      <div class="words-animal-display">
+        <div class="words-pixel-art" id="animal-image"></div>
+        <div class="words-question" id="question-text"></div>
+        <div class="words-transcription" id="transcription-text"></div>
+      </div>
+      <div class="words-options-grid" id="options-grid"></div>
+      <div class="words-feedback" id="feedback"></div>
+      <div class="controls">
+        <button class="btn btn-primary" id="next-btn" onclick="nextQuestion()" style="display:none;">Следующий →</button>
+        <button class="btn" onclick="resetStats()">Сбросить</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ПРАВАЯ КОЛОНКА — статистика -->
+  <div class="words-right">
+    <div class="words-stats-card">
+      <div class="words-stat">
+        <div class="words-stat-val" id="correct-count">0</div>
+        <div class="words-stat-label">Правильно</div>
+      </div>
+      <div class="words-stat">
+        <div class="words-stat-val words-stat-wrong" id="wrong-count">0</div>
+        <div class="words-stat-label">Ошибок</div>
+      </div>
+      <div class="words-stat">
+        <div class="words-stat-val words-stat-total" id="total-count">0</div>
+        <div class="words-stat-label">Всего</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block trainer_js %}
+<script>
+document.body.dataset.module = 'words';
+
+let allData = {};
+let currentSet = '';
+let animalsData = [];
+let currentMode = 'kor-ru';
+let currentQuestion = null;
+let correctCount = 0, wrongCount = 0, totalCount = 0;
+let showTranscription = true;
+let showQuestionText = true;
+let answerLanguage = 'russian';
+
+async function loadData() {
+  try {
+    const r = await fetch('/static/data/words-data.json');
+    allData = await r.json();
+    const select = document.getElementById('word-set-select');
+    select.innerHTML = '';
+    for (const [key, value] of Object.entries(allData)) {
+      const opt = document.createElement('option');
+      opt.value = key;
+      opt.textContent = `${value.emoji} ${value.title} (${value.words.length} слов)`;
+      select.appendChild(opt);
+    }
+    currentSet = Object.keys(allData)[0];
+    loadWordSet(currentSet);
+  } catch(e) { console.error('Ошибка загрузки words-data.json', e); }
+}
+
+function loadWordSet(setKey) {
+  currentSet = setKey;
+  animalsData = allData[setKey].words;
+  document.getElementById('set-title').textContent = `${allData[setKey].emoji} ${allData[setKey].title}`;
+  resetStats(false);
+  nextQuestion();
+}
+
+function nextQuestion() {
+  trackExercise();
+  document.getElementById('next-btn').style.display = 'none';
+  const fb = document.getElementById('feedback');
+  fb.textContent = '';
+  fb.className = 'words-feedback';
+
+  currentQuestion = animalsData[Math.floor(Math.random() * animalsData.length)];
+  document.getElementById('animal-image').innerHTML = currentQuestion.svg || '';
+
+  if (currentMode === 'kor-ru') {
+    document.getElementById('question-text').textContent = currentQuestion.korean;
+    document.getElementById('transcription-text').textContent = currentQuestion.transcription ? `[${currentQuestion.transcription}]` : '';
+    const correct = answerLanguage === 'korean' ? currentQuestion.korean : currentQuestion.russian;
+    renderOptions(generateOptions(correct, answerLanguage === 'korean' ? 'korean' : 'russian'), correct);
+  } else {
+    document.getElementById('question-text').textContent = currentQuestion.russian;
+    document.getElementById('transcription-text').textContent = '';
+    renderOptions(generateOptions(currentQuestion.korean, 'korean'), currentQuestion.korean);
+  }
+  updateQuestionDisplay();
+}
+
+function generateOptions(correctAnswer, type) {
+  const options = [correctAnswer];
+  const pool = animalsData.map(a => type === 'russian' ? a.russian : a.korean).filter(i => i !== correctAnswer);
+  while (options.length < 4 && pool.length > 0) {
+    options.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  }
+  return options.sort(() => Math.random() - 0.5);
+}
+
+function renderOptions(options, correct) {
+  const grid = document.getElementById('options-grid');
+  grid.innerHTML = '';
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'words-option-btn';
+    btn.textContent = opt;
+    btn.onclick = () => checkAnswer(opt, correct, btn);
+    grid.appendChild(btn);
+  });
+}
+
+function checkAnswer(selected, correct, btn) {
+  totalCount++;
+  const isCorrect = selected === correct;
+  if (isCorrect) {
+    correctCount++;
+    btn.classList.add('correct');
+    setFeedback('✓ Правильно!', 'correct');
+  } else {
+    wrongCount++;
+    btn.classList.add('wrong');
+    setFeedback(`✗ Неправильно. Правильный ответ: ${correct}`, 'wrong');
+    document.querySelectorAll('.words-option-btn').forEach(b => {
+      if (b.textContent === correct) b.classList.add('correct');
+    });
+  }
+  document.querySelectorAll('.words-option-btn').forEach(b => b.classList.add('disabled'));
+  document.getElementById('next-btn').style.display = 'inline-block';
+  updateStats();
+}
+
+function setFeedback(text, type) {
+  const fb = document.getElementById('feedback');
+  fb.textContent = text;
+  fb.className = 'words-feedback ' + type;
+}
+
+function updateStats() {
+  document.getElementById('correct-count').textContent = correctCount;
+  document.getElementById('wrong-count').textContent = wrongCount;
+  document.getElementById('total-count').textContent = totalCount;
+}
+
+function resetStats(ask = true) {
+  if (ask && !window.confirm('Сбросить статистику?')) return;
+  correctCount = 0; wrongCount = 0; totalCount = 0;
+  updateStats();
+  if (animalsData.length > 0) nextQuestion();
+}
+
+function updateQuestionDisplay() {
+  document.getElementById('transcription-text').style.display = showTranscription ? 'block' : 'none';
+  document.getElementById('question-text').style.display = showQuestionText ? 'block' : 'none';
+}
+
+document.getElementById('word-set-select').addEventListener('change', e => loadWordSet(e.target.value));
+document.getElementById('show-transcription').addEventListener('change', e => { showTranscription = e.target.checked; updateQuestionDisplay(); });
+document.getElementById('show-question-text').addEventListener('change', e => { showQuestionText = e.target.checked; updateQuestionDisplay(); });
+document.getElementById('answer-language').addEventListener('change', e => { answerLanguage = e.target.value; nextQuestion(); });
+document.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener('change', e => { currentMode = e.target.value; nextQuestion(); }));
+
+loadData();
+</script>
+{% endblock %}

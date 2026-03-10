@@ -1,0 +1,260 @@
+{% extends "trainer_base.html" %}
+
+{% block title %}Тексты — {{ student.name }}{% endblock %}
+
+{% block trainer_content %}
+<script>document.body.dataset.module = 'texts';</script>
+
+<div class="trainer-header">
+  
+  <span class="trainer-title">Тексты и слова</span>
+</div>
+
+<div style="max-width:860px;width:100%;">
+
+  <!-- TOOLBAR -->
+  <div id="toolbar" style="
+    position:sticky; top:0; background:var(--bg-surface);
+    border-bottom:1px solid var(--border-color);
+    padding:8px 0 10px;
+    display:flex; gap:8px; align-items:center;
+    z-index:100; margin-bottom:14px;
+    font-size:11px; font-family:var(--font-mono); color:var(--text-tertiary);
+  ">
+    <span>Выделить:</span>
+    <button class="color-btn" id="color-blue" data-color="blue" style="width:22px;height:22px;border-radius:50%;border:2px solid var(--border-color);background:#a0c4ff;cursor:pointer;transition:transform 0.15s;"></button>
+    <button class="color-btn" id="color-red"  data-color="red"  style="width:22px;height:22px;border-radius:50%;border:2px solid var(--border-color);background:#ffadad;cursor:pointer;transition:transform 0.15s;"></button>
+    <button class="color-btn" id="color-green" data-color="green" style="width:22px;height:22px;border-radius:50%;border:2px solid var(--border-color);background:#b9fbc0;cursor:pointer;transition:transform 0.15s;"></button>
+  </div>
+
+  <!-- TEXTS LIST -->
+  <div class="texts-container" id="texts-container"></div>
+
+</div>
+
+<!-- WORD STUDY MODAL -->
+<div id="word-modal-overlay" style="
+  position:fixed; inset:0;
+  background:rgba(0,0,0,0.5);
+  backdrop-filter:blur(4px);
+  display:none; align-items:center; justify-content:center;
+  z-index:5000;
+">
+  <div style="
+    background:var(--bg-surface); width:90%; max-width:480px;
+    border:1px solid var(--border-color); border-radius:4px;
+    padding:32px 28px 24px; display:flex; flex-direction:column;
+    align-items:center; gap:14px; position:relative; text-align:center;
+  ">
+    <button onclick="closeWordModal()" style="
+      position:absolute; top:12px; right:14px;
+      background:none; border:none; font-size:18px;
+      cursor:pointer; color:var(--text-tertiary); line-height:1;
+    ">×</button>
+
+    <div id="word-study-title" style="font-size:10px;color:var(--text-tertiary);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:1px;"></div>
+
+    <div id="card-base" style="font-family:var(--serif);font-size:2.8rem;font-weight:400;color:var(--text-primary);">...</div>
+    <div id="card-meaning" style="font-size:1.1rem;color:var(--text-tertiary);font-family:var(--font-mono);">...</div>
+
+    <div id="card-forms" style="
+      width:100%; display:flex; flex-direction:column; gap:8px; margin-bottom:8px;
+      visibility:hidden; opacity:0; transition:opacity 0.2s;
+    ">
+      <div style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-family:var(--font-mono);color:var(--text-tertiary);">
+        Прош: <b id="val-past" style="color:var(--text-primary);">—</b>
+        <span class="mini-speaker" onclick="speakTense('past')">🔊</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-family:var(--font-mono);color:var(--text-tertiary);">
+        Наст: <b id="val-pres" style="color:var(--text-primary);">—</b>
+        <span class="mini-speaker" onclick="speakTense('pres')">🔊</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-family:var(--font-mono);color:var(--text-tertiary);">
+        Будущ: <b id="val-fut" style="color:var(--text-primary);">—</b>
+        <span class="mini-speaker" onclick="speakTense('fut')">🔊</span>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn" onclick="toggleCardForms()">👁 Формы</button>
+      <button class="btn" onclick="speakCurrentWord()">🔊</button>
+      <button class="btn" onclick="prevWord()">← Назад</button>
+      <button class="btn btn-primary" onclick="nextWord()">Далее →</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Переопределения поверх style.css для text trainer */
+  .color-btn.active { border-color: var(--text-primary) !important; transform: scale(1.15); }
+</style>
+{% endblock %}
+
+{% block trainer_js %}
+<script>
+  let allTextsData = [];
+  let currentWordList = [], currentWordIndex = 0;
+
+  const textsFallback = [
+    {
+      "title": "요리",
+      "text": "한국 사람들은 김치찌개를 자주 먹어요.\n김치찌개에는 김치와 돼지고기가 들어가요.\n먼저, 냄비에 돼지고기를 넣고 볶아요.\n그리고 돼지고기가 익으면 김치를 넣어요.\n3분 정도 고기와 김치를 함께 볶아요.\n마지막으로, 물이나 육수를 붓고 더 끓이면 완성이에요.",
+      "vocab": [
+        { "base": "먹다", "mean": "Есть", "past": "먹었어요", "pres": "먹어요", "fut": "먹을 거예요" },
+        { "base": "볶다", "mean": "Жарить", "past": "볶았어요", "pres": "볶아요", "fut": "볶을 거예요" },
+        { "base": "넣다", "mean": "Класть", "past": "넣었어요", "pres": "넣어요", "fut": "넣을 거예요" },
+        { "base": "끓이다", "mean": "Кипятить", "past": "끓였어요", "pres": "끓여요", "fut": "끓일 거예요" }
+      ]
+    },
+    {
+      "title": "영화",
+      "text": "영화 '부산행'을 봤어요.\n이 영화는 연상호 감독의 좀비 영화예요.\n저는 원래 좀비 영화를 좋아하지 않아요.\n그런데 이 영화는 정말 재미있었어요.",
+      "vocab": [
+        { "base": "보다", "mean": "Смотреть", "past": "봤어요", "pres": "봐요", "fut": "볼 거예요" },
+        { "base": "만들다", "mean": "Создавать", "past": "만들었어요", "pres": "만들어요", "fut": "만들 거예요" }
+      ]
+    }
+  ];
+
+  const textsContainer = document.getElementById('texts-container');
+  const toolbar = document.getElementById('toolbar');
+  let activeColor = null;
+
+  // ── RENDER TEXTS ──
+  function renderTexts(texts) {
+    allTextsData = texts;
+    textsContainer.innerHTML = texts.map(item => {
+      const hasWords = item.vocab && item.vocab.length > 0;
+      return `
+        <div class="text-item">
+          <div class="text-header-row" onclick="toggleItemState(this.closest('.text-item'))">
+            <div class="text-title">${item.title}</div>
+            <div class="text-controls">
+              ${hasWords ? `<button class="word-study-btn" onclick="event.stopPropagation(); openWordStudy('${item.title}')">📚 Слова</button>` : ''}
+              <span class="toggle-icon">▼</span>
+            </div>
+          </div>
+          <div class="text-content"><div class="text-body">${item.text}</div></div>
+        </div>`;
+    }).join('');
+  }
+
+  function toggleItemState(item) {
+    item.classList.toggle('open');
+    const content = item.querySelector('.text-content');
+    content.classList.toggle('open');
+  }
+
+  // ── LOAD ──
+  fetch('/static/data/texts.json')
+    .then(res => { if (!res.ok) throw new Error(); return res.json(); })
+    .then(data => renderTexts(data))
+    .catch(() => renderTexts(textsFallback));
+
+  // ── WORD MODAL ──
+  const modalOverlay = document.getElementById('word-modal-overlay');
+
+  function openWordStudy(title) {
+    const textObj = allTextsData.find(t => t.title === title);
+    if (!textObj || !textObj.vocab || textObj.vocab.length === 0) {
+      alert('Для этого текста слова пока не добавлены.');
+      return;
+    }
+    currentWordList = textObj.vocab;
+    currentWordIndex = 0;
+    document.getElementById('word-study-title').textContent = title;
+    updateCardUI();
+    modalOverlay.style.display = 'flex';
+    trackExercise();
+  }
+
+  function closeWordModal() {
+    modalOverlay.style.display = 'none';
+    document.getElementById('card-forms').style.visibility = 'hidden';
+    document.getElementById('card-forms').style.opacity = '0';
+  }
+
+  modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) closeWordModal(); });
+
+  function updateCardUI() {
+    const word = currentWordList[currentWordIndex];
+    document.getElementById('card-base').textContent = word.base;
+    document.getElementById('card-meaning').textContent = word.mean;
+    document.getElementById('val-past').textContent = word.past || '—';
+    document.getElementById('val-pres').textContent = word.pres || '—';
+    document.getElementById('val-fut').textContent = word.fut  || '—';
+    const forms = document.getElementById('card-forms');
+    forms.style.visibility = 'hidden';
+    forms.style.opacity = '0';
+  }
+
+  function toggleCardForms() {
+    const forms = document.getElementById('card-forms');
+    const hidden = forms.style.visibility === 'hidden';
+    forms.style.visibility = hidden ? 'visible' : 'hidden';
+    forms.style.opacity = hidden ? '1' : '0';
+  }
+
+  function nextWord() {
+    if (!currentWordList.length) return;
+    currentWordIndex = (currentWordIndex + 1) % currentWordList.length;
+    updateCardUI();
+  }
+
+  function prevWord() {
+    if (!currentWordList.length) return;
+    currentWordIndex = (currentWordIndex - 1 + currentWordList.length) % currentWordList.length;
+    updateCardUI();
+  }
+
+  function speakCurrentWord() {
+    const word = currentWordList[currentWordIndex];
+    if (word) speakText(word.base);
+  }
+
+  function speakTense(tense) {
+    event.stopPropagation();
+    const word = currentWordList[currentWordIndex];
+    if (!word) return;
+    const text = tense === 'past' ? word.past : tense === 'pres' ? word.pres : word.fut;
+    if (text) speakText(text);
+  }
+
+  // ── HIGHLIGHTING ──
+  textsContainer.addEventListener('click', e => {
+    if (e.target.tagName === 'SPAN' && e.target.className.includes('highlight-')) {
+      const parent = e.target.parentNode;
+      parent.insertBefore(document.createTextNode(e.target.textContent), e.target);
+      parent.removeChild(e.target);
+      parent.normalize();
+    }
+  });
+
+  toolbar.addEventListener('click', e => {
+    if (!e.target.classList.contains('color-btn')) return;
+    const color = e.target.dataset.color;
+    if (activeColor === color) {
+      activeColor = null;
+      e.target.classList.remove('active');
+    } else {
+      activeColor = color;
+      document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+    }
+  });
+
+  textsContainer.addEventListener('mouseup', () => {
+    if (!activeColor) return;
+    const sel = window.getSelection();
+    if (sel.isCollapsed || !textsContainer.contains(sel.anchorNode)) return;
+    const range = sel.getRangeAt(0);
+    if (!range.toString().trim()) return;
+    try {
+      const span = document.createElement('span');
+      span.className = `highlight-${activeColor}`;
+      range.surroundContents(span);
+      sel.removeAllRanges();
+    } catch(e) {}
+  });
+</script>
+{% endblock %}

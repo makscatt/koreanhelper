@@ -1,0 +1,253 @@
+{% extends "trainer_base.html" %}
+{% block title %}Картинки — {{ student.name }}{% endblock %}
+
+{% block trainer_content %}
+<script>document.body.dataset.module = 'pictures';</script>
+
+<div class="trainer-header">
+  <button id="back-btn" class="trainer-back" onclick="handleBack()">← Назад</button>
+  <span class="trainer-title" id="page-title">Темы картинок</span>
+</div>
+
+<!-- MENU VIEW -->
+<div id="menu-view" class="pic-menu-grid"></div>
+
+<!-- LESSON VIEW -->
+<div id="lesson-view" class="hidden">
+  <div class="pic-layout-grid">
+
+    <!-- Левая: картинка с маркерами -->
+    <div class="pic-left-col">
+      <div class="pic-image-container" id="image-wrapper">
+        <img src="" alt="Lesson Image" class="pic-main-image" id="main-image">
+      </div>
+    </div>
+
+    <!-- Правая: словарь, диалог, вопросы -->
+    <div class="pic-sidebar">
+
+      <div class="pic-collapse-block open">
+        <div class="pic-collapse-header" onclick="toggleBlock(this)">
+          <span>📍 Словарь</span>
+          <span class="pic-collapse-arrow">▼</span>
+        </div>
+        <div class="pic-collapse-body">
+          <ul class="pic-vocab-list" id="vocab-list"></ul>
+        </div>
+      </div>
+
+      <div class="pic-collapse-block open">
+        <div class="pic-collapse-header" onclick="toggleBlock(this)">
+          <span>💬 Диалог</span>
+          <span class="pic-collapse-arrow">▼</span>
+        </div>
+        <div class="pic-collapse-body">
+          <div id="dialog-container"></div>
+        </div>
+      </div>
+
+      <div class="pic-collapse-block open">
+        <div class="pic-collapse-header" onclick="toggleBlock(this)">
+          <span>❓ Вопросы</span>
+          <span class="pic-collapse-arrow">▼</span>
+        </div>
+        <div class="pic-collapse-body">
+          <div id="qa-container"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block trainer_js %}
+<script>
+  const menuView    = document.getElementById('menu-view');
+  const lessonView  = document.getElementById('lesson-view');
+  const backBtn     = document.getElementById('back-btn');
+  const pageTitle   = document.getElementById('page-title');
+  const imageWrapper = document.getElementById('image-wrapper');
+  const mainImage   = document.getElementById('main-image');
+  const vocabList   = document.getElementById('vocab-list');
+  const dialogContainer = document.getElementById('dialog-container');
+  const qaContainer     = document.getElementById('qa-container');
+
+  let inLesson = false;
+
+  function handleBack() {
+    if (inLesson) closeLesson();
+    else window.location.href = "{{ url_for('trainer_menu', student_id=student.id) }}";
+  }
+
+  // ── LOAD DATA ──
+  fetch('/static/data/pictures.json')
+    .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+    .then(data => renderMenu(data))
+    .catch(err => {
+      menuView.innerHTML = '<p style="color:var(--error);padding:20px;">Ошибка загрузки данных</p>';
+    });
+
+  // ── MENU ──
+  function renderMenu(data) {
+    menuView.innerHTML = '';
+    data.forEach(lesson => {
+      const card = document.createElement('div');
+      card.className = 'pic-menu-card';
+      card.onclick = () => openLesson(lesson);
+      card.innerHTML = `
+        <img src="${lesson.image}" alt="${lesson.title}">
+        <div class="pic-menu-card-title">${lesson.title}</div>
+      `;
+      menuView.appendChild(card);
+    });
+  }
+
+  // ── OPEN / CLOSE LESSON ──
+  function openLesson(lessonData) {
+    inLesson = true;
+    menuView.classList.add('hidden');
+    lessonView.classList.remove('hidden');
+    pageTitle.textContent = lessonData.title;
+    backBtn.textContent = '← К списку тем';
+    renderLessonContent(lessonData);
+    trackExercise();
+  }
+
+  function closeLesson() {
+    inLesson = false;
+    lessonView.classList.add('hidden');
+    menuView.classList.remove('hidden');
+    pageTitle.textContent = 'Темы картинок';
+    backBtn.textContent = '← Назад';
+    window.speechSynthesis.cancel();
+  }
+
+  // ── RENDER LESSON ──
+  function renderLessonContent(data) {
+    mainImage.src = data.image;
+
+    // Очищаем старые маркеры
+    document.querySelectorAll('.pic-marker').forEach(m => m.remove());
+    vocabList.innerHTML = '';
+
+    // Маркеры + словарь
+    data.items.forEach(item => {
+      // Маркер
+      const marker = document.createElement('div');
+      marker.className = 'pic-marker';
+      marker.style.left = item.x + '%';
+      marker.style.top  = item.y + '%';
+      marker.textContent = item.id;
+      marker.innerHTML += `<div class="pic-tooltip">${item.kor}<br><span style="font-size:0.8em;opacity:0.7">${item.rus}</span></div>`;
+      marker.onmouseenter = () => highlightListItem(item.id, true);
+      marker.onmouseleave = () => highlightListItem(item.id, false);
+      marker.onclick = e => { e.stopPropagation(); speakText(item.kor); };
+      imageWrapper.appendChild(marker);
+
+      // Словарь
+      const li = document.createElement('li');
+      li.className = 'pic-vocab-item';
+      li.id = `vocab-${item.id}`;
+      li.innerHTML = `
+        <div>
+          <span class="pic-vocab-id">${item.id}</span>
+          <span class="pic-vocab-kor">${item.kor}</span>
+        </div>
+        <span class="pic-vocab-rus">${item.rus}</span>
+      `;
+      li.onmouseenter = () => highlightMarker(item.id, true);
+      li.onmouseleave = () => highlightMarker(item.id, false);
+      li.onclick = () => speakText(item.kor);
+      vocabList.appendChild(li);
+    });
+
+    // Диалог
+    dialogContainer.innerHTML = '';
+    if (data.dialog && data.dialog.length > 0) {
+      data.dialog.forEach(row => {
+        const div = document.createElement('div');
+        div.className = 'pic-dialog-row';
+        const korText = row.kor.replace(/'/g, "\\'");
+        div.innerHTML = `
+          <div class="pic-dialog-role">${row.role}:</div>
+          <div class="pic-dialog-line">
+            <span class="pic-speaker" onclick="speakText('${korText}')">🔊</span>
+            <div>
+              ${row.kor}
+              <span class="pic-dialog-rus">${row.rus}</span>
+            </div>
+          </div>
+        `;
+        dialogContainer.appendChild(div);
+      });
+    } else {
+      dialogContainer.innerHTML = '<p style="color:var(--text-tertiary);font-size:13px;">Диалог отсутствует</p>';
+    }
+
+    // Вопросы
+    qaContainer.innerHTML = '';
+    if (data.questions && data.questions.length > 0) {
+      data.questions.forEach(q => {
+        const qText = q.q.replace(/'/g, "\\'");
+        const aText = q.a.replace(/'/g, "\\'");
+        const item = document.createElement('div');
+        item.className = 'pic-qa-item';
+        item.innerHTML = `
+          <div class="pic-qa-question" onclick="this.parentNode.classList.toggle('open')">
+            <div style="display:flex;align-items:center;gap:8px;flex:1;">
+              <span class="pic-speaker" onclick="event.stopPropagation();speakText('${qText}')">🔊</span>
+              <span>${q.q}</span>
+            </div>
+            <span class="pic-qa-arrow">▼</span>
+          </div>
+          <div class="pic-qa-answer">
+            <div style="display:flex;align-items:flex-start;gap:8px;font-weight:600;color:var(--primary);margin-bottom:4px;">
+              <span class="pic-speaker" onclick="speakText('${aText}')">🔊</span>
+              <span>${q.a}</span>
+            </div>
+            <div style="font-size:12px;color:var(--text-tertiary);padding-left:28px;">${q.rus}</div>
+          </div>
+        `;
+        qaContainer.appendChild(item);
+      });
+    } else {
+      qaContainer.innerHTML = '<p style="color:var(--text-tertiary);font-size:13px;">Вопросы отсутствуют</p>';
+    }
+
+    // Admin tool: координаты
+    if (localStorage.getItem('admin') === 'true') {
+      const coordsDiv = document.createElement('div');
+      coordsDiv.className = 'pic-coords';
+      imageWrapper.appendChild(coordsDiv);
+      imageWrapper.addEventListener('mousemove', e => {
+        const rect = imageWrapper.getBoundingClientRect();
+        const xP = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
+        const yP = ((e.clientY - rect.top)  / rect.height * 100).toFixed(1);
+        coordsDiv.style.display = 'block';
+        coordsDiv.textContent = `X: ${xP}% | Y: ${yP}%`;
+      });
+      imageWrapper.addEventListener('mouseleave', () => coordsDiv.style.display = 'none');
+    }
+  }
+
+  function toggleBlock(header) {
+    const block = header.closest('.pic-collapse-block');
+    block.classList.toggle('open');
+  }
+  function highlightListItem(id, active) {
+    const li = document.getElementById(`vocab-${id}`);
+    if (li) li.style.background = active ? 'var(--primary-container)' : '';
+  }
+
+  function highlightMarker(id, active) {
+    document.querySelectorAll('.pic-marker').forEach(m => {
+      if (m.childNodes[0].nodeValue && m.childNodes[0].nodeValue.trim() == id) {
+        m.style.transform = active ? 'translate(-50%,-50%) scale(1.3)' : 'translate(-50%,-50%)';
+        m.style.zIndex    = active ? 50 : 10;
+        m.style.background = active ? 'var(--primary-hover)' : 'var(--primary)';
+      }
+    });
+  }
+</script>
+{% endblock %}

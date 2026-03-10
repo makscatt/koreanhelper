@@ -1,0 +1,486 @@
+{% extends "trainer_base.html" %}
+{% block title %}Квиз — {{ student.name }}{% endblock %}
+
+{% block trainer_content %}
+<div class="trainer-header">
+  
+  <h1 class="trainer-title">Квиз по грамматике</h1>
+</div>
+
+<div class="quiz-wrap">
+
+  <!-- ── SETUP SCREEN ── -->
+  <div class="quiz-screen active" id="screen-setup">
+    <div class="quiz-setup-card">
+      <div class="quiz-setup-group">
+        <div class="quiz-setup-label">Уровень TOPIK</div>
+        <div class="quiz-level-grid" id="level-grid"></div>
+      </div>
+      <div class="quiz-setup-group">
+        <div class="quiz-setup-label">Типы вопросов</div>
+        <div class="quiz-type-list">
+          <label class="quiz-type-option active" data-type="choice">
+            <div class="quiz-type-checkbox"></div>
+            <div class="quiz-type-info">
+              <div class="quiz-type-name">Множественный выбор</div>
+              <div class="quiz-type-desc">Выберите правильную форму из 4 вариантов</div>
+            </div>
+            <span class="quiz-type-badge" style="background:var(--primary-container);color:var(--primary)">A B C D</span>
+          </label>
+          <label class="quiz-type-option active" data-type="input">
+            <div class="quiz-type-checkbox"></div>
+            <div class="quiz-type-info">
+              <div class="quiz-type-name">Открытый ввод</div>
+              <div class="quiz-type-desc">Напишите форму слова самостоятельно</div>
+            </div>
+            <span class="quiz-type-badge" style="background:var(--success-bg);color:var(--success)">Ввод</span>
+          </label>
+          <label class="quiz-type-option active" data-type="translate_choice">
+            <div class="quiz-type-checkbox"></div>
+            <div class="quiz-type-info">
+              <div class="quiz-type-name">Перевод → выбор</div>
+              <div class="quiz-type-desc">Выберите правильный перевод русского предложения</div>
+            </div>
+            <span class="quiz-type-badge" style="background:#FEF3C7;color:#D97706">RU→KO</span>
+          </label>
+          <label class="quiz-type-option active" data-type="cloze_choice">
+            <div class="quiz-type-checkbox"></div>
+            <div class="quiz-type-info">
+              <div class="quiz-type-name">Подставь слово</div>
+              <div class="quiz-type-desc">Выберите пропущенное слово в предложении</div>
+            </div>
+            <span class="quiz-type-badge" style="background:var(--bg-surface-active);color:var(--text-secondary)">Cloze</span>
+          </label>
+        </div>
+      </div>
+      <div class="quiz-setup-group">
+        <div class="quiz-setup-label">Количество вопросов</div>
+        <div class="quiz-count-row">
+          <button class="quiz-count-btn" id="count-minus">−</button>
+          <div class="quiz-count-display" id="count-display">10</div>
+          <button class="quiz-count-btn" id="count-plus">+</button>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="start-btn" style="width:100%;height:44px;font-size:15px;">Начать тест →</button>
+    </div>
+  </div>
+
+  <!-- ── QUIZ SCREEN ── -->
+  <div class="quiz-screen" id="screen-quiz">
+    <div class="quiz-topbar">
+      <button class="quiz-exit-btn" id="quiz-exit" title="Выйти">✕</button>
+      <div class="quiz-progress-wrap">
+        <div class="quiz-progress-track">
+          <div class="quiz-progress-fill" id="progress-fill" style="width:0%"></div>
+        </div>
+        <div class="quiz-progress-label" id="progress-label">Вопрос 1 из 10</div>
+      </div>
+      <div class="quiz-stats-badges">
+        <div class="quiz-stat-badge correct">✓ <span id="stat-correct">0</span></div>
+        <div class="quiz-stat-badge wrong">✗ <span id="stat-wrong">0</span></div>
+      </div>
+    </div>
+    <div class="quiz-body">
+      <div class="quiz-question-card" id="question-card"></div>
+    </div>
+  </div>
+
+  <!-- ── RESULT SCREEN ── -->
+  <div class="quiz-screen" id="screen-result">
+    <div class="quiz-result-card">
+      <div class="quiz-result-emoji" id="result-emoji">🎉</div>
+      <div>
+        <div class="quiz-result-title" id="result-title">Отлично!</div>
+        <div class="quiz-result-subtitle" id="result-subtitle">Тест завершён</div>
+      </div>
+      <div class="quiz-score-ring-wrap">
+        <svg class="quiz-score-ring" viewBox="0 0 130 130">
+          <circle class="quiz-ring-bg" cx="65" cy="65" r="56"/>
+          <circle class="quiz-ring-fill" id="ring-fill" cx="65" cy="65" r="56"
+            stroke-dasharray="351.86" stroke-dashoffset="351.86"/>
+        </svg>
+        <div class="quiz-score-text">
+          <div class="quiz-score-pct" id="score-pct">0%</div>
+          <div class="quiz-score-pct-label">верно</div>
+        </div>
+      </div>
+      <div class="quiz-result-stats">
+        <div class="quiz-result-stat">
+          <div class="quiz-result-stat-num correct" id="res-correct">0</div>
+          <div class="quiz-result-stat-label">Верно</div>
+        </div>
+        <div class="quiz-result-stat">
+          <div class="quiz-result-stat-num wrong" id="res-wrong">0</div>
+          <div class="quiz-result-stat-label">Неверно</div>
+        </div>
+        <div class="quiz-result-stat">
+          <div class="quiz-result-stat-num total" id="res-total">0</div>
+          <div class="quiz-result-stat-label">Всего</div>
+        </div>
+      </div>
+      <div class="quiz-result-actions">
+        <button class="btn btn-primary" id="btn-retry" style="width:100%;height:44px;">Пройти ещё раз</button>
+        <a href="{{ url_for('trainer_menu', student_id=student.id) }}" class="btn" style="width:100%;height:44px;display:flex;align-items:center;justify-content:center;">← В меню</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Feedback flash -->
+<div class="quiz-feedback-flash" id="feedback-flash"></div>
+{% endblock %}
+
+{% block trainer_js %}
+<script>
+document.body.dataset.module = 'quiz';
+
+let grammarData = {};
+let questions = [];
+let currentQ = 0;
+let stats = { correct: 0, wrong: 0 };
+let selectedLevel = 'topik1';
+let selectedTypes = new Set(['choice', 'input', 'translate_choice', 'cloze_choice']);
+let questionCount = 10;
+let answered = false;
+
+// Load grammar data
+fetch('/static/data/grammar.json')
+  .then(r => r.json())
+  .then(data => {
+    grammarData = data;
+    buildLevelGrid();
+  })
+  .catch(() => {
+    document.querySelector('.quiz-setup-card').innerHTML =
+      '<p style="color:var(--error);text-align:center">Ошибка: не удалось загрузить grammar.json.</p>';
+  });
+
+function buildLevelGrid() {
+  const grid = document.getElementById('level-grid');
+  grid.innerHTML = '';
+  Object.keys(grammarData).forEach(level => {
+    const items = grammarData[level].filter(i => i.id);
+    const btn = document.createElement('button');
+    btn.className = 'quiz-level-btn' + (level === selectedLevel ? ' active' : '');
+    btn.innerHTML = `${level.toUpperCase().replace('TOPIK','TOPIK ')}<br><span style="font-size:10px;font-weight:400;opacity:0.6">${items.length} правил</span>`;
+    btn.disabled = items.length === 0;
+    btn.style.opacity = items.length === 0 ? '0.35' : '1';
+    btn.onclick = () => {
+      selectedLevel = level;
+      grid.querySelectorAll('.quiz-level-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      updateStartBtn();
+    };
+    grid.appendChild(btn);
+  });
+  updateStartBtn();
+}
+
+// Type toggles
+document.querySelectorAll('.quiz-type-option').forEach(opt => {
+  opt.addEventListener('click', () => {
+    const type = opt.dataset.type;
+    if (selectedTypes.has(type) && selectedTypes.size === 1) return;
+    if (selectedTypes.has(type)) {
+      selectedTypes.delete(type);
+      opt.classList.remove('active');
+    } else {
+      selectedTypes.add(type);
+      opt.classList.add('active');
+    }
+    updateStartBtn();
+  });
+});
+
+document.getElementById('count-minus').onclick = () => { if (questionCount > 5) { questionCount -= 5; updateCount(); } };
+document.getElementById('count-plus').onclick  = () => { if (questionCount < 30) { questionCount += 5; updateCount(); } };
+function updateCount() { document.getElementById('count-display').textContent = questionCount; }
+
+function updateStartBtn() {
+  const items = (grammarData[selectedLevel] || []).filter(i => i.id);
+  document.getElementById('start-btn').disabled = items.length === 0 || selectedTypes.size === 0;
+}
+
+// ── QUESTION GENERATION ──
+function generateQuestions() {
+  const items = (grammarData[selectedLevel] || []).filter(i => i.id && i.examples && i.examples.length > 0);
+  if (!items.length) return [];
+  const allExamples = [];
+  items.forEach(item => {
+    item.examples.forEach(ex => {
+      ex.sentences.forEach((sent, i) => {
+        allExamples.push({ item, ex, sent, translation: ex.translations[i] });
+      });
+    });
+  });
+  const typesArr = [...selectedTypes];
+  const shuffled = shuffle([...allExamples]);
+  const pool = shuffled.slice(0, Math.min(questionCount * 3, shuffled.length));
+  const qs = [];
+  for (let i = 0; i < Math.min(questionCount, pool.length); i++) {
+    const q = buildQuestion(typesArr[i % typesArr.length], pool[i], items);
+    if (q) qs.push(q);
+  }
+  return shuffle(qs).slice(0, questionCount);
+}
+
+function buildQuestion(type, entry, allItems) {
+  const { item, ex, sent, translation } = entry;
+
+  if (type === 'choice') {
+    const correct = ex.applied;
+    const distractors = getDistractors(correct, allItems, ex).slice(0, 3);
+    if (distractors.length < 3) return null;
+    return { type, grammarTitle: item.title, formula: item.formula,
+      prompt: `К слову <strong>${ex.base}</strong> (${ex.type}) нужно присоединить грамматику.<br>Какая форма правильная?`,
+      options: shuffle([correct, ...distractors]), correct };
+  }
+  if (type === 'input') {
+    const blanked = sent.replace(ex.applied, '___');
+    if (blanked === sent) return null;
+    return { type, grammarTitle: item.title, formula: item.formula,
+      prompt: 'Вставьте правильную форму в предложение:',
+      sentence: blanked, translation, correct: ex.applied, hint: `Базовое слово: ${ex.base}` };
+  }
+  if (type === 'translate_choice') {
+    const correct = sent;
+    const allSents = [];
+    allItems.forEach(it => it.examples.forEach(e => e.sentences.forEach(s => { if (s !== correct) allSents.push(s); })));
+    const distractors = shuffle([...new Set(allSents)]).slice(0, 3);
+    if (distractors.length < 3) return null;
+    return { type, grammarTitle: item.title, formula: item.formula,
+      prompt: 'Выберите правильный перевод:',
+      russian: translation, options: shuffle([correct, ...distractors]), correct };
+  }
+  if (type === 'cloze_choice') {
+    const blanked = sent.replace(ex.applied, '______');
+    if (blanked === sent) return null;
+    const correct = ex.applied;
+    const distractors = getDistractors(correct, allItems, ex).slice(0, 3);
+    if (distractors.length < 3) return null;
+    return { type, grammarTitle: item.title, formula: item.formula,
+      prompt: 'Выберите слово, которое подходит в пропуск:',
+      sentence: blanked, translation, options: shuffle([correct, ...distractors]), correct };
+  }
+}
+
+function getDistractors(correct, allItems) {
+  const pool = [];
+  allItems.forEach(item => item.examples.forEach(ex => { if (ex.applied !== correct && ex.applied) pool.push(ex.applied); }));
+  return shuffle([...new Set(pool)]).slice(0, 3);
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ── QUIZ FLOW ──
+document.getElementById('start-btn').onclick = startQuiz;
+document.getElementById('quiz-exit').onclick = () => showScreen('setup');
+document.getElementById('btn-retry').onclick = startQuiz;
+
+function showScreen(name) {
+  document.querySelectorAll('.quiz-screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(`screen-${name}`).classList.add('active');
+}
+
+function startQuiz() {
+  questions = generateQuestions();
+  if (!questions.length) { alert('Недостаточно данных для теста.'); return; }
+  currentQ = 0;
+  stats = { correct: 0, wrong: 0 };
+  updateStats();
+  showScreen('quiz');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  if (currentQ >= questions.length) { showResults(); return; }
+  answered = false;
+  const q = questions[currentQ];
+  const card = document.getElementById('question-card');
+  const pct = (currentQ / questions.length) * 100;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = `Вопрос ${currentQ + 1} из ${questions.length}`;
+
+  trackExercise();
+
+  const typeLabels = {
+    choice:          { icon: '🔤', text: 'Выбор варианта' },
+    input:           { icon: '✏️', text: 'Открытый ввод' },
+    translate_choice:{ icon: '🌐', text: 'Перевод → выбор' },
+    cloze_choice:    { icon: '🧩', text: 'Подставь слово' }
+  };
+  const tl = typeLabels[q.type];
+  const letters = ['A', 'B', 'C', 'D'];
+
+  let bodyHTML = '';
+
+  if (q.type === 'choice') {
+    bodyHTML = `
+      <div class="quiz-options-grid">
+        ${q.options.map((opt, i) => `
+          <button class="quiz-option-btn" data-value="${opt}" onclick="selectOption(this,'${opt}')">
+            <span class="quiz-option-letter">${letters[i]}</span>${opt}
+          </button>`).join('')}
+      </div>
+      <div class="quiz-answer-reveal" id="answer-reveal"></div>
+      <div class="quiz-actions">
+        <button class="btn btn-primary" id="btn-check" disabled onclick="checkAnswer()">Проверить</button>
+        <button class="btn quiz-btn-next" id="btn-next" onclick="nextQuestion()">Далее →</button>
+      </div>`;
+  }
+
+  if (q.type === 'input') {
+    bodyHTML = `
+      <div class="quiz-korean">${q.sentence}</div>
+      <div class="quiz-open-wrap">
+        <input class="quiz-open-input" id="open-input" placeholder="Введите форму на корейском..." autocomplete="off" autocorrect="off" spellcheck="false">
+        <div class="quiz-open-hint">${q.hint}</div>
+      </div>
+      <div class="quiz-answer-reveal" id="answer-reveal"></div>
+      <div class="quiz-actions">
+        <button class="btn btn-primary" id="btn-check" disabled onclick="checkAnswer()">Проверить</button>
+        <button class="btn quiz-btn-next" id="btn-next" onclick="nextQuestion()">Далее →</button>
+      </div>`;
+  }
+
+  if (q.type === 'translate_choice') {
+    bodyHTML = `
+      <div class="quiz-korean" style="font-size:1.1em;font-weight:600;">«${q.russian}»</div>
+      <div class="quiz-options-grid quiz-options-single">
+        ${q.options.map((opt, i) => `
+          <button class="quiz-option-btn" data-value="${opt.replace(/"/g,'&quot;')}" onclick="selectOption(this,this.dataset.value)">
+            <span class="quiz-option-letter">${letters[i]}</span>${opt}
+          </button>`).join('')}
+      </div>
+      <div class="quiz-answer-reveal" id="answer-reveal"></div>
+      <div class="quiz-actions">
+        <button class="btn btn-primary" id="btn-check" disabled onclick="checkAnswer()">Проверить</button>
+        <button class="btn quiz-btn-next" id="btn-next" onclick="nextQuestion()">Далее →</button>
+      </div>`;
+  }
+
+  if (q.type === 'cloze_choice') {
+    bodyHTML = `
+      <div class="quiz-korean">${q.sentence}</div>
+      <div class="quiz-cloze-hint">💡 ${q.translation}</div>
+      <div class="quiz-options-grid">
+        ${q.options.map((opt, i) => `
+          <button class="quiz-option-btn" data-value="${opt.replace(/"/g,'&quot;')}" onclick="selectOption(this,this.dataset.value)">
+            <span class="quiz-option-letter">${letters[i]}</span>${opt}
+          </button>`).join('')}
+      </div>
+      <div class="quiz-answer-reveal" id="answer-reveal"></div>
+      <div class="quiz-actions">
+        <button class="btn btn-primary" id="btn-check" disabled onclick="checkAnswer()">Проверить</button>
+        <button class="btn quiz-btn-next" id="btn-next" onclick="nextQuestion()">Далее →</button>
+      </div>`;
+  }
+
+  card.innerHTML = `
+    <div class="quiz-type-label"><span>${tl.icon}</span> ${tl.text}</div>
+    <div class="quiz-grammar-ref">📌 <strong>${q.grammarTitle}</strong> &nbsp;·&nbsp; ${q.formula}</div>
+    <div class="quiz-prompt">${q.prompt}</div>
+    ${bodyHTML}
+  `;
+
+  if (q.type === 'input') {
+    const inp = document.getElementById('open-input');
+    inp.addEventListener('input', () => { document.getElementById('btn-check').disabled = !inp.value.trim(); });
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !document.getElementById('btn-check').disabled && !answered) checkAnswer(); });
+    inp.focus();
+  }
+}
+
+function selectOption(btn, value) {
+  if (answered) return;
+  document.querySelectorAll('.quiz-option-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  document.getElementById('btn-check').disabled = false;
+}
+
+function checkAnswer() {
+  if (answered) return;
+  answered = true;
+  const q = questions[currentQ];
+  let isCorrect = false;
+
+  if (q.type === 'choice' || q.type === 'translate_choice' || q.type === 'cloze_choice') {
+    const sel = document.querySelector('.quiz-option-btn.selected');
+    const userAnswer = sel ? sel.dataset.value : '';
+    isCorrect = userAnswer === q.correct;
+    document.querySelectorAll('.quiz-option-btn').forEach(btn => {
+      btn.disabled = true;
+      if (btn.dataset.value === q.correct) btn.classList.add('correct');
+      else if (btn.classList.contains('selected')) btn.classList.add('wrong');
+    });
+  }
+
+  if (q.type === 'input') {
+    const inp = document.getElementById('open-input');
+    isCorrect = inp.value.trim() === q.correct;
+    inp.disabled = true;
+    inp.classList.add(isCorrect ? 'correct' : 'wrong');
+  }
+
+  if (isCorrect) stats.correct++; else stats.wrong++;
+  updateStats();
+
+  const flash = document.getElementById('feedback-flash');
+  flash.textContent = isCorrect ? '✅' : '❌';
+  flash.classList.add('show');
+  setTimeout(() => flash.classList.remove('show'), 600);
+
+  if (!isCorrect) {
+    const reveal = document.getElementById('answer-reveal');
+    if (reveal) {
+      reveal.classList.add('visible');
+      reveal.innerHTML = `<div class="quiz-reveal-label">Правильный ответ:</div><div class="quiz-reveal-text">${q.correct}</div>`;
+    }
+  }
+
+  document.getElementById('btn-check').style.display = 'none';
+  document.getElementById('btn-next').classList.add('visible');
+}
+
+function nextQuestion() { currentQ++; renderQuestion(); }
+
+function updateStats() {
+  document.getElementById('stat-correct').textContent = stats.correct;
+  document.getElementById('stat-wrong').textContent = stats.wrong;
+}
+
+function showResults() {
+  const total = stats.correct + stats.wrong;
+  const pct = total > 0 ? Math.round((stats.correct / total) * 100) : 0;
+  document.getElementById('progress-fill').style.width = '100%';
+
+  let emoji, title, subtitle;
+  if (pct >= 90)      { emoji='🏆'; title='Превосходно!';   subtitle='Ты настоящий мастер грамматики'; }
+  else if (pct >= 70) { emoji='🎉'; title='Отлично!';       subtitle='Грамматика поддаётся тебе хорошо'; }
+  else if (pct >= 50) { emoji='💪'; title='Хорошо!';        subtitle='Ещё немного практики — и будет отлично'; }
+  else                { emoji='📚'; title='Нужна практика'; subtitle='Повтори материал и попробуй снова'; }
+
+  document.getElementById('result-emoji').textContent = emoji;
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-subtitle').textContent = subtitle;
+  document.getElementById('score-pct').textContent = pct + '%';
+  document.getElementById('res-correct').textContent = stats.correct;
+  document.getElementById('res-wrong').textContent = stats.wrong;
+  document.getElementById('res-total').textContent = total;
+
+  const ringColor = pct >= 70 ? 'var(--success)' : pct >= 50 ? '#F59E0B' : 'var(--error)';
+  const ring = document.getElementById('ring-fill');
+  ring.style.stroke = ringColor;
+  setTimeout(() => { ring.style.strokeDashoffset = 351.86 * (1 - pct / 100); }, 100);
+
+  showScreen('result');
+}
+</script>
+{% endblock %}

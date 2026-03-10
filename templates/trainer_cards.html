@@ -1,0 +1,328 @@
+{% extends "trainer_base.html" %}
+{% block title %}Ситуация-Реакция — {{ student.name }}{% endblock %}
+
+{% block trainer_content %}
+<script>document.body.dataset.module = 'cards';</script>
+
+<div class="trainer-layout">
+
+  <!-- SIDEBAR -->
+  <div class="trainer-sidebar">
+    <div class="trainer-sidebar-item active" id="tab-reference">📖 Справочник</div>
+    <div class="trainer-sidebar-item" id="tab-cards">🎴 Тренировка</div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="trainer-content trainer-content--full">
+
+    <div class="trainer-page-header">
+      <span class="trainer-page-title">Ситуация-Реакция</span>
+      
+    </div>
+
+    <!-- REFERENCE -->
+    <div id="view-reference" class="section-block">
+      <div class="section-block-header"><h2>Справочник</h2></div>
+      <div class="reference-layout">
+        <div class="list-col">
+          <ul class="simple-list" id="situations-ul"></ul>
+        </div>
+        <div class="details-col" id="reactions-container">
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-tertiary);">
+            <span style="font-size:2.5rem;">👈</span>
+            <p style="margin-top:8px;font-size:14px;">Выберите тему слева</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARDS -->
+    <div id="view-cards" class="section-block hidden">
+
+      <!-- SETUP -->
+      <div id="cards-setup" style="display:flex;flex-direction:column;height:100%;">
+        <div class="section-block-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <h2>Выбор тем</h2>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary);cursor:pointer;">
+            <input type="checkbox" id="reverse-mode-toggle"> KR → RU
+          </label>
+        </div>
+        <div class="scrollable-area" id="selection-container"></div>
+        <div style="padding:16px;border-top:1px solid var(--border-color);text-align:center;flex-shrink:0;">
+          <button class="btn btn-primary" id="start-training-btn" style="width:100%;max-width:320px;">Начать тренировку</button>
+        </div>
+      </div>
+
+      <!-- DISPLAY -->
+      <div id="cards-display" class="hidden" style="display:flex;flex-direction:column;height:100%;">
+        <div class="section-block-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-weight:500;color:var(--primary);">Тренировка</span>
+          <button class="btn" id="end-training-btn" style="padding:6px 16px;font-size:13px;">Завершить</button>
+        </div>
+        <div class="card-frame">
+          <div class="card-content-wrapper">
+            <div class="card-icon" id="card-icon">❓</div>
+            <div class="card-text" id="card-question">Загрузка...</div>
+            <div class="answer-container" id="card-answer-container">
+              <span class="answer-text" id="card-answer-text"></span>
+              <button class="btn" id="btn-speak-answer" style="padding:6px 12px;">🔊</button>
+            </div>
+          </div>
+        </div>
+        <div style="padding:16px;border-top:1px solid var(--border-color);display:flex;justify-content:center;flex-shrink:0;">
+          <div class="btn-row">
+            <button class="btn btn-warning hidden" id="btn-hard">Сложно</button>
+            <button class="btn btn-success" id="btn-correct">✓ Знаю</button>
+            <button class="btn btn-primary" id="btn-show">👁 Показать</button>
+            <button class="btn hidden" id="btn-next">Дальше →</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block trainer_js %}
+<script>
+  let situationsData = {}, trainingSet = [], currentCardIndex = 0;
+  let isWaiting = false, isReverseMode = false;
+
+  const tabReference       = document.getElementById('tab-reference');
+  const tabCards           = document.getElementById('tab-cards');
+  const viewReference      = document.getElementById('view-reference');
+  const viewCards          = document.getElementById('view-cards');
+  const situationsUl       = document.getElementById('situations-ul');
+  const reactionsContainer = document.getElementById('reactions-container');
+  const cardsSetup         = document.getElementById('cards-setup');
+  const cardsDisplay       = document.getElementById('cards-display');
+  const selectionContainer = document.getElementById('selection-container');
+  const startTrainingBtn   = document.getElementById('start-training-btn');
+  const endTrainingBtn     = document.getElementById('end-training-btn');
+  const reverseToggle      = document.getElementById('reverse-mode-toggle');
+  const cardIcon           = document.getElementById('card-icon');
+  const cardQuestion       = document.getElementById('card-question');
+  const cardAnswerContainer= document.getElementById('card-answer-container');
+  const cardAnswerText     = document.getElementById('card-answer-text');
+  const btnSpeakAnswer     = document.getElementById('btn-speak-answer');
+  const btnCorrect         = document.getElementById('btn-correct');
+  const btnShow            = document.getElementById('btn-show');
+  const btnNext            = document.getElementById('btn-next');
+  const btnHard            = document.getElementById('btn-hard');
+
+  // LOAD
+  fetch('/static/data/cards.json')
+    .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+    .then(data => { situationsData = data; initReferenceView(); initCardsView(); })
+    .catch(() => {
+      reactionsContainer.innerHTML = '<p style="color:var(--error);padding:20px;text-align:center;">Ошибка загрузки данных</p>';
+    });
+
+  // TABS
+  tabReference.addEventListener('click', () => {
+    viewReference.classList.remove('hidden');
+    viewCards.classList.add('hidden');
+    tabReference.classList.add('active');
+    tabCards.classList.remove('active');
+  });
+  tabCards.addEventListener('click', () => {
+    viewReference.classList.add('hidden');
+    viewCards.classList.remove('hidden');
+    tabReference.classList.remove('active');
+    tabCards.classList.add('active');
+  });
+
+  // REFERENCE
+  function initReferenceView() {
+    situationsUl.innerHTML = '';
+    Object.keys(situationsData).forEach(key => {
+      const li = document.createElement('li');
+      li.textContent = `${situationsData[key].icon || ''} ${situationsData[key].situation}`;
+      li.onclick = () => {
+        document.querySelectorAll('#situations-ul li').forEach(el => el.classList.remove('active'));
+        li.classList.add('active');
+        showReactions(key);
+      };
+      situationsUl.appendChild(li);
+    });
+  }
+
+  function showReactions(key) {
+    const d = situationsData[key];
+    let html = `<h3 style="margin:0 0 16px;font-size:16px;font-weight:500;">${d.icon || ''} ${d.situation}</h3><div style="display:flex;flex-direction:column;gap:10px;">`;
+    d.reactions.forEach(r => {
+      html += `<div style="padding:12px 16px;background:var(--bg-app);border-radius:var(--radius-md);border-left:3px solid var(--primary);">
+        <div style="font-size:15px;font-weight:500;color:var(--text-primary);">${r.phrase}</div>
+        <div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">${r.comment}</div>
+      </div>`;
+    });
+    html += '</div>';
+    reactionsContainer.innerHTML = html;
+  }
+
+  // CARDS SETUP
+  function initCardsView() {
+    selectionContainer.innerHTML = '';
+    Object.keys(situationsData).forEach(key => {
+      const total = situationsData[key].reactions.length;
+      const group  = document.createElement('div'); group.className = 'situation-group';
+      const header = document.createElement('div'); header.className = 'group-header';
+
+      const mainCheck = document.createElement('input');
+      mainCheck.type = 'checkbox'; mainCheck.id = `grp-${key}`;
+      mainCheck.onclick = e => {
+        e.stopPropagation();
+        document.querySelectorAll(`.chk-${key}`).forEach(c => c.checked = e.target.checked);
+        updateBadge(key, total);
+      };
+
+      const title = document.createElement('div'); title.className = 'header-title';
+      title.innerHTML = `${situationsData[key].icon || ''} ${situationsData[key].situation} <span class="group-badge" id="badge-${key}">0/${total}</span>`;
+
+      const arrow = document.createElement('span');
+      arrow.textContent = '▼'; arrow.style.cssText = 'font-size:10px;color:var(--text-tertiary);';
+
+      header.appendChild(mainCheck);
+      header.appendChild(title);
+      header.appendChild(arrow);
+
+      const content = document.createElement('div'); content.className = 'group-content';
+      header.onclick = e => { if (e.target !== mainCheck) content.classList.toggle('open'); };
+
+      situationsData[key].reactions.forEach((r, idx) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'margin:8px 0;display:flex;align-items:center;gap:10px;';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox'; cb.className = `chk-${key}`;
+        cb.dataset.key = key; cb.dataset.idx = idx;
+        cb.onchange = () => updateBadge(key, total);
+        const lbl = document.createElement('label');
+        lbl.style.cssText = 'cursor:pointer;font-size:13px;color:var(--text-secondary);';
+        lbl.textContent = r.comment;
+        lbl.onclick = () => { cb.checked = !cb.checked; updateBadge(key, total); };
+        row.appendChild(cb); row.appendChild(lbl);
+        content.appendChild(row);
+      });
+
+      group.appendChild(header); group.appendChild(content);
+      selectionContainer.appendChild(group);
+    });
+  }
+
+  function updateBadge(key, total) {
+    const checked = document.querySelectorAll(`.chk-${key}:checked`).length;
+    document.getElementById(`badge-${key}`).textContent = `${checked}/${total}`;
+    const main = document.getElementById(`grp-${key}`);
+    main.checked = checked === total;
+    main.indeterminate = checked > 0 && checked < total;
+  }
+
+  // TRAINING
+  startTrainingBtn.addEventListener('click', () => {
+    trainingSet = [];
+    isReverseMode = reverseToggle.checked;
+    document.querySelectorAll('input[type="checkbox"][data-key]:checked').forEach(cb => {
+      const k = cb.dataset.key, i = parseInt(cb.dataset.idx);
+      trainingSet.push({ ...situationsData[k].reactions[i], icon: situationsData[k].icon });
+    });
+    if (!trainingSet.length) { alert('Выберите хотя бы одну тему!'); return; }
+    trainingSet.sort(() => Math.random() - 0.5);
+    currentCardIndex = 0;
+    cardsSetup.style.display = 'none';
+    cardsDisplay.classList.remove('hidden');
+    cardsDisplay.style.display = 'flex';
+    showCard();
+    trackExercise();
+  });
+
+  endTrainingBtn.addEventListener('click', () => {
+    cardsDisplay.classList.add('hidden');
+    cardsDisplay.style.display = '';
+    cardsSetup.style.display = 'flex';
+  });
+
+  function showCard() {
+    const item = trainingSet[currentCardIndex];
+    cardIcon.textContent = item.icon || '❓';
+    if (!isReverseMode) {
+      cardQuestion.textContent = item.comment;
+      cardAnswerText.textContent = item.phrase;
+      btnSpeakAnswer.onclick = () => speakText(item.phrase);
+    } else {
+      cardQuestion.textContent = item.phrase;
+      cardAnswerText.textContent = item.comment;
+      btnSpeakAnswer.onclick = () => speakText(item.phrase);
+    }
+    cardAnswerContainer.classList.remove('visible');
+    btnCorrect.classList.remove('hidden');
+    btnShow.classList.remove('hidden');
+    btnNext.classList.add('hidden');
+    btnHard.classList.add('hidden');
+    isWaiting = false;
+  }
+
+  function reveal() {
+    cardAnswerContainer.classList.add('visible');
+    btnCorrect.classList.add('hidden');
+    btnShow.classList.add('hidden');
+    btnNext.classList.remove('hidden');
+    btnHard.classList.remove('hidden');
+    if (!isReverseMode) speakText(trainingSet[currentCardIndex].phrase);
+  }
+
+  btnShow.addEventListener('click', reveal);
+  btnCorrect.addEventListener('click', () => {
+    if (isWaiting) return;
+    isWaiting = true; reveal();
+    btnHard.classList.add('hidden');
+    setTimeout(nextCard, 1200);
+  });
+  btnHard.addEventListener('click', () => { trainingSet.push(trainingSet[currentCardIndex]); nextCard(); });
+  btnNext.addEventListener('click', nextCard);
+
+  function nextCard() {
+    currentCardIndex++;
+    if (currentCardIndex >= trainingSet.length) { alert('Тренировка завершена!'); endTrainingBtn.click(); }
+    else showCard();
+  }
+</script>
+
+<style>
+  .card-frame {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 40px;
+    overflow-y: auto;
+  }
+  .card-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+    width: 100%;
+  }
+  .card-icon  { font-size: 3rem; line-height: 1; }
+  .card-text  { font-size: 1.4rem; font-weight: 400; color: var(--text-primary); line-height: 1.4; }
+  .answer-container {
+    background: var(--primary-container);
+    border-radius: var(--radius-md);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    max-width: 520px;
+    width: 100%;
+  }
+  .answer-container.visible { opacity: 1; pointer-events: auto; }
+  .answer-text { font-size: 1.2rem; font-weight: 500; color: var(--primary); }
+  .details-col { flex: 1; padding: 20px; overflow-y: auto; background: var(--bg-app); }
+</style>
+{% endblock %}

@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Выбор ученика{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Выберите ученика</h1>
+
+    <div class="students-grid">
+        {% for student in students %}
+        <div class="student-card">
+            <a href="{{ url_for('dashboard', student_id=student.id) }}" class="student-name">
+                {{ student.name }}
+            </a>
+
+            <!-- Статус аккаунта -->
+            <div class="student-account-status">
+                {% if student.account %}
+                    <span class="account-badge {% if student.account.is_active %}account-active{% else %}account-blocked{% endif %}">
+                        {% if student.account.is_active %}✓ {{ student.account.username }}{% else %}⛔ {{ student.account.username }}{% endif %}
+                    </span>
+                {% else %}
+                    <span class="account-badge account-none">нет аккаунта</span>
+                {% endif %}
+            </div>
+
+            <div class="student-actions">
+                <!-- Создать аккаунт -->
+                {% if not student.account %}
+                <button class="btn-small btn-create-account" onclick="toggleAccountForm({{ student.id }})">
+                    + Создать логин
+                </button>
+                {% else %}
+                    <!-- Заблокировать/разблокировать -->
+                    <form method="POST" action="{{ url_for('toggle_student_account', student_id=student.id) }}" style="display:inline;">
+                        <button type="submit" class="btn-small {% if student.account.is_active %}btn-warn{% else %}btn-ok{% endif %}">
+                            {% if student.account.is_active %}Заблокировать{% else %}Разблокировать{% endif %}
+                        </button>
+                    </form>
+                    <!-- Удалить аккаунт -->
+                    <form method="POST" action="{{ url_for('delete_student_account', student_id=student.id) }}" style="display:inline;"
+                          onsubmit="return confirm('Удалить аккаунт {{ student.account.username }}?');">
+                        <button type="submit" class="btn-small btn-delete-soft">Удалить аккаунт</button>
+                    </form>
+                {% endif %}
+
+                <!-- Удалить ученика -->
+                <form method="POST" action="{{ url_for('delete_student', student_id=student.id) }}"
+                      onsubmit="return confirm('Удалить ученика {{ student.name }}?');" style="display:inline;">
+                    <button type="submit" class="btn-delete">✕</button>
+                </form>
+            </div>
+
+            <!-- Форма создания аккаунта (скрытая) -->
+            {% if not student.account %}
+            <div class="account-create-form" id="account-form-{{ student.id }}" style="display:none;">
+                <form method="POST" action="{{ url_for('create_student_account', student_id=student.id) }}">
+                    <input type="text" name="username" placeholder="Логин" required autocomplete="off">
+                    <input type="text" name="password" placeholder="Пароль" required autocomplete="off">
+                    <div style="display:flex;gap:6px;margin-top:6px;">
+                        <button type="submit" class="btn-primary" style="flex:1;">Создать</button>
+                        <button type="button" class="btn-small" onclick="toggleAccountForm({{ student.id }})">Отмена</button>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="add-student-form">
+        <h2>Добавить ученика</h2>
+        <form method="POST" action="{{ url_for('add_student') }}">
+            <input type="text" name="name" placeholder="Имя ученика" required>
+            <button type="submit" class="btn-primary">Добавить</button>
+        </form>
+    </div>
+</div>
+
+<style>
+.student-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px;
+}
+.student-account-status {
+    margin-top: -4px;
+}
+.account-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-family: var(--font-mono, monospace);
+}
+.account-active  { background: #d1fae5; color: #065f46; }
+.account-blocked { background: #fee2e2; color: #991b1b; }
+.account-none    { background: var(--bg-app, #f5f6fa); color: var(--text-tertiary, #999); }
+
+.student-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.btn-small {
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font-main, inherit);
+    border: 1px solid var(--border-color, #e2e5ec);
+    border-radius: 6px;
+    background: var(--bg-app, #f5f6fa);
+    color: var(--text-secondary, #666);
+    cursor: pointer;
+    transition: all 0.12s;
+    white-space: nowrap;
+}
+.btn-small:hover { background: var(--bg-surface-hover, #eee); }
+.btn-create-account { color: var(--primary, #4758d6); border-color: var(--primary-container, #dde); background: var(--primary-container, #eef); }
+.btn-warn  { color: #d97706; border-color: #fde68a; background: #fffbeb; }
+.btn-warn:hover { background: #fde68a; }
+.btn-ok    { color: #059669; border-color: #a7f3d0; background: #ecfdf5; }
+.btn-ok:hover { background: #a7f3d0; }
+.btn-delete-soft { color: #ef4444; border-color: #fecaca; background: #fef2f2; }
+.btn-delete-soft:hover { background: #fecaca; }
+
+.account-create-form {
+    margin-top: 4px;
+    padding: 10px;
+    background: var(--bg-app, #f5f6fa);
+    border-radius: 8px;
+    border: 1px solid var(--border-color, #e2e5ec);
+}
+.account-create-form input {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 6px;
+    padding: 7px 10px;
+    font-size: 13px;
+    border: 1px solid var(--border-color, #e2e5ec);
+    border-radius: 6px;
+    background: var(--bg-surface, #fff);
+    font-family: var(--font-main, inherit);
+}
+</style>
+
+<script>
+function toggleAccountForm(studentId) {
+    const form = document.getElementById('account-form-' + studentId);
+    if (!form) return;
+    form.style.display = form.style.display === 'none' ? '' : 'none';
+}
+</script>
+{% endblock %}

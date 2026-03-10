@@ -1,0 +1,82 @@
+{% extends "trainer_base.html" %}
+{% block title %}Глаголы — {{ student.name }}{% endblock %}
+{% block trainer_content %}
+<div class="trainer-header">
+  
+  <h1 class="trainer-title">Глаголы</h1>
+</div>
+<div class="tabs-wrapper" id="verb-tabs"></div>
+<div class="display-container">
+  <div class="big-text" id="verb-inf">Загрузка...</div>
+  <div class="sub-text" id="verb-mean"></div>
+  <div class="answer-slot" id="verb-answer" style="flex-direction:column;gap:6px;height:auto;">
+    <div style="color:#555;display:flex;align-items:center;justify-content:center;">
+      Прош: <span id="verb-past" style="font-weight:700;margin:0 5px;"></span>
+      <span class="mini-speaker" onclick="speakTense('past')">🔊</span>
+    </div>
+    <div style="color:#007bff;display:flex;align-items:center;justify-content:center;">
+      Наст: <span id="verb-pres" style="font-weight:700;margin:0 5px;"></span>
+      <span class="mini-speaker" onclick="speakTense('pres')">🔊</span>
+    </div>
+    <div style="color:#28a745;display:flex;align-items:center;justify-content:center;">
+      Будущ: <span id="verb-fut" style="font-weight:700;margin:0 5px;"></span>
+      <span class="mini-speaker" onclick="speakTense('fut')">🔊</span>
+    </div>
+  </div>
+  <div class="controls">
+    <button class="action-btn warning" onclick="toggleVerb()">👁️</button>
+    <button class="action-btn secondary" onclick="speakVerb()">🔊</button>
+    <button class="action-btn" onclick="prevVerb()">⬅️</button>
+    <button class="action-btn" onclick="nextVerb()">➡️</button>
+    <button class="action-btn" onclick="generateVerb()">🎲</button>
+  </div>
+</div>
+{% endblock %}
+{% block trainer_js %}
+<script>
+document.body.dataset.module = 'verbs';
+let allVerbs=[],curBlock=[],vi=0,curVerb=null;
+const BLOCK=15;
+const tabsEl=document.getElementById('verb-tabs');
+
+async function init(){
+  try{
+    const r=await fetch("{{ url_for('static', filename='data/verbs.json') }}");
+    if(!r.ok)throw new Error();
+    allVerbs=await r.json();
+    buildTabs();loadBlock(0);
+  }catch(e){
+    document.getElementById('verb-inf').textContent='Ошибка загрузки verbs.json';
+  }
+}
+
+function buildTabs(){
+  tabsEl.innerHTML='';
+  const total=Math.ceil(allVerbs.length/BLOCK);
+  for(let i=0;i<total;i++){
+    const s=i*BLOCK+1,e=Math.min((i+1)*BLOCK,allVerbs.length);
+    const btn=document.createElement('button');btn.className='tab-btn';btn.textContent=`${s}-${e}`;
+    btn.onclick=()=>{tabsEl.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');loadBlock(i);};
+    tabsEl.appendChild(btn);if(i===0)btn.classList.add('active');
+  }
+}
+
+function loadBlock(i){curBlock=allVerbs.slice(i*BLOCK,(i+1)*BLOCK);setVerb(0);}
+
+function setVerb(i){trackExercise();vi=i;curVerb=curBlock[i];
+  document.getElementById('verb-inf').textContent=curVerb.base;
+  document.getElementById('verb-mean').textContent='('+curVerb.mean+')';
+  document.getElementById('verb-past').textContent=curVerb.past||'-';
+  document.getElementById('verb-pres').textContent=curVerb.pres||'-';
+  document.getElementById('verb-fut').textContent=curVerb.fut||'-';
+  document.getElementById('verb-answer').style.visibility='hidden';
+}
+function toggleVerb(){const el=document.getElementById('verb-answer');el.style.visibility=el.style.visibility==='hidden'?'visible':'hidden';}
+function speakVerb(){if(curVerb)speakText(curVerb.base);}
+function speakTense(t){if(!curVerb)return;const txt=curVerb[t];if(txt&&txt!=='-')speakText(txt);}
+function prevVerb(){if(curBlock.length)setVerb((vi-1+curBlock.length)%curBlock.length);}
+function nextVerb(){if(curBlock.length)setVerb((vi+1)%curBlock.length);}
+function generateVerb(){if(curBlock.length)setVerb(randExcept(curBlock.length,vi));}
+init();
+</script>
+{% endblock %}

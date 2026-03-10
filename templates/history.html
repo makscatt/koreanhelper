@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}История заметок — {{ student.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <div class="dashboard-header">
+    <h1>Заметки: {{ student.name }}</h1>
+  </div>
+
+  <div class="history-list" id="historyList"></div>
+
+</div>
+
+<!-- DELETE MODAL -->
+<div id="deleteModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+  <div style="background:#fff; border:2px solid #1a1a1a; padding:32px; max-width:320px; width:90%;">
+    <p style="margin-bottom:24px; font-size:16px;">Удалить заметку?</p>
+    <div style="display:flex; gap:12px; justify-content:flex-end;">
+      <button id="modalCancel" style="padding:8px 20px; border:2px solid #1a1a1a; background:#fff; cursor:pointer; font-size:14px;">Отмена</button>
+      <button id="modalConfirm" style="padding:8px 20px; border:2px solid #1a1a1a; background:#1a1a1a; color:#fff; cursor:pointer; font-size:14px;">Удалить</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const studentId = "{{ student.id }}";
+  const historyKey = `history_${studentId}`;
+  const historyList = document.getElementById('historyList');
+  const deleteModal = document.getElementById('deleteModal');
+  let pendingDeleteIndex = null;
+
+  document.getElementById('modalCancel').onclick = () => {
+    deleteModal.style.display = 'none';
+    pendingDeleteIndex = null;
+  };
+
+  document.getElementById('modalConfirm').onclick = () => {
+    if (pendingDeleteIndex === null) return;
+    const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+    history.splice(pendingDeleteIndex, 1);
+    localStorage.setItem(historyKey, JSON.stringify(history));
+    deleteModal.style.display = 'none';
+    pendingDeleteIndex = null;
+    renderHistory();
+  };
+
+  function renderHistory() {
+    const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+    historyList.innerHTML = '';
+
+    if (history.length === 0) {
+      historyList.innerHTML = '<div class="history-empty">Заметок пока нет</div>';
+      return;
+    }
+
+    history.forEach((item, index) => {
+      const card = document.createElement('div');
+      card.className = 'history-card';
+      card.innerHTML = `
+        <div class="history-card-header" onclick="toggleNote(this)">
+          <span class="history-card-date">▼ ${item.date}</span>
+          <button class="history-delete-btn" onclick="event.stopPropagation(); confirmDelete(${index})" title="Удалить">🗑</button>
+        </div>
+        <div class="history-card-text">${item.text}</div>
+      `;
+      historyList.appendChild(card);
+    });
+  }
+
+  window.confirmDelete = function(index) {
+    pendingDeleteIndex = index;
+    deleteModal.style.display = 'flex';
+  };
+
+  window.toggleNote = function(header) {
+    const text = header.nextElementSibling;
+    text.classList.toggle('open');
+    const dateSpan = header.querySelector('.history-card-date');
+    dateSpan.textContent = dateSpan.textContent.replace(/^[▼▶] /, '');
+    dateSpan.textContent = (text.classList.contains('open') ? '▼ ' : '▶ ') + dateSpan.textContent;
+  };
+
+  renderHistory();
+</script>
+{% endblock %}

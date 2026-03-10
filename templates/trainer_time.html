@@ -1,0 +1,25 @@
+{% extends "trainer_base.html" %}
+{% block title %}Время — {{ student.name }}{% endblock %}
+{% block trainer_content %}
+<div class="trainer-header">
+  
+  <h1 class="trainer-title">Время</h1>
+</div>
+<div class="display-container">
+  <div class="big-text" id="clock-display">12:00</div>
+  <div style="color:var(--ink3);font-size:11px;">(Часы 1-12 : Минуты 00-59)</div>
+  <div class="controls">
+    <button class="action-btn secondary" onclick="speakTime()" title="Озвучить">🔊</button>
+    <button class="action-btn" onclick="generateTime()" title="Случайное">🎲</button>
+  </div>
+</div>
+{% endblock %}
+{% block trainer_js %}
+<script>
+document.body.dataset.module = 'time';
+let tH=12,tM=0,lastT='';
+function generateTime(){trackExercise();let s;do{tH=Math.floor(Math.random()*12)+1;tM=Math.floor(Math.random()*60);s=tH+':'+tM;}while(s===lastT);lastT=s;document.getElementById('clock-display').textContent=tH+':'+(tM<10?'0'+tM:tM);}
+function speakTime(){let t=tH+'시';t+=tM>0?` ${tM}분`:' 정각';speakText(t);}
+generateTime();
+</script>
+{% endblock %}

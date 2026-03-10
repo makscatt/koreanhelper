@@ -1,0 +1,117 @@
+{% extends "trainer_base.html" %}
+{% block title %}Алфавит — {{ student.name }}{% endblock %}
+{% block trainer_content %}
+<div class="trainer-header">
+  
+  <h1 class="trainer-title">Алфавит (Хангыль)</h1>
+</div>
+<div class="tabs-wrapper" id="alphabet-tabs"></div>
+<div class="alphabet-grid hidden" id="alphabet-grid-view"></div>
+<div class="display-container" id="alphabet-card-view">
+  <div class="big-text" id="alphabet-char" style="font-size:7rem;">가</div>
+  <div class="answer-slot" id="alphabet-answer" style="flex-direction:column;gap:4px;height:auto;">
+    <div id="alphabet-rom" style="font-weight:700;font-size:1.8rem;color:#007bff;"></div>
+    <div id="alphabet-name" style="font-size:1.1rem;color:var(--ink3);"></div>
+  </div>
+  <div class="controls">
+    <button class="action-btn warning" onclick="toggleAlphabetAnswer()" title="Показать ответ">👁️</button>
+    <button class="action-btn secondary" onclick="speakCurrentAlphabet()" title="Озвучить">🔊</button>
+    <button class="action-btn" onclick="prevAlphabet()">⬅️</button>
+    <button class="action-btn" onclick="nextAlphabet()">➡️</button>
+    <button class="action-btn" onclick="generateAlphabet()">🎲</button>
+  </div>
+</div>
+{% endblock %}
+{% block trainer_js %}
+<script>
+document.body.dataset.module = 'alphabet';
+const alphabetData = [
+  { name:'Согласные (База)', type:'card', data:[
+    {char:'ㄱ',rom:'к/г',name:'Киёк'},{char:'ㄴ',rom:'н',name:'Ниын'},
+    {char:'ㄷ',rom:'т/д',name:'Тигыт'},{char:'ㄹ',rom:'р/ль',name:'Риыль'},
+    {char:'ㅁ',rom:'м',name:'Миым'},{char:'ㅂ',rom:'п/б',name:'Пиып'},
+    {char:'ㅅ',rom:'с/щ',name:'Сиот'},{char:'ㅇ',rom:'ң',name:'Иын'},
+    {char:'ㅈ',rom:'ч/чж',name:'Чиыт'},{char:'ㅊ',rom:'ч',name:'Чхиыт'},
+    {char:'ㅋ',rom:'к',name:'Кхиык'},{char:'ㅌ',rom:'т',name:'Тхиыт'},
+    {char:'ㅍ',rom:'п',name:'Пхиып'},{char:'ㅎ',rom:'х',name:'Хиыт'}
+  ]},
+  { name:'Согласные (Двойные)', type:'card', data:[
+    {char:'ㄲ',rom:'кк',name:'Сан-гиёк'},{char:'ㄸ',rom:'тт',name:'Сан-дигыт'},
+    {char:'ㅃ',rom:'пп',name:'Сан-биып'},{char:'ㅆ',rom:'сс/щ',name:'Сан-сиот'},
+    {char:'ㅉ',rom:'чч',name:'Сан-джиыт'}
+  ]},
+  { name:'Гласные (База)', type:'card', data:[
+    {char:'ㅏ',rom:'а',name:'а'},{char:'ㅑ',rom:'я',name:'я'},
+    {char:'ㅓ',rom:'о',name:'о (открытая)'},{char:'ㅕ',rom:'ё',name:'ё (открытая)'},
+    {char:'ㅗ',rom:'о',name:'о (губная)'},{char:'ㅛ',rom:'ё',name:'ё (губная)'},
+    {char:'ㅜ',rom:'у',name:'у'},{char:'ㅠ',rom:'ю',name:'ю'},
+    {char:'ㅡ',rom:'ы',name:'ы'},{char:'ㅣ',rom:'и',name:'и'}
+  ]},
+  { name:'Гласные (Сложные)', type:'card', data:[
+    {char:'ㅐ',rom:'э',name:'э (открытая)'},{char:'ㅒ',rom:'йэ',name:'йэ'},
+    {char:'ㅔ',rom:'э',name:'э'},{char:'ㅖ',rom:'е',name:'е'},
+    {char:'ㅘ',rom:'уа',name:'уа'},{char:'ㅙ',rom:'уэ',name:'уэ'},
+    {char:'ㅚ',rom:'уэ',name:'уэ (ой)'},{char:'ㅝ',rom:'уо',name:'уо'},
+    {char:'ㅞ',rom:'уэ',name:'уэ'},{char:'ㅟ',rom:'уи',name:'уи'},
+    {char:'ㅢ',rom:'ый',name:'ый'}
+  ]},
+  { name:'ВСЕ ГЛАСНЫЕ (Звук)', type:'grid_vowel', data:['ㅏ','ㅑ','ㅓ','ㅕ','ㅗ','ㅛ','ㅜ','ㅠ','ㅡ','ㅣ','ㅐ','ㅒ','ㅔ','ㅖ','ㅘ','ㅙ','ㅚ','ㅝ','ㅞ','ㅟ','ㅢ'] },
+  { name:'ВСЕ СОГЛАСНЫЕ (Звук)', type:'grid_cons', data:['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ','ㄲ','ㄸ','ㅃ','ㅆ','ㅉ'] }
+];
+const vowelSounds={'ㅏ':'아','ㅑ':'야','ㅓ':'어','ㅕ':'여','ㅗ':'오','ㅛ':'요','ㅜ':'우','ㅠ':'유','ㅡ':'으','ㅣ':'이','ㅐ':'애','ㅒ':'얘','ㅔ':'에','ㅖ':'예','ㅘ':'와','ㅙ':'왜','ㅚ':'외','ㅝ':'워','ㅞ':'웨','ㅟ':'위','ㅢ':'의'};
+const consSounds={'ㄱ':'가','ㄴ':'나','ㄷ':'다','ㄹ':'라','ㅁ':'마','ㅂ':'바','ㅅ':'사','ㅇ':'아','ㅈ':'자','ㅊ':'차','ㅋ':'카','ㅌ':'타','ㅍ':'파','ㅎ':'하','ㄲ':'까','ㄸ':'따','ㅃ':'빠','ㅆ':'싸','ㅉ':'짜'};
+let curAlphaList=[], curAlphaIndex=0, curAlpha=null;
+
+const tabsEl = document.getElementById('alphabet-tabs');
+alphabetData.forEach((g,i)=>{
+  const btn=document.createElement('button');
+  btn.className='tab-btn';btn.textContent=g.name;
+  btn.onclick=()=>loadGroup(i,btn);
+  tabsEl.appendChild(btn);
+  if(i===0)btn.click();
+});
+
+function loadGroup(idx, btn){
+  tabsEl.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const g=alphabetData[idx];
+  const cardView=document.getElementById('alphabet-card-view');
+  const gridView=document.getElementById('alphabet-grid-view');
+  if(g.type==='card'){
+    cardView.classList.remove('hidden');gridView.classList.add('hidden');
+    curAlphaList=g.data;updateAlphabetUI(0);
+  } else {
+    cardView.classList.add('hidden');gridView.classList.remove('hidden');
+    renderGrid(g.data,g.type);
+  }
+}
+
+function renderGrid(items,type){
+  const grid=document.getElementById('alphabet-grid-view');
+  grid.innerHTML='';
+  items.forEach(char=>{
+    const btn=document.createElement('div');
+    btn.className='num-card';btn.textContent=char;
+    btn.onclick=()=>{
+      btn.classList.add('clicked');setTimeout(()=>btn.classList.remove('clicked'),200);
+      const t=type==='grid_vowel'?(vowelSounds[char]||char):(consSounds[char]||char);
+      speakText(t);
+    };
+    grid.appendChild(btn);
+  });
+}
+
+function updateAlphabetUI(i){trackExercise();
+  curAlphaIndex=i;curAlpha=curAlphaList[i];
+  document.getElementById('alphabet-char').textContent=curAlpha.char;
+  document.getElementById('alphabet-rom').textContent=curAlpha.rom;
+  document.getElementById('alphabet-name').textContent='('+curAlpha.name+')';
+  document.getElementById('alphabet-answer').style.visibility='hidden';
+}
+function toggleAlphabetAnswer(){const el=document.getElementById('alphabet-answer');el.style.visibility=el.style.visibility==='hidden'?'visible':'hidden';}
+function speakCurrentAlphabet(){if(curAlpha)speakText(curAlpha.char);}
+function prevAlphabet(){updateAlphabetUI((curAlphaIndex-1+curAlphaList.length)%curAlphaList.length);}
+function nextAlphabet(){updateAlphabetUI((curAlphaIndex+1)%curAlphaList.length);}
+function generateAlphabet(){updateAlphabetUI(randExcept(curAlphaList.length,curAlphaIndex));}
+</script>
+{% endblock %}

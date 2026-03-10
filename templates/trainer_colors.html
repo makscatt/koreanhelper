@@ -1,0 +1,32 @@
+{% extends "trainer_base.html" %}
+{% block title %}Цвета — {{ student.name }}{% endblock %}
+{% block trainer_content %}
+<div class="trainer-header">
+  <h1 class="trainer-title">Цвета</h1>
+</div>
+<div class="display-container">
+  <div class="color-box" id="color-box"></div>
+  <div class="answer-slot" id="color-name" style="font-size:1.4rem;font-weight:700;color:var(--text-primary);">빨간색</div>
+  <div class="controls">
+    <button class="action-btn warning" onclick="toggleColor()">👁️</button>
+    <button class="action-btn secondary" onclick="speakColor()">🔊</button>
+    <button class="action-btn" onclick="prevColor()">⬅️</button>
+    <button class="action-btn" onclick="nextColor()">➡️</button>
+    <button class="action-btn" onclick="generateColor()">🎲</button>
+  </div>
+</div>
+{% endblock %}
+{% block trainer_js %}
+<script>
+document.body.dataset.module = 'colors';
+const colors=[{code:'#FF0000',name:'빨간색'},{code:'#0000FF',name:'파란색'},{code:'#008000',name:'초록색'},{code:'#FFFF00',name:'노란색'},{code:'#000000',name:'검은색'},{code:'#FFFFFF',name:'하얀색'},{code:'#800080',name:'보라색'},{code:'#FFA500',name:'주황색'},{code:'#FFC0CB',name:'분홍색'},{code:'#808080',name:'회색'},{code:'#804030',name:'갈색'}];
+let ci=0;
+function setColor(i){ci=i;document.getElementById('color-box').style.backgroundColor=colors[i].code;const el=document.getElementById('color-name');el.textContent=colors[i].name;el.style.visibility='hidden';}
+function toggleColor(){const el=document.getElementById('color-name');el.style.visibility=el.style.visibility==='hidden'?'visible':'hidden';}
+function speakColor(){speakText(colors[ci].name);}
+function prevColor(){setColor((ci-1+colors.length)%colors.length);}
+function nextColor(){setColor((ci+1)%colors.length);}
+function generateColor(){setColor(randExcept(colors.length,ci));}
+setColor(0);
+</script>
+{% endblock %}

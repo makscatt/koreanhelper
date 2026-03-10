@@ -1,0 +1,49 @@
+{% extends "trainer_base.html" %}
+{% block title %}Цифры — {{ student.name }}{% endblock %}
+{% block trainer_content %}
+<div class="trainer-header">
+  
+  <h1 class="trainer-title">Цифры (1–100)</h1>
+</div>
+<div class="mode-switch">
+  <label><input type="radio" name="numSystem" value="sino" checked><span class="mode-label">Китайские (일, 이)</span></label>
+  <label><input type="radio" name="numSystem" value="native"><span class="mode-label">Корейские (하나, 둘)</span></label>
+</div>
+<div class="tabs-wrapper" id="num-tabs"></div>
+<div class="num-grid" id="num-grid"></div>
+{% endblock %}
+{% block trainer_js %}
+<script>
+document.body.dataset.module = 'numbers';
+const nativeUnits=['','하나','둘','셋','넷','다섯','여섯','일곱','여덟','아홉'];
+const nativeTens=['','열','스물','서른','마흔','쉰','예순','일흔','여든','아흔'];
+function getNative(n){if(n===100)return'백';if(n<10)return nativeUnits[n];return nativeTens[Math.floor(n/10)]+nativeUnits[n%10];}
+
+const tabsEl=document.getElementById('num-tabs');
+for(let i=0;i<10;i++){
+  const s=i*10+1,e=(i+1)*10;
+  const btn=document.createElement('button');
+  btn.className='tab-btn';btn.textContent=`${s}-${e}`;
+  btn.onclick=()=>loadNums(s,e,btn);
+  tabsEl.appendChild(btn);
+  if(i===0)btn.click();
+}
+
+function loadNums(s,e,activeBtn){
+  tabsEl.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  activeBtn.classList.add('active');
+  const grid=document.getElementById('num-grid');
+  grid.innerHTML='';
+  for(let i=s;i<=e;i++){
+    const card=document.createElement('div');
+    card.className='num-card';card.textContent=i;
+    const sp=document.createElement('div');
+    sp.className='num-speaker';sp.innerHTML='🔊';
+    sp.onclick=ev=>{ev.stopPropagation();const sys=document.querySelector('input[name="numSystem"]:checked').value;speakText(sys==='native'?getNative(i):i.toString());};
+    card.appendChild(sp);
+    card.onclick=()=>{card.classList.toggle('clicked');trackExercise();};
+    grid.appendChild(card);
+  }
+}
+</script>
+{% endblock %}

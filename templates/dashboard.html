@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Дашборд — {{ student.name }}{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <h1>{{ student.name }}</h1>
+        <span class="subtitle">дашборд</span>
+    </div>
+
+    <!-- PROFILE NOTE -->
+    <div class="sticky-note profile-note">
+      <div class="profile-note-label">О студенте</div>
+      <textarea id="profile-note-area" class="sticky-note-area" placeholder="Цели, уровень, пожелания, особенности..." maxlength="1000"></textarea>
+    </div>
+
+    <!-- STICKY NOTE -->
+    <div class="sticky-note">
+      <textarea id="sticky-note-area" class="sticky-note-area" placeholder="Заметка..." maxlength="300"></textarea>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── STICKY NOTE ──
+const STICKY_KEY = 'sticky_{{ student.id }}';
+const stickyArea = document.getElementById('sticky-note-area');
+stickyArea.value = localStorage.getItem(STICKY_KEY) || '';
+stickyArea.addEventListener('input', () => localStorage.setItem(STICKY_KEY, stickyArea.value));
+
+// ── PROFILE NOTE ──
+const PROFILE_KEY = 'profile_{{ student.id }}';
+const profileArea = document.getElementById('profile-note-area');
+profileArea.value = localStorage.getItem(PROFILE_KEY) || '';
+profileArea.addEventListener('input', () => localStorage.setItem(PROFILE_KEY, profileArea.value));
+</script>
+{% endblock %}

@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Приложение для изучения корейского — План разработки</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body { 
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #ffffff;
+    color: #1a1a1a;
+    line-height: 1.6;
+  }
+
+  /* Header */
+  header {
+    border-bottom: 2px solid #1a1a1a;
+    padding: 24px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .logo {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+
+  .progress-info {
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  /* Main Container */
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 60px 32px;
+  }
+
+  .roadmap-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2px;
+    background: #1a1a1a;
+    border: 2px solid #1a1a1a;
+  }
+
+  /* Phase Card */
+  .phase {
+    background: #ffffff;
+    padding: 32px;
+    cursor: pointer;
+    transition: background 0.2s;
+    position: relative;
+  }
+
+  .phase:hover {
+    background: #f5f5f5;
+  }
+
+  .phase.complete {
+    background: #1a1a1a;
+    color: #ffffff;
+  }
+
+  .phase.complete:hover {
+    background: #2a2a2a;
+  }
+
+  .phase-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 16px;
+  }
+
+  .phase-num {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 2px;
+  }
+
+  .phase-status {
+    font-size: 12px;
+    padding: 4px 12px;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    font-weight: 500;
+  }
+
+  .phase-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .phase-desc {
+    font-size: 14px;
+    opacity: 0.7;
+    margin-bottom: 20px;
+  }
+
+  .phase-progress {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .progress-bar {
+    height: 3px;
+    background: rgba(0,0,0,0.1);
+    margin-top: 8px;
+    overflow: hidden;
+  }
+
+  .phase.complete .progress-bar {
+    background: rgba(255,255,255,0.2);
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: #1a1a1a;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .phase.complete .progress-fill {
+    background: #ffffff;
+  }
+
+  /* Modal Panel */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    z-index: 998;
+  }
+
+  .modal-backdrop.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.95);
+    background: #ffffff;
+    border: 2px solid #1a1a1a;
+    width: 90%;
+    max-width: 700px;
+    max-height: 85vh;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal.open {
+    opacity: 1;
+    pointer-events: all;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .modal-header {
+    padding: 32px;
+    border-bottom: 2px solid #1a1a1a;
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+  }
+
+  .modal-title-wrap h2 {
+    font-size: 24px;
+    margin-bottom: 8px;
+  }
+
+  .modal-meta {
+    font-size: 14px;
+    opacity: 0.6;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 32px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+  }
+
+  .modal-body {
+    padding: 32px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .task-group {
+    margin-bottom: 32px;
+  }
+
+  .task-group-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  .task {
+    display: flex;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid #e5e5e5;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .task:hover {
+    opacity: 0.7;
+  }
+
+  .task-checkbox {
+    width: 24px;
+    height: 24px;
+    border: 2px solid #1a1a1a;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 16px;
+  }
+
+  .task.done .task-checkbox {
+    background: #1a1a1a;
+    color: #ffffff;
+  }
+
+  .task.done .task-text {
+    opacity: 0.4;
+    text-decoration: line-through;
+  }
+
+  .task-text {
+    font-size: 15px;
+  }
+
+  @media (max-width: 768px) {
+    .roadmap-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .modal {
+      width: 95%;
+      max-height: 90vh;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Изучение корейского</div>
+  <div class="progress-info">Прогресс: <strong id="globalProgress">0%</strong></div>
+</header>
+
+<div class="container">
+  <div class="roadmap-grid" id="roadmapGrid"></div>
+</div>
+
+<div class="modal-backdrop" id="backdrop" onclick="closeModal()"></div>
+<div class="modal" id="modal">
+  <div class="modal-header">
+    <div class="modal-title-wrap">
+      <h2 id="modalTitle"></h2>
+      <div class="modal-meta" id="modalMeta"></div>
+    </div>
+    <button class="modal-close" onclick="closeModal()">×</button>
+  </div>
+  <div class="modal-body" id="modalBody"></div>
+</div>
+
+<script>
+const PHASES = [
+  {
+    id: 'phase1',
+    num: 'ЭТАП 01',
+    title: 'Базовая инфраструктура',
+    desc: 'Создание основы: Flask, Jinja шаблоны и настройка базы данных',
+    tasks: [
+      { group: 'Настройка бэкенда', items: [
+        'Настроить структуру Flask проекта',
+        'Сконфигурировать Jinja2 шаблонизатор',
+        'Спроектировать схему БД (SQLite/PostgreSQL)',
+        'Создать систему авторизации',
+        'Построить CRUD для управления учениками'
+      ]},
+      { group: 'Основа фронтенда', items: [
+        'Создать базовый шаблон с навигацией',
+        'Дизайн минималистичной ч/б панели',
+        'Реализовать адаптивную верстку',
+        'Настроить pipeline для статики'
+      ]}
+    ]
+  },
+  {
+    id: 'phase2',
+    num: 'ЭТАП 02',
+    title: 'Дашборд и статистика',
+    desc: 'Центральная панель с отображением прогресса по всем модулям',
+    tasks: [
+      { group: 'Ядро дашборда', items: [
+        'Создать маршрут и представление дашборда',
+        'Отобразить карточки обзора учеников',
+        'Показать процент завершения модулей',
+        'Добавить временные метки последней активности'
+      ]},
+      { group: 'Статистика и графики', items: [
+        'Интегрировать Chart.js для визуализации',
+        'Создать графики прогресса',
+        'Построить сравнительные диаграммы модулей',
+        'Добавить временную шкалу сессий'
+      ]}
+    ]
+  },
+  {
+    id: 'phase3',
+    num: 'ЭТАП 03',
+    title: 'Тренажёры (часть 1)',
+    desc: 'Миграция модулей словарного запаса, грамматики и предложений',
+    tasks: [
+      { group: 'Миграция модулей', items: [
+        'Конвертировать cards.html в Jinja шаблон',
+        'Мигрировать тренажёр sentences.html',
+        'Портировать упражнения grammar.html',
+        'Перестроить модуль чтения text.html'
+      ]},
+      { group: 'Отслеживание прогресса', items: [
+        'Реализовать сохранение состояния модулей',
+        'Отслеживать завершённые упражнения',
+        'Сохранять закладки и последние позиции',
+        'Логировать время, проведённое в сессии'
+      ]}
+    ]
+  },
+  {
+    id: 'phase4',
+    num: 'ЭТАП 04',
+    title: 'Тренажёры (часть 2)',
+    desc: 'Интерактивные тренажёры и мультимедийный контент',
+    tasks: [
+      { group: 'Интерактивные модули', items: [
+        'Мигрировать quiz.html с подсчётом очков',
+        'Портировать animals-trainer.html',
+        'Перестроить флешкарты pictures.html',
+        'Интегрировать видеоплеер video.html'
+      ]},
+      { group: 'Геймификация', items: [
+        'Добавить отслеживание правильных/неправильных ответов',
+        'Рассчитывать процент точности',
+        'Внедрить счётчики серий',
+        'Награждать значками за завершение'
+      ]}
+    ]
+  },
+  {
+    id: 'phase5',
+    num: 'ЭТАП 05',
+    title: 'Заметки и ментальные карты',
+    desc: 'Система заметок учителя и визуальные инструменты обучения',
+    tasks: [
+      { group: 'Система заметок', items: [
+        'Мигрировать history.html в базу данных',
+        'Rich text редактор для заметок',
+        'Теги и категоризация записей',
+        'Функционал поиска и фильтрации'
+      ]},
+      { group: 'Ментальные карты', items: [
+        'Портировать визуализацию mindmap.html',
+        'Сохранение/загрузка состояний карт',
+        'Экспорт карт в изображения',
+        'Связывание карт с учебными темами'
+      ]}
+    ]
+  },
+  {
+    id: 'phase6',
+    num: 'ЭТАП 06',
+    title: 'Полировка и деплой',
+    desc: 'Тестирование, оптимизация и развёртывание в продакшн',
+    tasks: [
+      { group: 'Контроль качества', items: [
+        'Кросс-браузерное тестирование',
+        'Исправление мобильной адаптивности',
+        'Оптимизация производительности',
+        'Аудит безопасности'
+      ]},
+      { group: 'Развёртывание', items: [
+        'Настроить production сервер',
+        'Сконфигурировать PostgreSQL базу',
+        'Внедрить стратегию резервного копирования',
+        'Написать документацию по деплою'
+      ]}
+    ]
+  }
+];
+
+const DEFAULT_CHECKED = {
+  // ── ЭТАП 01: Базовая инфраструктура — всё сделано ──
+  "phase1_Настройка бэкенда_0": true,
+  "phase1_Настройка бэкенда_1": true,
+  "phase1_Настройка бэкенда_2": true,
+  "phase1_Настройка бэкенда_3": true,
+  "phase1_Настройка бэкенда_4": true,
+  "phase1_Основа фронтенда_0": true,
+  "phase1_Основа фронтенда_1": true,
+  "phase1_Основа фронтенда_2": true,
+  "phase1_Основа фронтенда_3": true,
+
+  // ── ЭТАП 02: Дашборд — ядро готово, графики отменены ──
+  "phase2_Ядро дашборда_0": true,
+  "phase2_Ядро дашборда_1": true,
+  "phase2_Ядро дашборда_2": true,
+  "phase2_Ядро дашборда_3": true,
+  // Статистика и графики — отменено, не нужно
+  "phase2_Статистика и графики_0": true,
+  "phase2_Статистика и графики_1": true,
+  "phase2_Статистика и графики_2": true,
+  "phase2_Статистика и графики_3": true,
+
+  // ── ЭТАП 03: Тренажёры часть 1 — всё сделано ──
+  "phase3_Миграция модулей_0": true,  // cards.html → Jinja + trainer_base
+  "phase3_Миграция модулей_1": true,  // sentences.html → Jinja + trainer_base
+  "phase3_Миграция модулей_2": true,  // grammar.html → Jinja + trainer_base
+  "phase3_Миграция модулей_3": true,  // text.html → Jinja + trainer_base
+  // Отслеживание прогресса
+  "phase3_Отслеживание прогресса_0": true,  // сохранение состояния модулей
+  "phase3_Отслеживание прогресса_1": true,  // отслеживание упражнений
+  "phase3_Отслеживание прогресса_2": true,  // закладки → стикер на дашборде
+  "phase3_Отслеживание прогресса_3": true,  // логирование времени сессии
+
+  // ── ЭТАП 04: Тренажёры часть 2 ──
+  // Мигрированы: Квиз ✅, Карточки/animals ✅, Видео ✅
+  // НЕ мигрированы: Картинки ❌, Фразы ❌, Контексты ❌
+  "phase4_Интерактивные модули_0": true,   // quiz.html ✅
+  "phase4_Интерактивные модули_1": true,   // animals-trainer.html ✅
+  "phase4_Интерактивные модули_2": true,  // pictures.html ✅
+  "phase4_Интерактивные модули_3": true,   // video.html ✅
+  // Геймификация
+  "phase4_Геймификация_0": true,   // правильные/неправильные ответы ✅
+  "phase4_Геймификация_1": true,   // процент точности ✅
+  "phase4_Геймификация_2": true,  // счётчики серий
+  "phase4_Геймификация_3": true,  // значки за завершение
+
+  // ── ЭТАП 05: Заметки и ментальные карты — всё готово ──
+  "phase5_Система заметок_0": true,  // history.html перенесён
+  "phase5_Система заметок_1": true,  // rich text — не нужен
+  "phase5_Система заметок_2": true,  // теги — не нужны
+  "phase5_Система заметок_3": true,  // поиск — не нужен
+  "phase5_Ментальные карты_0": true,  // mindmap — не нужен
+  "phase5_Ментальные карты_1": true,
+  "phase5_Ментальные карты_2": true,
+  "phase5_Ментальные карты_3": true,
+
+  // ── ЭТАП 06: Полировка и деплой ──
+  "phase6_Контроль качества_0": true,  // кросс-браузерное тестирование
+  "phase6_Контроль качества_1": true,  // мобильная адаптивность
+  "phase6_Контроль качества_2": true,  // оптимизация
+  "phase6_Контроль качества_3": true,  // аудит безопасности
+  // Развёртывание — пока не делаем
+  "phase6_Развёртывание_0": false,
+  "phase6_Развёртывание_1": false,
+  "phase6_Развёртывание_2": false,
+  "phase6_Развёртывание_3": false,
+};
+
+// Версия данных — при смене сбрасываем localStorage
+const DATA_VERSION = 6;
+const saved = JSON.parse(localStorage.getItem('korean_roadmap_state') || 'null');
+let state = (saved && saved.version === DATA_VERSION) ? saved : { version: DATA_VERSION, checked: DEFAULT_CHECKED };
+if (!saved || saved.version !== DATA_VERSION) localStorage.setItem('korean_roadmap_state', JSON.stringify(state));
+
+function saveState() {
+  state.version = DATA_VERSION;
+  localStorage.setItem('korean_roadmap_state', JSON.stringify(state));
+}
+
+function getPhaseProgress(phase) {
+  const allTasks = phase.tasks.flatMap(g => g.items.map((item, idx) => `${phase.id}_${g.group}_${idx}`));
+  const completed = allTasks.filter(taskId => state.checked[taskId]).length;
+  const total = allTasks.length;
+  const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+  return { completed, total, pct };
+}
+
+function getGlobalProgress() {
+  const allTasks = PHASES.flatMap(p => 
+    p.tasks.flatMap((g, gIdx) => 
+      g.items.map((item, idx) => `${p.id}_${g.group}_${idx}`)
+    )
+  );
+  const completed = allTasks.filter(taskId => state.checked[taskId]).length;
+  return Math.round((completed / allTasks.length) * 100);
+}
+
+function renderRoadmap() {
+  const grid = document.getElementById('roadmapGrid');
+  grid.innerHTML = PHASES.map(phase => {
+    const { completed, total, pct } = getPhaseProgress(phase);
+    const isComplete = pct === 100;
+    
+    return `
+      <div class="phase ${isComplete ? 'complete' : ''}" onclick="openModal('${phase.id}')">
+        <div class="phase-header">
+          <div class="phase-num">${phase.num}</div>
+          <div class="phase-status">${isComplete ? 'ГОТОВО' : 'В ПРОЦЕССЕ'}</div>
+        </div>
+        <div class="phase-title">${phase.title}</div>
+        <div class="phase-desc">${phase.desc}</div>
+        <div class="phase-progress">
+          <span>${completed}/${total} задач</span>
+          <span>${pct}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: ${pct}%"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('globalProgress').textContent = getGlobalProgress() + '%';
+}
+
+function openModal(phaseId) {
+  const phase = PHASES.find(p => p.id === phaseId);
+  const { completed, total, pct } = getPhaseProgress(phase);
+  
+  document.getElementById('modalTitle').textContent = phase.title;
+  document.getElementById('modalMeta').textContent = `${phase.num} • ${completed}/${total} задач • ${pct}%`;
+  
+  document.getElementById('modalBody').innerHTML = phase.tasks.map(group => `
+    <div class="task-group">
+      <div class="task-group-title">${group.group}</div>
+      ${group.items.map((item, idx) => {
+        const taskId = `${phaseId}_${group.group}_${idx}`;
+        const isDone = state.checked[taskId];
+        return `
+          <div class="task ${isDone ? 'done' : ''}" onclick="toggleTask('${taskId}', '${phaseId}')">
+            <div class="task-checkbox">${isDone ? '✓' : ''}</div>
+            <div class="task-text">${item}</div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `).join('');
+  
+  document.getElementById('modal').classList.add('open');
+  document.getElementById('backdrop').classList.add('visible');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  document.getElementById('backdrop').classList.remove('visible');
+  renderRoadmap();
+}
+
+function toggleTask(taskId, phaseId) {
+  state.checked[taskId] = !state.checked[taskId];
+  saveState();
+  
+  const taskEl = event.currentTarget;
+  const checkbox = taskEl.querySelector('.task-checkbox');
+  
+  if (state.checked[taskId]) {
+    taskEl.classList.add('done');
+    checkbox.textContent = '✓';
+  } else {
+    taskEl.classList.remove('done');
+    checkbox.textContent = '';
+  }
+  
+  const phase = PHASES.find(p => p.id === phaseId);
+  const { completed, total, pct } = getPhaseProgress(phase);
+  document.getElementById('modalMeta').textContent = `${phase.num} • ${completed}/${total} задач • ${pct}%`;
+  document.getElementById('globalProgress').textContent = getGlobalProgress() + '%';
+}
+
+renderRoadmap();
+</script>
+
+</body>
+</html>
