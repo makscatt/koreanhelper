@@ -25,45 +25,65 @@
             </div>
 
             <div class="student-actions">
-                <!-- Создать аккаунт -->
                 {% if not student.account %}
-                <button class="btn-small btn-create-account" onclick="toggleAccountForm({{ student.id }})">
-                    + Создать логин
-                </button>
+                    <button class="btn-small btn-create-account" onclick="toggleAccountForm({{ student.id }})">
+                        + Создать логин
+                    </button>
                 {% else %}
-                    <!-- Заблокировать/разблокировать -->
+                    <button class="btn-small btn-show-creds" onclick="toggleCredsView({{ student.id }})">
+                        🔑 Данные для входа
+                    </button>
                     <form method="POST" action="{{ url_for('toggle_student_account', student_id=student.id) }}" style="display:inline;">
                         <button type="submit" class="btn-small {% if student.account.is_active %}btn-warn{% else %}btn-ok{% endif %}">
                             {% if student.account.is_active %}Заблокировать{% else %}Разблокировать{% endif %}
                         </button>
                     </form>
-                    <!-- Удалить аккаунт -->
                     <form method="POST" action="{{ url_for('delete_student_account', student_id=student.id) }}" style="display:inline;"
                           onsubmit="return confirm('Удалить аккаунт {{ student.account.username }}?');">
                         <button type="submit" class="btn-small btn-delete-soft">Удалить аккаунт</button>
                     </form>
                 {% endif %}
-
-                <!-- Удалить ученика -->
                 <form method="POST" action="{{ url_for('delete_student', student_id=student.id) }}"
                       onsubmit="return confirm('Удалить ученика {{ student.name }}?');" style="display:inline;">
                     <button type="submit" class="btn-delete">✕</button>
                 </form>
             </div>
 
-            <!-- Форма создания аккаунта (скрытая) -->
+            <!-- Просмотр данных для входа -->
+            {% if student.account %}
+            <div class="creds-view" id="creds-view-{{ student.id }}" style="display:none;">
+                <div class="creds-row">
+                    <span class="creds-label">Логин</span>
+                    <span class="creds-val">{{ student.account.username }}</span>
+                    <button type="button" class="btn-copy" onclick="copyText('{{ student.account.username }}', this)" title="Копировать">📋</button>
+                </div>
+                <div class="creds-row">
+                    <span class="creds-label">Пароль</span>
+                    <span class="creds-val creds-pass" id="creds-pass-{{ student.id }}">••••••</span>
+                    <button type="button" class="btn-eye" id="btn-eye-{{ student.id }}" onclick="togglePassView({{ student.id }})">👁</button>
+                </div>
+                <div class="creds-note">Пароль хранится зашифрованным. Если ученик забыл — удали аккаунт и создай новый.</div>
+            </div>
+            {% endif %}
+
+            <!-- Форма создания аккаунта -->
             {% if not student.account %}
             <div class="account-create-form" id="account-form-{{ student.id }}" style="display:none;">
                 <form method="POST" action="{{ url_for('create_student_account', student_id=student.id) }}">
-                    <input type="text" name="username" placeholder="Логин" required autocomplete="off">
-                    <input type="text" name="password" placeholder="Пароль" required autocomplete="off">
-                    <div style="display:flex;gap:6px;margin-top:6px;">
+                    <div class="gen-row">
+                        <input type="text" name="username" id="uname-{{ student.id }}" placeholder="Логин" required autocomplete="off">
+                        <input type="text" name="password" id="upass-{{ student.id }}" placeholder="Пароль" required autocomplete="off">
+                        <button type="button" class="btn-generate" onclick="generateCreds({{ student.id }})" title="Сгенерировать случайные">🎲</button>
+                    </div>
+                    <div id="gen-preview-{{ student.id }}" class="gen-preview" style="display:none;"></div>
+                    <div style="display:flex;gap:6px;margin-top:8px;">
                         <button type="submit" class="btn-primary" style="flex:1;">Создать</button>
                         <button type="button" class="btn-small" onclick="toggleAccountForm({{ student.id }})">Отмена</button>
                     </div>
                 </form>
             </div>
             {% endif %}
+
         </div>
         {% endfor %}
     </div>
@@ -78,80 +98,97 @@
 </div>
 
 <style>
-.student-card {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 14px;
-}
-.student-account-status {
-    margin-top: -4px;
-}
-.account-badge {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 20px;
-    font-family: var(--font-mono, monospace);
-}
-.account-active  { background: #d1fae5; color: #065f46; }
-.account-blocked { background: #fee2e2; color: #991b1b; }
-.account-none    { background: var(--bg-app, #f5f6fa); color: var(--text-tertiary, #999); }
+.student-card { display:flex; flex-direction:column; gap:8px; padding:14px; }
+.student-account-status { margin-top:-4px; }
+.account-badge { display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:20px; font-family:var(--font-mono,monospace); }
+.account-active  { background:#d1fae5; color:#065f46; }
+.account-blocked { background:#fee2e2; color:#991b1b; }
+.account-none    { background:var(--bg-app,#f5f6fa); color:var(--text-tertiary,#999); }
+.student-actions { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.btn-small { padding:4px 10px; font-size:12px; font-weight:600; font-family:var(--font-main,inherit); border:1px solid var(--border-color,#e2e5ec); border-radius:6px; background:var(--bg-app,#f5f6fa); color:var(--text-secondary,#666); cursor:pointer; transition:all 0.12s; white-space:nowrap; }
+.btn-small:hover { background:var(--bg-surface-hover,#eee); }
+.btn-create-account { color:var(--primary,#4758d6); border-color:var(--primary-container,#dde); background:var(--primary-container,#eef); }
+.btn-show-creds { color:#7c3aed; border-color:#ddd6fe; background:#f5f3ff; }
+.btn-show-creds:hover { background:#ddd6fe; }
+.btn-warn  { color:#d97706; border-color:#fde68a; background:#fffbeb; }
+.btn-warn:hover { background:#fde68a; }
+.btn-ok    { color:#059669; border-color:#a7f3d0; background:#ecfdf5; }
+.btn-ok:hover { background:#a7f3d0; }
+.btn-delete-soft { color:#ef4444; border-color:#fecaca; background:#fef2f2; }
+.btn-delete-soft:hover { background:#fecaca; }
 
-.student-actions {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-}
-.btn-small {
-    padding: 4px 10px;
-    font-size: 12px;
-    font-weight: 600;
-    font-family: var(--font-main, inherit);
-    border: 1px solid var(--border-color, #e2e5ec);
-    border-radius: 6px;
-    background: var(--bg-app, #f5f6fa);
-    color: var(--text-secondary, #666);
-    cursor: pointer;
-    transition: all 0.12s;
-    white-space: nowrap;
-}
-.btn-small:hover { background: var(--bg-surface-hover, #eee); }
-.btn-create-account { color: var(--primary, #4758d6); border-color: var(--primary-container, #dde); background: var(--primary-container, #eef); }
-.btn-warn  { color: #d97706; border-color: #fde68a; background: #fffbeb; }
-.btn-warn:hover { background: #fde68a; }
-.btn-ok    { color: #059669; border-color: #a7f3d0; background: #ecfdf5; }
-.btn-ok:hover { background: #a7f3d0; }
-.btn-delete-soft { color: #ef4444; border-color: #fecaca; background: #fef2f2; }
-.btn-delete-soft:hover { background: #fecaca; }
+/* Данные для входа */
+.creds-view { background:var(--bg-app,#f5f6fa); border:1px solid var(--border-color,#e2e5ec); border-radius:8px; padding:10px 12px; display:flex; flex-direction:column; gap:6px; }
+.creds-row { display:flex; align-items:center; gap:8px; }
+.creds-label { font-size:11px; font-weight:700; color:var(--text-tertiary,#999); text-transform:uppercase; letter-spacing:0.05em; min-width:44px; }
+.creds-val { font-size:13px; font-family:var(--font-mono,monospace); font-weight:600; color:var(--text-primary,#1a1d2e); flex:1; }
+.creds-pass { letter-spacing:2px; }
+.btn-eye, .btn-copy { border:none; background:transparent; cursor:pointer; font-size:14px; padding:2px 4px; border-radius:4px; transition:background 0.1s; }
+.btn-eye:hover, .btn-copy:hover { background:var(--border-light,#eee); }
+.creds-note { font-size:11px; color:var(--text-tertiary,#999); line-height:1.5; padding-top:6px; border-top:1px solid var(--border-light,#eee); }
 
-.account-create-form {
-    margin-top: 4px;
-    padding: 10px;
-    background: var(--bg-app, #f5f6fa);
-    border-radius: 8px;
-    border: 1px solid var(--border-color, #e2e5ec);
-}
-.account-create-form input {
-    width: 100%;
-    box-sizing: border-box;
-    margin-bottom: 6px;
-    padding: 7px 10px;
-    font-size: 13px;
-    border: 1px solid var(--border-color, #e2e5ec);
-    border-radius: 6px;
-    background: var(--bg-surface, #fff);
-    font-family: var(--font-main, inherit);
-}
+/* Форма создания */
+.account-create-form { padding:10px; background:var(--bg-app,#f5f6fa); border-radius:8px; border:1px solid var(--border-color,#e2e5ec); }
+.gen-row { display:flex; gap:6px; align-items:center; }
+.gen-row input { flex:1; padding:7px 10px; font-size:13px; border:1px solid var(--border-color,#e2e5ec); border-radius:6px; background:var(--bg-surface,#fff); font-family:var(--font-mono,monospace); min-width:0; }
+.btn-generate { width:34px; height:34px; border:1px solid var(--border-color,#e2e5ec); border-radius:8px; background:var(--bg-surface,#fff); font-size:18px; cursor:pointer; flex-shrink:0; transition:all 0.15s; display:flex; align-items:center; justify-content:center; }
+.btn-generate:hover { background:#fef9c3; border-color:#fde68a; transform:rotate(20deg) scale(1.1); }
+.gen-preview { margin-top:6px; padding:6px 10px; background:#f0fdf4; border:1px solid #a7f3d0; border-radius:6px; font-size:12px; font-family:var(--font-mono,monospace); color:#065f46; }
 </style>
 
 <script>
 function toggleAccountForm(studentId) {
-    const form = document.getElementById('account-form-' + studentId);
-    if (!form) return;
-    form.style.display = form.style.display === 'none' ? '' : 'none';
+    const el = document.getElementById('account-form-' + studentId);
+    if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
+function toggleCredsView(studentId) {
+    const el = document.getElementById('creds-view-' + studentId);
+    if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
+function generateCreds(studentId) {
+    const adjs  = ['swift','brave','calm','kind','bold','wise','cool','fast','neat','keen'];
+    const nouns = ['tiger','eagle','panda','koala','whale','shark','fox','wolf','bear','lion'];
+    const adj  = adjs[Math.floor(Math.random() * adjs.length)];
+    const noun = nouns[Math.floor(Math.random() * nouns.length)];
+    const num  = Math.floor(Math.random() * 90) + 10;
+
+    const login    = adj + '_' + noun;
+    const password = noun + num + adj.slice(0, 3);
+
+    document.getElementById('uname-' + studentId).value = login;
+    document.getElementById('upass-' + studentId).value = password;
+
+    const preview = document.getElementById('gen-preview-' + studentId);
+    preview.style.display = '';
+    preview.innerHTML = '✓ Логин: <b>' + login + '</b> &nbsp;|&nbsp; Пароль: <b>' + password + '</b> &nbsp;<span style="color:#6b7280;font-size:10px;">— запишите и передайте ученику</span>';
+}
+
+function copyText(text, btn) {
+    navigator.clipboard.writeText(text).then(function() {
+        var orig = btn.textContent;
+        btn.textContent = '✓';
+        setTimeout(function() { btn.textContent = orig; }, 1200);
+    });
+}
+
+function togglePassView(studentId) {
+    const passEl = document.getElementById('creds-pass-' + studentId);
+    const btn    = document.getElementById('btn-eye-' + studentId);
+    if (btn.dataset.shown === '1') {
+        passEl.textContent = '••••••';
+        passEl.style.fontSize = '';
+        passEl.style.color = '';
+        btn.dataset.shown = '0';
+        btn.textContent = '👁';
+    } else {
+        passEl.textContent = '(зашифрован — сбрось через «Удалить аккаунт»)';
+        passEl.style.fontSize = '10px';
+        passEl.style.color = 'var(--text-tertiary)';
+        btn.dataset.shown = '1';
+        btn.textContent = '🙈';
+    }
 }
 </script>
 {% endblock %}
