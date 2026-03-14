@@ -103,10 +103,8 @@
   let activePriority = 'all';
   let activeMode = 'card';
 
-  const PROGRESS_KEY = 'phrases_progress_v2';
   let progress = {};
-  const STUDENT_ID = typeof student !== 'undefined' ? {{ student.id }} : 0;
-  const SECTION_DONE_KEY = `phrases_sections_done_${STUDENT_ID}`;
+  const STUDENT_ID = {{ student.id }};
   let sectionsDone = {};
 
   const sectionIcons = {
@@ -121,8 +119,26 @@
   }
 
   async function loadData() {
-    try { progress = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}'); } catch { progress = {}; }
-    try { sectionsDone = JSON.parse(localStorage.getItem(SECTION_DONE_KEY) || '{}'); } catch { sectionsDone = {}; }
+    // Загружаем секции и прогресс из БД
+    try {
+      const [secRes, itemRes] = await Promise.all([
+        fetch('/api/sections/get', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ student_id: STUDENT_ID, trainer: 'phrases' })
+        }),
+        fetch('/api/items/get', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ student_id: STUDENT_ID, trainer: 'phrases' })
+        })
+      ]);
+      const secData = await secRes.json();
+      const itemData = await itemRes.json();
+      if (secData.ok) sectionsDone = secData.sections;
+      if (itemData.ok) progress = itemData.items;
+    } catch(e) { console.error('Load state error', e); }
+
     try {
       const res = await fetch('{{ url_for("static", filename="data/phrases.json") }}');
       if (!res.ok) throw new Error();
@@ -161,20 +177,26 @@
     });
   }
 
-  function saveSectionsDone() {
-    try { localStorage.setItem(SECTION_DONE_KEY, JSON.stringify(sectionsDone)); } catch {}
-  }
-
-  function toggleSectionDone(section, e) {
+  async function toggleSectionDone(section, e) {
     e.stopPropagation();
-    if (section === 'all') return;
-    sectionsDone[section] = !sectionsDone[section];
-    saveSectionsDone();
-    buildSectionTabs();
-    // restore active section highlight
-    document.querySelectorAll('.ph-section-btn').forEach(b => {
-      if (b.dataset.section === activeSection) b.classList.add('active');
-    });
+    if (section === 'all' || !IS_TEACHER) return;
+
+    try {
+      const res = await fetch('/api/sections/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: STUDENT_ID, trainer: 'phrases', section: section })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        sectionsDone[section] = data.checked;
+        buildSectionTabs();
+        // restore active section highlight
+        document.querySelectorAll('.ph-section-btn').forEach(b => {
+          if (b.dataset.section === activeSection) b.classList.add('active');
+        });
+      }
+    } catch(e) { console.error('Toggle section error', e); }
   }
 
   function makeTabBtn(label, value, isActive) {
@@ -186,7 +208,11 @@
       cb.className = 'ph-section-cb' + (sectionsDone[value] ? ' checked' : '');
       cb.title = sectionsDone[value] ? 'Пройдено' : 'Отметить пройденным';
       cb.innerHTML = sectionsDone[value] ? '✓' : '';
-      cb.onclick = (e) => toggleSectionDone(value, e);
+      if (!IS_TEACHER) {
+        cb.style.pointerEvents = 'none';
+      } else {
+        cb.onclick = (e) => toggleSectionDone(value, e);
+      }
       btn.appendChild(cb);
       const lbl = document.createElement('span');
       lbl.textContent = label;
@@ -443,9 +469,41 @@
     const btnT = document.getElementById('btn-translate'); if (btnT) btnT.textContent = '👁 Перевод';
     const btnS = document.getElementById('btn-speak'); if (btnS) btnS.disabled = true;
   }
-  function markKnow() { if (!filtered.length) return; progress[filtered[curIdx].id] = 'know'; saveProgress(); renderCard(); setTimeout(() => next(), 400); }
-  function markDunno() { if (!filtered.length) return; delete progress[filtered[curIdx].id]; saveProgress(); renderCard(); setTimeout(() => next(), 300); }
-  function saveProgress() { try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress)); } catch {} }
+
+  async function markKnow() {
+    if (!filtered.length) return;
+    const itemId = filtered[curIdx].id;
+    progress[itemId] = 'know';
+    if (IS_TEACHER) {
+      try {
+        await fetch('/api/items/set', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ student_id: STUDENT_ID, trainer: 'phrases', item_id: itemId, status: 'know' })
+        });
+      } catch(e) {}
+    }
+    renderCard();
+    setTimeout(() => next(), 400);
+  }
+
+  async function markDunno() {
+    if (!filtered.length) return;
+    const itemId = filtered[curIdx].id;
+    delete progress[itemId];
+    if (IS_TEACHER) {
+      try {
+        await fetch('/api/items/set', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ student_id: STUDENT_ID, trainer: 'phrases', item_id: itemId, status: '' })
+        });
+      } catch(e) {}
+    }
+    renderCard();
+    setTimeout(() => next(), 300);
+  }
+
   function next() { if (!filtered.length) return; curIdx = (curIdx + 1) % filtered.length; renderCard(); }
   function prev() { if (!filtered.length) return; curIdx = (curIdx - 1 + filtered.length) % filtered.length; renderCard(); }
   function speakKor() {
@@ -461,7 +519,7 @@
     if (e.key === 'ArrowRight') next();
     else if (e.key === 'ArrowLeft') prev();
     else if (e.key === ' ') { e.preventDefault(); toggleAnswer(); }
-    else if (['k','л','Л'].includes(e.key)) markKnow();
+    else if (['k','л','Л'].includes(e.key)) { if (IS_TEACHER) markKnow(); }
     else if (['s','ы','Ы'].includes(e.key) && answerVisible) speakKor();
   });
 

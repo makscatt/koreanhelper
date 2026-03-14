@@ -8,11 +8,16 @@
     <h1>Заметки: {{ student.name }}</h1>
   </div>
 
-  <div class="history-list" id="historyList"></div>
+  <div class="history-list" id="historyList">
+    <div class="history-empty">Загрузка...</div>
+  </div>
 
 </div>
 
-<!-- DELETE MODAL -->
+{% set is_teacher = session.get('role') == 'teacher' %}
+
+<!-- DELETE MODAL (only for teacher) -->
+{% if is_teacher %}
 <div id="deleteModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
   <div style="background:#fff; border:2px solid #1a1a1a; padding:32px; max-width:320px; width:90%;">
     <p style="margin-bottom:24px; font-size:16px;">Удалить заметку?</p>
@@ -22,47 +27,78 @@
     </div>
   </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
   const studentId = "{{ student.id }}";
-  const historyKey = `history_${studentId}`;
   const historyList = document.getElementById('historyList');
-  const deleteModal = document.getElementById('deleteModal');
-  let pendingDeleteIndex = null;
+  const IS_TEACHER = "{{ session.get('role') }}" === 'teacher';
 
+  let notesData = [];
+  let pendingDeleteId = null;
+
+  {% if is_teacher %}
+  const deleteModal = document.getElementById('deleteModal');
   document.getElementById('modalCancel').onclick = () => {
     deleteModal.style.display = 'none';
-    pendingDeleteIndex = null;
+    pendingDeleteId = null;
   };
 
-  document.getElementById('modalConfirm').onclick = () => {
-    if (pendingDeleteIndex === null) return;
-    const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
-    history.splice(pendingDeleteIndex, 1);
-    localStorage.setItem(historyKey, JSON.stringify(history));
+  document.getElementById('modalConfirm').onclick = async () => {
+    if (pendingDeleteId === null) return;
+    try {
+      await fetch('/api/notes/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note_id: pendingDeleteId })
+      });
+    } catch(e) {}
     deleteModal.style.display = 'none';
-    pendingDeleteIndex = null;
-    renderHistory();
+    pendingDeleteId = null;
+    loadNotes();
   };
+  {% endif %}
+
+  async function loadNotes() {
+    try {
+      const res = await fetch('/api/notes/list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: parseInt(studentId) })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        notesData = data.notes;
+        renderHistory();
+      }
+    } catch(e) {
+      historyList.innerHTML = '<div class="history-empty">Ошибка загрузки</div>';
+    }
+  }
 
   function renderHistory() {
-    const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
     historyList.innerHTML = '';
 
-    if (history.length === 0) {
+    if (notesData.length === 0) {
       historyList.innerHTML = '<div class="history-empty">Заметок пока нет</div>';
       return;
     }
 
-    history.forEach((item, index) => {
+    notesData.forEach((item) => {
       const card = document.createElement('div');
       card.className = 'history-card';
+
+      let deleteBtn = '';
+      if (IS_TEACHER) {
+        deleteBtn = `<button class="history-delete-btn" onclick="event.stopPropagation(); confirmDelete(${item.id})" title="Удалить">🗑</button>`;
+      }
+
       card.innerHTML = `
         <div class="history-card-header" onclick="toggleNote(this)">
           <span class="history-card-date">▼ ${item.date}</span>
-          <button class="history-delete-btn" onclick="event.stopPropagation(); confirmDelete(${index})" title="Удалить">🗑</button>
+          ${deleteBtn}
         </div>
         <div class="history-card-text">${item.text}</div>
       `;
@@ -70,9 +106,11 @@
     });
   }
 
-  window.confirmDelete = function(index) {
-    pendingDeleteIndex = index;
+  window.confirmDelete = function(noteId) {
+    {% if is_teacher %}
+    pendingDeleteId = noteId;
     deleteModal.style.display = 'flex';
+    {% endif %}
   };
 
   window.toggleNote = function(header) {
@@ -83,6 +121,6 @@
     dateSpan.textContent = (text.classList.contains('open') ? '▼ ' : '▶ ') + dateSpan.textContent;
   };
 
-  renderHistory();
+  loadNotes();
 </script>
 {% endblock %}

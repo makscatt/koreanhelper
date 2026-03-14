@@ -27,7 +27,7 @@
     <div style="display:flex;justify-content:space-between;align-items:center;">
       <span style="font-size:12px;font-weight:500;color:var(--ink3);">Заметки</span>
       <div style="display:flex;gap:8px;">
-        <a href="{{ url_for('history', student_id=session.get('current_student_id')) if session.role == 'teacher' else '#' }}" class="note-save-btn">📋 История</a>
+        <a href="{{ url_for('history', student_id=session.get('current_student_id')) if session.role == 'teacher' else url_for('student_history') }}" class="note-save-btn">📋 История</a>
         <button id="note-save-btn" class="note-save-btn">💾 В архив</button>
       </div>
     </div>
@@ -704,15 +704,23 @@ trackPing();
 })();
 
 // ── NOTES ──
+const IS_TEACHER = "{{ session.get('role') }}" === 'teacher';
 const noteFab = document.getElementById('note-fab');
 const noteOverlay = document.getElementById('note-overlay');
 const noteArea = document.getElementById('note-area');
+const noteSaveBtn = document.getElementById('note-save-btn');
+
+// Ученик: скрываем кнопку архивации и делаем заметки readonly
+if (!IS_TEACHER) {
+  noteSaveBtn.style.display = 'none';
+  noteArea.readOnly = true;
+  noteArea.placeholder = 'Заметки учителя (только чтение)';
+}
 
 noteArea.value = localStorage.getItem(DRAFT_KEY) || '';
 noteArea.addEventListener('input', () => localStorage.setItem(DRAFT_KEY, noteArea.value));
 
-// Блокируем всплытие клавиатурных событий из textarea,
-// чтобы тренажёры не перехватывали пробел, Enter и т.д.
+// Блокируем всплытие клавиатурных событий из textarea
 noteArea.addEventListener('keydown', e => e.stopPropagation());
 noteArea.addEventListener('keyup', e => e.stopPropagation());
 noteArea.addEventListener('keypress', e => e.stopPropagation());
@@ -722,30 +730,32 @@ window.noteActive = false;
 noteFab.addEventListener('click', () => {
   noteOverlay.classList.add('active');
   window.noteActive = true;
-  noteArea.focus();
+  if (IS_TEACHER) noteArea.focus();
 });
 document.getElementById('note-close-btn').addEventListener('click', () => {
   noteOverlay.classList.remove('active');
   window.noteActive = false;
 });
 
-document.getElementById('note-save-btn').addEventListener('click', () => {
+noteSaveBtn.addEventListener('click', async () => {
   const text = noteArea.value.trim();
-  if (!text) return;
-  const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  if (!text || !IS_TEACHER) return;
   const now = new Date();
   const fullTime = now.toLocaleString('ru-RU') + ' (Тренажер)';
-  const todayStr = now.toLocaleDateString('ru-RU');
-  if (history.length > 0 && history[0].date.startsWith(todayStr)) {
-    history[0].text += '\n\n_____\n\n' + text;
-    history[0].date = fullTime;
-  } else {
-    history.unshift({ date: fullTime, text });
-  }
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-  const msg = document.getElementById('note-saved-msg');
-  msg.style.opacity = 1;
-  setTimeout(() => msg.style.opacity = 0, 1500);
+  try {
+    await fetch('/api/notes/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        student_id: parseInt(studentId),
+        text: text,
+        date: fullTime
+      })
+    });
+    const msg = document.getElementById('note-saved-msg');
+    msg.style.opacity = 1;
+    setTimeout(() => msg.style.opacity = 0, 1500);
+  } catch(e) { console.error('Note save error', e); }
 });
 
 // ── REPETITION COUNTER ──

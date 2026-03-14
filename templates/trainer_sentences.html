@@ -11,6 +11,18 @@
 
 <div style="max-width:860px;width:100%;">
 
+  <style>
+    .sent-check-btns { display:flex; gap:4px; align-items:center; }
+    .sent-check-btn {
+      width:32px; height:32px; border:1px solid var(--border-color,#e0e0e0);
+      border-radius:8px; background:var(--bg-surface,#fff); cursor:pointer;
+      font-size:14px; display:flex; align-items:center; justify-content:center;
+      transition: all 0.15s; opacity:0.5;
+    }
+    .sent-check-btn:hover { opacity:0.8; transform:scale(1.1); }
+    .sent-check-btn.active { opacity:1; border-color:var(--primary,#0b57d0); background:var(--primary-container,#d3e3fd); }
+  </style>
+
   <!-- TOPIK tabs -->
   <div class="topik-tabs">
     <button class="topik-btn active" data-topik="all" onclick="setTopik('all', this)">Все</button>
@@ -38,6 +50,10 @@
     <select id="topic-select" class="topic-select" onchange="setTopic(this.value)">
       <option value="">Все грамматики</option>
     </select>
+    <div class="sent-check-btns" id="sent-check-btns" style="display:none;">
+      <button class="sent-check-btn sent-check-done" id="btn-check-done" onclick="toggleGrammarCheck(activeTopic,'done')" title="Пройдено ✅">✅</button>
+      <button class="sent-check-btn sent-check-hw" id="btn-check-hw" onclick="toggleGrammarCheck(activeTopic,'homework')" title="Домашка 📝">📝</button>
+    </div>
     <div class="counter">
       <b id="cnt-cur">0</b> / <span id="cnt-total">0</span>
     </div>
@@ -95,9 +111,24 @@
   let allData = [], filtered = [], curIdx = 0, mode = 1;
   let answerVisible = false, activeTopik = 'all', activeTopic = '';
   const STUDENT_ID = {{ student.id }};
+  // IS_TEACHER уже объявлен в trainer_base.html
+
+  // Состояния грамматик: { grammar_id: 'done' | 'homework' | '' }
+  let grammarChecks = {};
 
   // ── LOAD ──
   async function loadData() {
+    // Загружаем состояния чекбоксов из БД
+    try {
+      const res = await fetch('/api/sections/get', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: STUDENT_ID, trainer: 'sentences' })
+      });
+      const data = await res.json();
+      if (data.ok) grammarChecks = data.sections;
+    } catch(e) {}
+
     try {
       const res = await fetch('/static/data/sentences.json');
       if (!res.ok) throw new Error();
@@ -108,6 +139,59 @@
     }
     buildTopicSelect();
     applyFilters();
+  }
+
+  // ── CHECKBOX TOGGLE ──
+  async function toggleGrammarCheck(grammarId, newStatus) {
+    if (!IS_TEACHER) return;
+
+    // Если текущий статус совпадает — снимаем (пустая строка)
+    const current = grammarChecks[grammarId] || '';
+    const finalStatus = current === newStatus ? '' : newStatus;
+
+    try {
+      // Используем items API — он поддерживает произвольные статусы
+      await fetch('/api/items/set', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          student_id: STUDENT_ID,
+          trainer: 'sentences',
+          item_id: grammarId,
+          status: finalStatus
+        })
+      });
+      if (finalStatus) {
+        grammarChecks[grammarId] = finalStatus;
+      } else {
+        delete grammarChecks[grammarId];
+      }
+    } catch(e) { console.error('Toggle error', e); }
+
+    buildTopicSelect();
+    // Восстанавливаем текущий выбор
+    document.getElementById('topic-select').value = activeTopic;
+    updateCheckBtns();
+  }
+
+  // Загрузка из items API вместо sections
+  async function loadChecks() {
+    try {
+      const res = await fetch('/api/items/get', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: STUDENT_ID, trainer: 'sentences' })
+      });
+      const data = await res.json();
+      if (data.ok) grammarChecks = data.items;
+    } catch(e) {}
+  }
+
+  function getCheckIcon(grammarId) {
+    const status = grammarChecks[grammarId] || '';
+    if (status === 'done') return '✅';
+    if (status === 'homework') return '📝';
+    return '';
   }
 
   // ── TOPIC SELECT ──
@@ -121,7 +205,8 @@
         seen.add(d.grammar_id);
         const opt = document.createElement('option');
         opt.value = d.grammar_id;
-        opt.textContent = d.title + ' — ' + d.category;
+        const icon = getCheckIcon(d.grammar_id);
+        opt.textContent = (icon ? icon + ' ' : '') + d.title + ' — ' + d.category;
         sel.appendChild(opt);
       }
     });
@@ -144,7 +229,23 @@
     applyFilters();
   }
 
-  function setTopic(val) { activeTopic = val; applyFilters(); }
+  function setTopic(val) {
+    activeTopic = val;
+    // Показываем кнопки чекбоксов только когда выбрана конкретная грамматика
+    const btns = document.getElementById('sent-check-btns');
+    btns.style.display = val ? 'flex' : 'none';
+    updateCheckBtns();
+    applyFilters();
+  }
+
+  function updateCheckBtns() {
+    if (!activeTopic) return;
+    const status = grammarChecks[activeTopic] || '';
+    const btnDone = document.getElementById('btn-check-done');
+    const btnHw = document.getElementById('btn-check-hw');
+    btnDone.classList.toggle('active', status === 'done');
+    btnHw.classList.toggle('active', status === 'homework');
+  }
 
   function applyFilters() {
     filtered = allData.filter(d => {
@@ -213,7 +314,6 @@
   function showAnswer() {
     answerVisible = true;
     document.getElementById('answer-block').classList.add('visible');
-    document.getElementById('exercise-card-body') && document.getElementById('exercise-card-body').classList.add('answer-open');
     document.querySelector('.exercise-card-body')?.classList.add('answer-open');
     document.getElementById('btn-answer').textContent = '🙈 Скрыть';
     document.getElementById('btn-speak').disabled = false;
@@ -284,7 +384,6 @@
       clear.classList.toggle('visible', q.length > 0);
       if (q.length < 1) { dropdown.classList.remove('visible'); return; }
 
-      // build unique grammar list from allData
       const seen = new Set();
       const items = [];
       const source = activeTopik === 'all' ? allData : allData.filter(d => d.topik === activeTopik);
@@ -307,7 +406,8 @@
       results.forEach(({ item }) => {
         const el = document.createElement('div');
         el.className = 'sent-search-result';
-        el.innerHTML = `<span>${highlight(item.title, q)}</span><span class="sent-search-meta">${item.category||''}</span>`;
+        const icon = getCheckIcon(item.grammar_id);
+        el.innerHTML = `<span>${icon ? icon + ' ' : ''}${highlight(item.title, q)}</span><span class="sent-search-meta">${item.category||''}</span>`;
         el.onclick = () => {
           activeTopic = item.grammar_id;
           document.getElementById('topic-select').value = item.grammar_id;
@@ -337,7 +437,7 @@
   }
 
   // ── INIT ──
-  loadData().then(() => {
+  loadChecks().then(() => loadData()).then(() => {
     document.querySelectorAll('.topik-btn[data-topik]').forEach(b => {
       const t = b.dataset.topik;
       if (t === 'all') return;

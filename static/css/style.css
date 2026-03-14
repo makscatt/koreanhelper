@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap');
 
 *,
 *::before,
@@ -2287,7 +2287,7 @@ details[open]>summary.grammar-nav-category::after {
   white-space: pre-wrap;
   line-height: 2;
   font-size: 1.05em;
-  font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   color: var(--text-primary);
 }
 
@@ -3834,7 +3834,7 @@ body[data-module="video"] .trainer-header {
 
 .ph-kor {
   font-size: 1.45rem; font-weight: 700; line-height: 1.5;
-  font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
 }
 .ph-kor .blank {
   display: inline-block; background: #fde68a; color: #92400e;
@@ -3924,7 +3924,7 @@ body[data-module="video"] .trainer-header {
 .ph-list-phrase { flex: 1; }
 .ph-list-kor {
   font-size: 1.1rem; font-weight: 700; line-height: 1.4;
-  font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
 }
 .ph-list-kor .blank { display: inline-block; background: #fde68a; color: #92400e; border-radius: 4px; padding: 0 4px; }
 .ph-list-rus { font-size: 0.8rem; color: #8b92a0; font-weight: 500; margin-top: 2px; line-height: 1.4; }
@@ -4095,7 +4095,7 @@ body[data-module="video"] .trainer-header {
 .ph-bubble.t  { background: #eff4ff; border: 1.5px solid #bfcfff; align-self: flex-start; }
 .ph-bubble.s  { background: #f0fdf4; border: 1.5px solid #bbf7d0; align-self: flex-end; }
 .ph-bubble.na { background: #f8fafc; border: 1.5px solid #e4e8ef; align-self: flex-start; font-style: italic; color: #8b92a0; font-size: 0.83rem; }
-.ph-kor { font-size: 1.25rem; font-weight: 700; line-height: 1.4; font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; }
+.ph-kor { font-size: 1.25rem; font-weight: 700; line-height: 1.4; font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
 .ph-kor .blank { display: inline-block; background: #fde68a; color: #92400e; border-radius: 4px; padding: 0 5px; font-size: 1.1rem; }
 .ph-rus { font-size: 0.84rem; color: #8b92a0; font-weight: 500; margin-top: 3px; line-height: 1.4; opacity: 0; transform: translateY(4px); transition: opacity 0.25s, transform 0.25s; }
 .ph-rus.visible { opacity: 1; transform: translateY(0); }
@@ -4137,7 +4137,7 @@ body[data-module="video"] .trainer-header {
 .ph-list-turn-role.s { color: #16a34a; }
 .ph-list-turn-role.na { color: #8b92a0; }
 .ph-list-phrase { flex: 1; }
-.ph-list-kor { font-size: 1rem; font-weight: 700; line-height: 1.4; font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; }
+.ph-list-kor { font-size: 1rem; font-weight: 700; line-height: 1.4; font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
 .ph-list-kor .blank { display: inline-block; background: #fde68a; color: #92400e; border-radius: 4px; padding: 0 4px; }
 .ph-list-rus { font-size: 0.77rem; color: #8b92a0; font-weight: 500; margin-top: 1px; line-height: 1.4; }
 

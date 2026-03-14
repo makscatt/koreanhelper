@@ -1,24 +1,24 @@
 ======================================================================
 АНАЛИЗ ПРОЕКТА: TECHERCAB 2.0
 Путь: C:\Users\MakscattSchool\Desktop\techercab 2.0
-Дата анализа: 2026-03-10 11:35
+Дата анализа: 2026-03-14 11:13
 Всего файлов: 44
 ======================================================================
 
 
 🔧 ТЕХНОЛОГИЧЕСКИЙ СТЕК
 ----------------------------------------
-  Flask
+  Flask, PostgreSQL
 
 
 📁 СТРУКТУРА ПРОЕКТА
 ----------------------------------------
   analyze_project.py  (37.0 KB)
-  app.py  (14.9 KB)
+  app.py  (22.3 KB)
   get-pip.py  (2142.0 KB)
   korean-roadmap.html  (19.8 KB)
   README.md  (1.7 KB)
-  requirements.txt  (53 B)
+  requirements.txt  (77 B)
   static\css\style.css  (100.1 KB)
   static\css\style1.css  (41.6 KB)
   static\data\cards.json  (20.8 KB)
@@ -30,20 +30,20 @@
   static\data\texts.json  (75.5 KB)
   static\data\verbs.json  (21.5 KB)
   static\data\words-data.json  (20.6 KB)
-  templates\base.html  (10.4 KB)
+  templates\base.html  (11.5 KB)
   templates\dashboard.html  (1.4 KB)
   templates\history.html  (3.2 KB)
-  templates\login.html  (839 B)
+  templates\login.html  (2.5 KB)
   templates\register.html  (871 B)
-  templates\select_student.html  (1.1 KB)
+  templates\select_student.html  (11.0 KB)
   templates\trainer_alphabet.html  (6.4 KB)
-  templates\trainer_base.html  (39.8 KB)
+  templates\trainer_base.html  (40.1 KB)
   templates\trainer_cards.html  (13.4 KB)
   templates\trainer_colors.html  (1.9 KB)
   templates\trainer_dates.html  (917 B)
   templates\trainer_grammar.html  (32.4 KB)
   templates\trainer_locations.html  (3.8 KB)
-  templates\trainer_menu.html  (3.8 KB)
+  templates\trainer_menu.html  (3.5 KB)
   templates\trainer_money.html  (1.8 KB)
   templates\trainer_numbers.html  (2.0 KB)
   templates\trainer_phrases.html  (21.1 KB)
@@ -75,6 +75,8 @@
        - Flask==3.0.0
        - Flask-SQLAlchemy==3.1.1
        - Werkzeug==3.0.1
+       - gunicorn
+       - psycopg2-binary
 
 
 ⚙️  КОНФИГУРАЦИЯ
@@ -124,23 +126,47 @@
   📄 app.py
      class Teacher(db.Model)
      class Student(db.Model)
+     class StudentAccount(db.Model)
+       """Логин/пароль для ученика — создаётся учителем"""
      class Note(db.Model)
      class ModuleProgress(db.Model)
        """Прогресс ученика по каждому модулю-тренажёру"""
      class SessionLog(db.Model)
        """Лог каждого посещения тренажёра"""
+     def teacher_required(f)
+       """Маршрут доступен только учителю"""
+     def student_required(f)
+       """Маршрут доступен только ученику"""
+     def login_required(f)
+       """Маршрут доступен любому авторизованному пользователю"""
+     def _owns_student(student_id)
+       """Проверяет, что текущий учитель владеет этим учеником"""
      def index()
      def login()
      def register()
+       """Регистрация учителей — только учителя регистрируются сами"""
      def logout()
      def select_student()
      def add_student()
      def delete_student(student_id)
+     def create_student_account(student_id)
+       """Учитель создаёт логин/пароль для ученика"""
+     def toggle_student_account(student_id)
+       """Блокировка/разблокировка аккаунта ученика"""
+     def delete_student_account(student_id)
+       """Удалить аккаунт ученика (ученик останется, просто без логина)"""
      def dashboard(student_id)
+     def student_trainers()
+       """Главная страница ученика — меню тренажёров"""
+     def student_trainer(module)
+       """Универсальный маршрут для ученика — любой тренажёр по имени"""
+     def _get_student_id_from_request(data)
+       """Определяет student_id в зависимости от роли"""
      def progress_ping()
        """Вызывается при входе в тренажёр — логирует начало сессии"""
      def progress_update()
        """Вызывается при каждом выполненном упражнении"""
+     def _teacher_trainer(student_id, template)
      def trainer_menu(student_id)
      def trainer_alphabet(student_id)
      def trainer_numbers(student_id)
@@ -173,7 +199,12 @@
   [ROUTE] /students  →  select_student()  (app.py)
   [POST] /students/add  →  add_student()  (app.py)
   [POST] /students/<int:student_id>/delete  →  delete_student()  (app.py)
+  [POST] /students/<int:student_id>/create-account  →  create_student_account()  (app.py)
+  [POST] /students/<int:student_id>/toggle-account  →  toggle_student_account()  (app.py)
+  [POST] /students/<int:student_id>/delete-account  →  delete_student_account()  (app.py)
   [ROUTE] /dashboard/<int:student_id>  →  dashboard()  (app.py)
+  [ROUTE] /my/trainers  →  student_trainers()  (app.py)
+  [ROUTE] /my/trainer/<module>  →  student_trainer()  (app.py)
   [POST] /api/progress/ping  →  progress_ping()  (app.py)
   [POST] /api/progress/update  →  progress_update()  (app.py)
   [ROUTE] /student/<int:student_id>/trainers  →  trainer_menu()  (app.py)
@@ -207,15 +238,15 @@
 
   📄 templates\base.html
      title: {% block title %}한국어{% endblock %}
-     blocks: extra_css, title, extra_js, content
+     blocks: title, extra_js, extra_css, content
 
   📄 templates\dashboard.html
      extends: base.html
-     blocks: extra_js, title, content
+     blocks: title, extra_js, content
 
   📄 templates\history.html
      extends: base.html
-     blocks: extra_js, title, content
+     blocks: title, extra_js, content
 
   📄 templates\login.html
      extends: base.html
@@ -236,8 +267,8 @@
 
   📄 templates\trainer_base.html
      extends: base.html
-     blocks: extra_js, trainer_js, trainer_content, content
-     api_calls: /api/progress/update, /static/data/grammar.json, /api/progress/ping
+     blocks: trainer_js, extra_js, trainer_content, content
+     api_calls: /api/progress/ping, /static/data/grammar.json, /api/progress/update
 
   📄 templates\trainer_cards.html
      extends: trainer_base.html

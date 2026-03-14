@@ -33,13 +33,14 @@ class StudentAccount(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
-    password_plain = db.Column(db.String(200), nullable=False, default="")  # открытый пароль для учителя
+    password_plain = db.Column(db.String(200), nullable=False, default="")
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False, unique=True)
-    is_active = db.Column(db.Boolean, default=True)  # учитель может заблокировать
+    is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     student = db.relationship('Student', backref=db.backref('account', uselist=False))
 
 class Note(db.Model):
+    """Заметки учителя по ученику (архив)"""
     id = db.Column(db.Integer, primary_key=True)
     text = db.Column(db.Text, nullable=False)
     date = db.Column(db.String(50), nullable=False)
@@ -65,6 +66,30 @@ class SessionLog(db.Model):
     exercises_done = db.Column(db.Integer, default=0)
     duration_sec = db.Column(db.Integer, default=0)
     started_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class SectionCheck(db.Model):
+    """Чекбоксы секций тренажёров (например 'phrases:start' = пройдено)"""
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    trainer = db.Column(db.String(50), nullable=False)   # например 'phrases'
+    section = db.Column(db.String(100), nullable=False)   # например 'start'
+    checked = db.Column(db.Boolean, default=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    __table_args__ = (
+        db.UniqueConstraint('student_id', 'trainer', 'section', name='uq_section_check'),
+    )
+
+class TrainerItemProgress(db.Model):
+    """Прогресс по отдельным элементам тренажёра (знаю/не знаю фразу и т.д.)"""
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    trainer = db.Column(db.String(50), nullable=False)    # например 'phrases'
+    item_id = db.Column(db.String(200), nullable=False)   # id элемента из JSON
+    status = db.Column(db.String(20), nullable=False)     # 'know' / 'dunno' и т.д.
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    __table_args__ = (
+        db.UniqueConstraint('student_id', 'trainer', 'item_id', name='uq_item_progress'),
+    )
 
 
 # ══════════════════════════════════════════
@@ -123,7 +148,7 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        login_as = request.form.get('login_as', 'teacher')  # скрытое поле в форме
+        login_as = request.form.get('login_as', 'teacher')
 
         if login_as == 'teacher':
             teacher = Teacher.query.filter_by(username=username).first()
@@ -206,12 +231,13 @@ def add_student():
 def delete_student(student_id):
     student = _owns_student(student_id)
     if student:
-        # Удаляем аккаунт ученика если есть
         if student.account:
             db.session.delete(student.account)
         Note.query.filter_by(student_id=student_id).delete()
         ModuleProgress.query.filter_by(student_id=student_id).delete()
         SessionLog.query.filter_by(student_id=student_id).delete()
+        SectionCheck.query.filter_by(student_id=student_id).delete()
+        TrainerItemProgress.query.filter_by(student_id=student_id).delete()
         db.session.delete(student)
         db.session.commit()
         flash('Ученик удалён', 'success')
@@ -343,6 +369,13 @@ def student_trainer(module):
         return redirect(url_for('student_trainers'))
     return render_template(template, student=student, student_mode=True)
 
+@app.route('/my/history')
+@student_required
+def student_history():
+    """Ученик смотрит свои заметки (только чтение)"""
+    student = Student.query.get(session['student_id'])
+    return render_template('history.html', student=student, student_mode=True)
+
 
 # ══════════════════════════════════════════
 #  PROGRESS API  (работает для обоих ролей)
@@ -402,6 +435,184 @@ def progress_update():
 
     db.session.commit()
     return jsonify({'ok': True, 'total': prog.exercises_done})
+
+
+# ══════════════════════════════════════════
+#  NOTES API  (заметки — из localStorage в БД)
+# ══════════════════════════════════════════
+
+@app.route('/api/notes/list', methods=['POST'])
+@login_required
+def notes_list():
+    """Получить все заметки ученика"""
+    data = request.get_json() or {}
+    student_id = _get_student_id_from_request(data)
+    if not student_id:
+        return jsonify({'ok': False}), 400
+
+    notes = Note.query.filter_by(student_id=student_id)\
+        .order_by(Note.created_at.desc()).all()
+    return jsonify({'ok': True, 'notes': [
+        {'id': n.id, 'text': n.text, 'date': n.date}
+        for n in notes
+    ]})
+
+@app.route('/api/notes/save', methods=['POST'])
+@login_required
+def notes_save():
+    """Сохранить заметку в архив (только учитель)"""
+    if session.get('role') != 'teacher':
+        return jsonify({'ok': False, 'error': 'readonly'}), 403
+
+    data = request.get_json()
+    student_id = data.get('student_id')
+    text = data.get('text', '').strip()
+    date_str = data.get('date', '')
+
+    if not student_id or not text:
+        return jsonify({'ok': False}), 400
+
+    # Проверяем — если есть заметка за сегодня, дописываем к ней
+    today = datetime.utcnow().strftime('%d.%m.%Y')
+    existing = Note.query.filter_by(student_id=student_id)\
+        .filter(Note.date.like(f'{today}%'))\
+        .order_by(Note.created_at.desc()).first()
+
+    if existing:
+        existing.text += '\n\n_____\n\n' + text
+        existing.date = date_str
+    else:
+        note = Note(text=text, date=date_str, student_id=student_id)
+        db.session.add(note)
+
+    db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/api/notes/delete', methods=['POST'])
+@login_required
+def notes_delete():
+    """Удалить заметку (только учитель)"""
+    if session.get('role') != 'teacher':
+        return jsonify({'ok': False, 'error': 'readonly'}), 403
+
+    data = request.get_json()
+    note_id = data.get('note_id')
+    if not note_id:
+        return jsonify({'ok': False}), 400
+
+    Note.query.filter_by(id=note_id).delete()
+    db.session.commit()
+    return jsonify({'ok': True})
+
+
+# ══════════════════════════════════════════
+#  SECTION CHECKS API  (чекбоксы секций)
+# ══════════════════════════════════════════
+
+@app.route('/api/sections/get', methods=['POST'])
+@login_required
+def sections_get():
+    """Получить состояние чекбоксов секций для тренажёра"""
+    data = request.get_json() or {}
+    student_id = _get_student_id_from_request(data)
+    trainer = data.get('trainer', '')
+    if not student_id or not trainer:
+        return jsonify({'ok': False}), 400
+
+    checks = SectionCheck.query.filter_by(
+        student_id=student_id, trainer=trainer
+    ).all()
+    result = {c.section: c.checked for c in checks}
+    return jsonify({'ok': True, 'sections': result})
+
+@app.route('/api/sections/toggle', methods=['POST'])
+@login_required
+def sections_toggle():
+    """Переключить чекбокс секции (только учитель)"""
+    if session.get('role') != 'teacher':
+        return jsonify({'ok': False, 'error': 'readonly'}), 403
+
+    data = request.get_json()
+    student_id = data.get('student_id')
+    trainer = data.get('trainer', '')
+    section = data.get('section', '')
+    if not student_id or not trainer or not section:
+        return jsonify({'ok': False}), 400
+
+    check = SectionCheck.query.filter_by(
+        student_id=student_id, trainer=trainer, section=section
+    ).first()
+
+    if check:
+        check.checked = not check.checked
+        check.updated_at = datetime.utcnow()
+    else:
+        check = SectionCheck(
+            student_id=student_id, trainer=trainer,
+            section=section, checked=True
+        )
+        db.session.add(check)
+
+    db.session.commit()
+    return jsonify({'ok': True, 'checked': check.checked})
+
+
+# ══════════════════════════════════════════
+#  TRAINER ITEM PROGRESS API  (знаю/не знаю)
+# ══════════════════════════════════════════
+
+@app.route('/api/items/get', methods=['POST'])
+@login_required
+def items_get():
+    """Получить прогресс по элементам тренажёра"""
+    data = request.get_json() or {}
+    student_id = _get_student_id_from_request(data)
+    trainer = data.get('trainer', '')
+    if not student_id or not trainer:
+        return jsonify({'ok': False}), 400
+
+    items = TrainerItemProgress.query.filter_by(
+        student_id=student_id, trainer=trainer
+    ).all()
+    result = {i.item_id: i.status for i in items}
+    return jsonify({'ok': True, 'items': result})
+
+@app.route('/api/items/set', methods=['POST'])
+@login_required
+def items_set():
+    """Установить статус элемента (только учитель)"""
+    if session.get('role') != 'teacher':
+        return jsonify({'ok': False, 'error': 'readonly'}), 403
+
+    data = request.get_json()
+    student_id = data.get('student_id')
+    trainer = data.get('trainer', '')
+    item_id = data.get('item_id', '')
+    status = data.get('status', '')  # 'know' или пустая строка для удаления
+    if not student_id or not trainer or not item_id:
+        return jsonify({'ok': False}), 400
+
+    existing = TrainerItemProgress.query.filter_by(
+        student_id=student_id, trainer=trainer, item_id=item_id
+    ).first()
+
+    if not status:
+        # Удаляем (не знаю)
+        if existing:
+            db.session.delete(existing)
+    else:
+        if existing:
+            existing.status = status
+            existing.updated_at = datetime.utcnow()
+        else:
+            existing = TrainerItemProgress(
+                student_id=student_id, trainer=trainer,
+                item_id=item_id, status=status
+            )
+            db.session.add(existing)
+
+    db.session.commit()
+    return jsonify({'ok': True})
 
 
 # ══════════════════════════════════════════
@@ -539,7 +750,7 @@ with app.app_context():
         db.session.commit()
         print("Миграция: добавлен столбец password_plain")
     except Exception:
-        db.session.rollback()  # столбец уже существует — ок
+        db.session.rollback()
     if not Teacher.query.filter_by(username='admin').first():
         teacher = Teacher(
             username='admin',
