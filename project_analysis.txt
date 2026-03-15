@@ -1,7 +1,7 @@
 ======================================================================
 АНАЛИЗ ПРОЕКТА: TECHERCAB 2.0
 Путь: C:\Users\MakscattSchool\Desktop\techercab 2.0
-Дата анализа: 2026-03-14 11:13
+Дата анализа: 2026-03-15 08:20
 Всего файлов: 44
 ======================================================================
 
@@ -14,7 +14,7 @@
 📁 СТРУКТУРА ПРОЕКТА
 ----------------------------------------
   analyze_project.py  (37.0 KB)
-  app.py  (22.3 KB)
+  app.py  (30.3 KB)
   get-pip.py  (2142.0 KB)
   korean-roadmap.html  (19.8 KB)
   README.md  (1.7 KB)
@@ -32,12 +32,12 @@
   static\data\words-data.json  (20.6 KB)
   templates\base.html  (11.5 KB)
   templates\dashboard.html  (1.4 KB)
-  templates\history.html  (3.2 KB)
+  templates\history.html  (4.0 KB)
   templates\login.html  (2.5 KB)
   templates\register.html  (871 B)
   templates\select_student.html  (11.0 KB)
   templates\trainer_alphabet.html  (6.4 KB)
-  templates\trainer_base.html  (40.1 KB)
+  templates\trainer_base.html  (40.3 KB)
   templates\trainer_cards.html  (13.4 KB)
   templates\trainer_colors.html  (1.9 KB)
   templates\trainer_dates.html  (917 B)
@@ -46,11 +46,11 @@
   templates\trainer_menu.html  (3.5 KB)
   templates\trainer_money.html  (1.8 KB)
   templates\trainer_numbers.html  (2.0 KB)
-  templates\trainer_phrases.html  (21.1 KB)
+  templates\trainer_phrases.html  (22.5 KB)
   templates\trainer_pictures.html  (9.2 KB)
   templates\trainer_quiz.html  (20.5 KB)
-  templates\trainer_sentences.html  (13.2 KB)
-  templates\trainer_text.html  (10.8 KB)
+  templates\trainer_sentences.html  (17.1 KB)
+  templates\trainer_text.html  (18.9 KB)
   templates\trainer_time.html  (1.1 KB)
   templates\trainer_verbs.html  (3.7 KB)
   templates\trainer_video.html  (6.1 KB)
@@ -129,10 +129,15 @@
      class StudentAccount(db.Model)
        """Логин/пароль для ученика — создаётся учителем"""
      class Note(db.Model)
+       """Заметки учителя по ученику (архив)"""
      class ModuleProgress(db.Model)
        """Прогресс ученика по каждому модулю-тренажёру"""
      class SessionLog(db.Model)
        """Лог каждого посещения тренажёра"""
+     class SectionCheck(db.Model)
+       """Чекбоксы секций тренажёров (например 'phrases:start' = пройдено)"""
+     class TrainerItemProgress(db.Model)
+       """Прогресс по отдельным элементам тренажёра (знаю/не знаю фразу и т.д.)"""
      def teacher_required(f)
        """Маршрут доступен только учителю"""
      def student_required(f)
@@ -160,12 +165,28 @@
        """Главная страница ученика — меню тренажёров"""
      def student_trainer(module)
        """Универсальный маршрут для ученика — любой тренажёр по имени"""
+     def student_history()
+       """Ученик смотрит свои заметки (только чтение)"""
      def _get_student_id_from_request(data)
        """Определяет student_id в зависимости от роли"""
      def progress_ping()
        """Вызывается при входе в тренажёр — логирует начало сессии"""
      def progress_update()
        """Вызывается при каждом выполненном упражнении"""
+     def notes_list()
+       """Получить все заметки ученика"""
+     def notes_save()
+       """Сохранить заметку в архив (только учитель)"""
+     def notes_delete()
+       """Удалить заметку (только учитель)"""
+     def sections_get()
+       """Получить состояние чекбоксов секций для тренажёра"""
+     def sections_toggle()
+       """Переключить чекбокс секции (только учитель)"""
+     def items_get()
+       """Получить прогресс по элементам тренажёра"""
+     def items_set()
+       """Установить статус элемента (только учитель)"""
      def _teacher_trainer(student_id, template)
      def trainer_menu(student_id)
      def trainer_alphabet(student_id)
@@ -205,8 +226,16 @@
   [ROUTE] /dashboard/<int:student_id>  →  dashboard()  (app.py)
   [ROUTE] /my/trainers  →  student_trainers()  (app.py)
   [ROUTE] /my/trainer/<module>  →  student_trainer()  (app.py)
+  [ROUTE] /my/history  →  student_history()  (app.py)
   [POST] /api/progress/ping  →  progress_ping()  (app.py)
   [POST] /api/progress/update  →  progress_update()  (app.py)
+  [POST] /api/notes/list  →  notes_list()  (app.py)
+  [POST] /api/notes/save  →  notes_save()  (app.py)
+  [POST] /api/notes/delete  →  notes_delete()  (app.py)
+  [POST] /api/sections/get  →  sections_get()  (app.py)
+  [POST] /api/sections/toggle  →  sections_toggle()  (app.py)
+  [POST] /api/items/get  →  items_get()  (app.py)
+  [POST] /api/items/set  →  items_set()  (app.py)
   [ROUTE] /student/<int:student_id>/trainers  →  trainer_menu()  (app.py)
   [ROUTE] /student/<int:student_id>/trainer/alphabet  →  trainer_alphabet()  (app.py)
   [ROUTE] /student/<int:student_id>/trainer/numbers  →  trainer_numbers()  (app.py)
@@ -238,136 +267,149 @@
 
   📄 templates\base.html
      title: {% block title %}한국어{% endblock %}
-     blocks: title, extra_js, extra_css, content
+     blocks: extra_css, content, title, extra_js
 
   📄 templates\dashboard.html
      extends: base.html
-     blocks: title, extra_js, content
+     blocks: content, title, extra_js
 
   📄 templates\history.html
      extends: base.html
-     blocks: title, extra_js, content
+     blocks: content, title, extra_js
+     api_calls: /api/notes/delete, /api/notes/list
 
   📄 templates\login.html
      extends: base.html
-     blocks: title, content
+     blocks: content, title
 
   📄 templates\register.html
      extends: base.html
-     blocks: title, content
+     blocks: content, title
 
   📄 templates\select_student.html
      extends: base.html
-     blocks: title, content
+     blocks: content, title
      forms: {{ url_for(
 
   📄 templates\trainer_alphabet.html
      extends: trainer_base.html
-     blocks: title, trainer_js, trainer_content
+     blocks: trainer_content, trainer_js, title
 
   📄 templates\trainer_base.html
      extends: base.html
-     blocks: trainer_js, extra_js, trainer_content, content
-     api_calls: /api/progress/ping, /static/data/grammar.json, /api/progress/update
+     blocks: trainer_content, trainer_js, content, extra_js
+     api_calls: /static/data/grammar.json, /api/progress/ping, /api/progress/update, /api/notes/save
 
   📄 templates\trainer_cards.html
      extends: trainer_base.html
-     blocks: title, trainer_js, trainer_content
+     blocks: trainer_content, trainer_js, title
      api_calls: /static/data/cards.json
 
   📄 templates\trainer_colors.html
      extends: trainer_base.html
-     blocks: title, trainer_js, trainer_content
+     blocks: trainer_content, trainer_js, title
 
   📄 templates\trainer_dates.html
      extends: trainer_base.html
-     blocks: title, trainer_js, trainer_content
+     blocks: trainer_content, trainer_js, title
 
   📄 templates\trainer_grammar.html
      extends: trainer_base.html
-     blocks: title, trainer_js, trainer_content
+     blocks: trainer_content, trainer_js, title
      api_calls: /static/data/grammar.json
 
   📄 templates\trainer_locations.html
      extends: trainer_base.html
-     blocks: title, trainer_js, trainer_content
+     blocks: trainer_content, trainer_js, title
 
   📄 templates\trainer_menu.html
      extends: trainer_base.html
-     blocks: title, trainer_content
+     blocks: trainer_content, title
 
   📄 templates\trainer_money.html
      extends: trainer_base.html
-     blocks: title, trainer_js, trainer_content
+     blocks: trainer_content, trainer_js, title
 
   📄 templates\trainer_numbers.html
      extends: trainer_base.html
-     blocks: title, trainer_js, trainer_content
+     blocks: trainer_content, trainer_js, title
 
   📄 templates\trainer_phrases.html
      extends: trainer_base.html
-     blocks: title, trainer_js, trainer_content
-     api_calls: {{ url_for(
+     blocks: trainer_content, trainer_js, title
+     api_calls: /api/sections/toggle, /api/sections/get, /api/items/get, /api/items/set, {{ url_for(
 
   📄 templates\trainer_pictures.html
      extends: trainer_base.html
-     blocks: title, trainer_js, trainer_content
+     blocks: trainer_content, trainer_js, title
      api_calls: /static/data/pictures.json
 
   📄 templates\trainer_quiz.html
      extends: trainer_base.html
-     blocks: title, trainer_js, trainer_content
+     blocks: trainer_content, trainer_js, title
      api_calls: /static/data/grammar.json
 
   📄 templates\trainer_sentences.html
      extends: trainer_base.html
-     blocks: title, trainer_js, trainer_content
-     api_calls: /static/data/sentences.json
+     blocks: trainer_content, trainer_js, title
+     api_calls: /api/sections/get, /static/data/sentences.json, /api/items/get, /api/items/set
 
   📄 templates\trainer_text.html
      extends: trainer_base.html
-     blocks: title, trainer_js, trainer_content
-     api_calls: /static/data/texts.json
+     blocks: trainer_content, trainer_js, title
+     api_calls: /api/items/set, /static/data/texts.json, /api/items/get
 
   📄 templates\trainer_time.html
      extends: trainer_base.html
-     blocks: title, trainer_js, trainer_content
+     blocks: trainer_content, trainer_js, title
 
   📄 templates\trainer_verbs.html
      extends: trainer_base.html
-     blocks: title, trainer_js, trainer_content
+     blocks: trainer_content, trainer_js, title
      api_calls: {{ url_for(
 
   📄 templates\trainer_video.html
      extends: trainer_base.html
-     blocks: title, trainer_js, trainer_content
+     blocks: trainer_content, trainer_js, title
 
   📄 templates\trainer_weather.html
      extends: trainer_base.html
-     blocks: title, trainer_js, trainer_content
+     blocks: trainer_content, trainer_js, title
 
   📄 templates\trainer_weekdays.html
      extends: trainer_base.html
-     blocks: title, trainer_js, trainer_content
+     blocks: trainer_content, trainer_js, title
 
   📄 templates\trainer_words.html
      extends: trainer_base.html
-     blocks: title, trainer_js, trainer_content
+     blocks: trainer_content, trainer_js, title
      api_calls: /static/data/words-data.json
 
 
 🔗 API-ВЫЗОВЫ ИЗ ФРОНТЕНДА
 ----------------------------------------
+  /api/notes/delete  ← templates\history.html
+  /api/notes/list  ← templates\history.html
   /api/progress/ping  ← templates\trainer_base.html
   /api/progress/update  ← templates\trainer_base.html
   /static/data/grammar.json  ← templates\trainer_base.html
+  /api/notes/save  ← templates\trainer_base.html
   /static/data/cards.json  ← templates\trainer_cards.html
   /static/data/grammar.json  ← templates\trainer_grammar.html
+  /api/sections/get  ← templates\trainer_phrases.html
+  /api/items/get  ← templates\trainer_phrases.html
   {{ url_for(  ← templates\trainer_phrases.html
+  /api/sections/toggle  ← templates\trainer_phrases.html
+  /api/items/set  ← templates\trainer_phrases.html
   /static/data/pictures.json  ← templates\trainer_pictures.html
   /static/data/grammar.json  ← templates\trainer_quiz.html
+  /api/sections/get  ← templates\trainer_sentences.html
   /static/data/sentences.json  ← templates\trainer_sentences.html
+  /api/items/set  ← templates\trainer_sentences.html
+  /api/items/get  ← templates\trainer_sentences.html
+  /api/items/get  ← templates\trainer_text.html
   /static/data/texts.json  ← templates\trainer_text.html
+  /api/items/set  ← templates\trainer_text.html
   {{ url_for(  ← templates\trainer_verbs.html
   /static/data/words-data.json  ← templates\trainer_words.html
 

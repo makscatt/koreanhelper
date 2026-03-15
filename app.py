@@ -4,6 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timezone
 from functools import wraps
 import os
+import requests as http_requests  # ← ДОБАВЛЕНО: для запросов к kimchi-серверу
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-change-in-production'
@@ -11,6 +12,10 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:/
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+
+# ── ДОБАВЛЕНО: URL kimchi-сервера ──
+KIMCHI_API_URL = os.environ.get('KIMCHI_API_URL', 'https://kimchi-server.onrender.com')
+
 
 # ══════════════════════════════════════════
 #  МОДЕЛИ
@@ -123,6 +128,16 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
+# ── ДОБАВЛЕНО: декоратор для участников группы ──
+def group_required(f):
+    """Маршрут доступен только участнику закрытой группы"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if session.get('role') != 'group_member':
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated
+
 def _owns_student(student_id):
     """Проверяет, что текущий учитель владеет этим учеником"""
     student = Student.query.get_or_404(student_id)
@@ -141,6 +156,9 @@ def index():
         return redirect(url_for('select_student'))
     if session.get('role') == 'student':
         return redirect(url_for('student_trainers'))
+    # ── ДОБАВЛЕНО: редирект для участника группы ──
+    if session.get('role') == 'group_member':
+        return redirect(url_for('group_trainers'))
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -203,6 +221,90 @@ def register():
 def logout():
     session.clear()
     return redirect(url_for('login'))
+
+
+# ══════════════════════════════════════════
+#  ПУТЬ 3: ДОСТУП ДЛЯ УЧАСТНИКОВ ГРУППЫ
+# ══════════════════════════════════════════
+
+@app.route('/group/auth')
+def group_auth():
+    """Принимает одноразовый токен от kimchi-бота,
+    проверяет через kimchi API, создаёт сессию group_member."""
+    token = request.args.get('token', '')
+    if not token:
+        flash('Неверная ссылка', 'error')
+        return redirect(url_for('login'))
+
+    try:
+        resp = http_requests.get(
+            f'{KIMCHI_API_URL}/api/verify-group-token',
+            params={'token': token},
+            timeout=10
+        )
+        data = resp.json()
+    except Exception:
+        flash('Ошибка связи с сервером. Попробуйте позже.', 'error')
+        return redirect(url_for('login'))
+
+    if not data.get('valid'):
+        error = data.get('error', '')
+        if error == 'token expired':
+            flash('Ссылка истекла. Запросите новую в боте.', 'error')
+        elif error == 'token already used':
+            flash('Ссылка уже была использована. Запросите новую в боте.', 'error')
+        elif error == 'not a group member':
+            flash('Вы не являетесь участником закрытой группы.', 'error')
+        else:
+            flash('Ссылка недействительна. Запросите новую в боте.', 'error')
+        return redirect(url_for('login'))
+
+    # Всё ок — создаём сессию
+    session.clear()
+    session['role'] = 'group_member'
+    session['telegram_id'] = data.get('telegram_id')
+
+    return redirect(url_for('group_trainers'))
+
+
+@app.route('/group/trainers')
+@group_required
+def group_trainers():
+    """Меню тренажёров для участника группы — read-only, без фич учителя."""
+    return render_template('trainer_menu.html',
+                           student=None, student_mode=True, readonly=True)
+
+
+@app.route('/group/trainer/<module>')
+@group_required
+def group_trainer(module):
+    """Любой тренажёр в read-only режиме для участника группы."""
+    template_map = {
+        'alphabet':  'trainer_alphabet.html',
+        'numbers':   'trainer_numbers.html',
+        'time':      'trainer_time.html',
+        'money':     'trainer_money.html',
+        'dates':     'trainer_dates.html',
+        'colors':    'trainer_colors.html',
+        'weekdays':  'trainer_weekdays.html',
+        'weather':   'trainer_weather.html',
+        'locations': 'trainer_locations.html',
+        'verbs':     'trainer_verbs.html',
+        'sentences': 'trainer_sentences.html',
+        'grammar':   'trainer_grammar.html',
+        'text':      'trainer_text.html',
+        'cards':     'trainer_cards.html',
+        'words':     'trainer_words.html',
+        'quiz':      'trainer_quiz.html',
+        'video':     'trainer_video.html',
+        'pictures':  'trainer_pictures.html',
+        'phrases':   'trainer_phrases.html',
+    }
+    template = template_map.get(module)
+    if not template:
+        return redirect(url_for('group_trainers'))
+    return render_template(template,
+                           student=None, student_mode=True, readonly=True)
 
 
 # ══════════════════════════════════════════
@@ -391,6 +493,10 @@ def _get_student_id_from_request(data):
 @login_required
 def progress_ping():
     """Вызывается при входе в тренажёр — логирует начало сессии"""
+    # ── ДОБАВЛЕНО: group_member не логирует прогресс ──
+    if session.get('role') == 'group_member':
+        return jsonify({'ok': True, 'session_id': None})
+
     data = request.get_json()
     student_id = _get_student_id_from_request(data)
     module = data.get('module')
@@ -407,6 +513,10 @@ def progress_ping():
 @login_required
 def progress_update():
     """Вызывается при каждом выполненном упражнении"""
+    # ── ДОБАВЛЕНО: group_member не обновляет прогресс ──
+    if session.get('role') == 'group_member':
+        return jsonify({'ok': True, 'total': 0})
+
     data = request.get_json()
     student_id = _get_student_id_from_request(data)
     module = data.get('module')
