@@ -2,8 +2,12 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>{% block title %}한국어{% endblock %}</title>
+
+    {% if group_mode %}
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    {% endif %}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
@@ -199,6 +203,29 @@
         .g-modal-overlay { padding: 12px; }
       }
     </style>
+    {% if group_mode %}
+    <style>
+      :root {
+        --safe-top: env(safe-area-inset-top, 0px);
+        --safe-bottom: env(safe-area-inset-bottom, 0px);
+        --safe-left: env(safe-area-inset-left, 0px);
+        --safe-right: env(safe-area-inset-right, 0px);
+      }
+      body { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
+      .group-header {
+        position: sticky; top: 0; z-index: 100;
+        padding: 8px 16px; padding-top: calc(8px + var(--safe-top));
+        background: var(--bg-surface, #fff);
+        border-bottom: 1px solid var(--border-color, #e2e5ec);
+        display: flex; align-items: center; gap: 12px;
+      }
+      .group-header a {
+        font-size: 13px; font-weight: 600; color: var(--primary, #4758d6);
+        text-decoration: none;
+      }
+      .group-header .g-search-wrap { flex: 1; max-width: 300px; }
+    </style>
+    {% endif %}
 </head>
 <body>
     {% if session.role == 'teacher' %}
@@ -250,6 +277,17 @@
             </nav>
         </div>
     </header>
+    {% elif group_mode %}
+    <div class="group-header">
+        <a href="{{ url_for('group_trainers') }}">← Меню</a>
+        <div class="g-search-wrap" id="g-search-wrap">
+          <div class="g-search-box">
+            <span class="g-search-icon">🔍</span>
+            <input class="g-search-input" id="g-search-input" type="text" placeholder="Грамматика..." autocomplete="off">
+          </div>
+          <div class="g-search-dropdown" id="g-search-dropdown"></div>
+        </div>
+    </div>
     {% endif %}
 
     <main>
@@ -265,6 +303,33 @@
 
         {% block content %}{% endblock %}
     </main>
+
+    {% if group_mode %}
+    <script>
+    if (window.Telegram && window.Telegram.WebApp) {
+        var tg = Telegram.WebApp;
+        tg.ready();
+        tg.requestFullscreen();
+        tg.expand();
+        tg.setHeaderColor('#ffffff');
+        tg.setBackgroundColor('#ffffff');
+        tg.BackButton.hide();
+
+        function applySafeAreas() {
+            var sa = tg.safeAreaInset || {};
+            var csa = tg.contentSafeAreaInset || {};
+            var root = document.documentElement;
+            var safeTop = (sa.top || 0) + (csa.top || 0);
+            var safeBottom = sa.bottom || 0;
+            if (safeTop > 0) root.style.setProperty('--safe-top', safeTop + 'px');
+            if (safeBottom > 0) root.style.setProperty('--safe-bottom', safeBottom + 'px');
+        }
+        applySafeAreas();
+        tg.onEvent('safeAreaChanged', applySafeAreas);
+        tg.onEvent('contentSafeAreaChanged', applySafeAreas);
+    }
+    </script>
+    {% endif %}
 
     {% block extra_js %}{% endblock %}
 </body>

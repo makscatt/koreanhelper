@@ -383,7 +383,8 @@ def group_trainer(module):
     if not template:
         return redirect(url_for('group_trainers'))
     return render_template(template,
-                           student=None, student_mode=True, readonly=True)
+                           student=None, student_mode=True, readonly=True,
+                           group_mode=True)
 
 
 # ══════════════════════════════════════════
