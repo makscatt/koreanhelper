@@ -284,6 +284,8 @@ def group_webapp():
     <script>
         var tg = window.Telegram.WebApp;
         tg.ready();
+        tg.requestFullscreen();
+        tg.expand();
         var initData = tg.initData;
         if (!initData) {
             document.getElementById('status').innerHTML =
