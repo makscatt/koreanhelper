@@ -262,7 +262,11 @@ def _verify_telegram_webapp(init_data):
 
 @app.route('/group/webapp')
 def group_webapp():
-    """Открывается как Telegram Web App."""
+    """Открывается как Telegram Web App. Проверяет initData и редиректит."""
+    # Если уже авторизован — сразу на тренажёры
+    if session.get('role') == 'group_member':
+        return redirect(url_for('group_trainers'))
+
     return '''<!DOCTYPE html>
 <html>
 <head>
@@ -280,7 +284,6 @@ def group_webapp():
     <script>
         var tg = window.Telegram.WebApp;
         tg.ready();
-        tg.expand();
         var initData = tg.initData;
         if (!initData) {
             document.getElementById('status').innerHTML =
@@ -294,7 +297,7 @@ def group_webapp():
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 if (data.ok) {
-                    window.location.href = '/group/trainers';
+                    window.location.replace('/group/trainers');
                 } else {
                     document.getElementById('status').innerHTML =
                         '<div class="error">' + (data.error || 'Нет доступа') + '</div>';
@@ -345,7 +348,8 @@ def group_webapp_verify():
 def group_trainers():
     """Меню тренажёров для участника группы — read-only, без фич учителя."""
     return render_template('trainer_menu.html',
-                           student=None, student_mode=True, readonly=True)
+                           student=None, student_mode=True, readonly=True,
+                           group_mode=True)
 
 
 @app.route('/group/trainer/<module>')

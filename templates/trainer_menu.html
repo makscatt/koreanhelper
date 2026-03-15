@@ -1,5 +1,5 @@
 {% extends "trainer_base.html" %}
-{% block title %}Тренажёры — {{ student.name }}{% endblock %}
+{% block title %}Тренажёры{% if student %} — {{ student.name }}{% endif %}{% endblock %}
 
 {% block trainer_content %}
 <div class="trainer-header">
@@ -7,7 +7,9 @@
 </div>
 
 {% macro trainer_url(module) %}
-  {%- if student_mode -%}
+  {%- if group_mode -%}
+    {{ url_for('group_trainer', module=module) }}
+  {%- elif student_mode -%}
     {{ url_for('student_trainer', module=module) }}
   {%- else -%}
     {{ url_for('trainer_' ~ module, student_id=student.id) }}

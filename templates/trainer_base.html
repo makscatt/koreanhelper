@@ -22,6 +22,7 @@
 </div>
 
 <!-- NOTES OVERLAY (modal stays separate) -->
+{% if not readonly %}
 <div id="note-overlay" class="note-overlay">
   <div class="note-modal">
     <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -38,8 +39,10 @@
     </div>
   </div>
 </div>
+{% endif %}
 
 <!-- ── REPETITION COUNTER FAB ── -->
+{% if not readonly %}
 <div id="rep-counter" class="rep-counter">
   <div class="rep-display">
     <span class="rep-current" id="rep-current">0</span>
@@ -71,6 +74,7 @@
   <div class="rep-goal-opt" data-val="25">25</div>
   <div class="rep-goal-opt" data-val="50">50</div>
 </div>
+{% endif %}
 <style>
   .rep-counter {
     position: fixed;
@@ -321,6 +325,7 @@
 </style>
 
 <!-- ── SELECTION CONTEXT MENU ── -->
+{% if not readonly %}
 <div id="sel-popup" class="sel-popup">
   <button id="sel-search" class="sel-btn sel-btn-search">🔍 Найти</button>
   <button id="sel-note"   class="sel-btn sel-btn-note">📝 В заметки</button>
@@ -380,11 +385,14 @@
     from { opacity: 0; } to { opacity: 1; }
   }
 </style>
+{% endif %}
 
 {% endblock %}
 
 {% block extra_js %}
 <script>
+var IS_READONLY = {{ 'true' if readonly else 'false' }};
+
 function speakText(text) {
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
@@ -412,7 +420,7 @@ let exercisesDone = 0;
 const sessionStart = Date.now();
 
 async function trackPing() {
-  if (!studentId) return;
+  if (IS_READONLY || !studentId) return;
   try {
     const r = await fetch('/api/progress/ping', {
       method: 'POST',
@@ -425,6 +433,7 @@ async function trackPing() {
 }
 
 async function trackExercise() {
+  if (IS_READONLY) return;
   exercisesDone++;
   if (!studentId) return;
   try {
@@ -710,9 +719,11 @@ const noteOverlay = document.getElementById('note-overlay');
 const noteArea = document.getElementById('note-area');
 const noteSaveBtn = document.getElementById('note-save-btn');
 
+if (noteFab && noteOverlay && noteArea) {
+
 // Ученик: скрываем кнопку архивации и делаем заметки readonly
 if (!IS_TEACHER) {
-  noteSaveBtn.style.display = 'none';
+  if (noteSaveBtn) noteSaveBtn.style.display = 'none';
   noteArea.readOnly = true;
   noteArea.placeholder = 'Заметки учителя (только чтение)';
 }
@@ -757,6 +768,8 @@ noteSaveBtn.addEventListener('click', async () => {
     setTimeout(() => msg.style.opacity = 0, 1500);
   } catch(e) { console.error('Note save error', e); }
 });
+
+} // end if (noteFab && noteOverlay && noteArea)
 
 // ── REPETITION COUNTER ──
 (function() {
