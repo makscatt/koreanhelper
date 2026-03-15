@@ -4,6 +4,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timezone
 from functools import wraps
 import os
+import hmac
+import hashlib
+import json
 import requests as http_requests  # ← ДОБАВЛЕНО: для запросов к kimchi-серверу
 
 app = Flask(__name__)
@@ -15,6 +18,7 @@ db = SQLAlchemy(app)
 
 # ── ДОБАВЛЕНО: URL kimchi-сервера ──
 KIMCHI_API_URL = os.environ.get('KIMCHI_API_URL', 'https://kimchi-server.onrender.com')
+KIMCHI_BOT_TOKEN = os.environ.get('KIMCHI_BOT_TOKEN', '')
 
 
 # ══════════════════════════════════════════
@@ -225,46 +229,115 @@ def logout():
 
 # ══════════════════════════════════════════
 #  ПУТЬ 3: ДОСТУП ДЛЯ УЧАСТНИКОВ ГРУППЫ
+#  (через Telegram Web App)
 # ══════════════════════════════════════════
 
-@app.route('/group/auth')
-def group_auth():
-    """Принимает одноразовый токен от kimchi-бота,
-    проверяет через kimchi API, создаёт сессию group_member."""
-    token = request.args.get('token', '')
-    if not token:
-        flash('Неверная ссылка', 'error')
-        return redirect(url_for('login'))
+def _verify_telegram_webapp(init_data):
+    """Проверяет подпись initData от Telegram Web App."""
+    if not init_data or not KIMCHI_BOT_TOKEN:
+        return {}
+    try:
+        from urllib.parse import parse_qs
+        parsed = parse_qs(init_data)
+        received_hash = parsed.get('hash', [''])[0]
+        if not received_hash:
+            return {}
+        pairs = []
+        for key, values in parsed.items():
+            if key != 'hash':
+                pairs.append(f'{key}={values[0]}')
+        pairs.sort()
+        data_check_string = '\n'.join(pairs)
+        secret_key = hmac.new(b'WebAppData', KIMCHI_BOT_TOKEN.encode(), hashlib.sha256).digest()
+        calculated_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+        if calculated_hash != received_hash:
+            return {}
+        user_json = parsed.get('user', [''])[0]
+        if user_json:
+            return json.loads(user_json)
+        return {}
+    except Exception:
+        return {}
+
+
+@app.route('/group/webapp')
+def group_webapp():
+    """Открывается как Telegram Web App."""
+    return '''<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { display:flex; justify-content:center; align-items:center;
+               height:100vh; margin:0; font-family:sans-serif; background:#f5f5f5; }
+        .error { color:#c00; text-align:center; padding:20px; }
+    </style>
+</head>
+<body>
+    <div id="status">Загрузка...</div>
+    <script>
+        var tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        var initData = tg.initData;
+        if (!initData) {
+            document.getElementById('status').innerHTML =
+                '<div class="error">Откройте через Telegram-бота</div>';
+        } else {
+            fetch('/group/webapp/verify', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({init_data: initData})
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.ok) {
+                    window.location.href = '/group/trainers';
+                } else {
+                    document.getElementById('status').innerHTML =
+                        '<div class="error">' + (data.error || 'Нет доступа') + '</div>';
+                }
+            })
+            .catch(function() {
+                document.getElementById('status').innerHTML =
+                    '<div class="error">Ошибка связи</div>';
+            });
+        }
+    </script>
+</body>
+</html>'''
+
+
+@app.route('/group/webapp/verify', methods=['POST'])
+def group_webapp_verify():
+    """Проверяет initData и создаёт сессию group_member."""
+    data = request.get_json() or {}
+    init_data = data.get('init_data', '')
+
+    user = _verify_telegram_webapp(init_data)
+    if not user or not user.get('id'):
+        return jsonify({'ok': False, 'error': 'Не удалось проверить данные Telegram'})
+
+    telegram_id = str(user['id'])
 
     try:
         resp = http_requests.get(
-            f'{KIMCHI_API_URL}/api/verify-group-token',
-            params={'token': token},
+            f'{KIMCHI_API_URL}/load/{telegram_id}',
             timeout=10
         )
-        data = resp.json()
+        kimchi_data = resp.json()
     except Exception:
-        flash('Ошибка связи с сервером. Попробуйте позже.', 'error')
-        return redirect(url_for('login'))
+        return jsonify({'ok': False, 'error': 'Ошибка связи с сервером'})
 
-    if not data.get('valid'):
-        error = data.get('error', '')
-        if error == 'token expired':
-            flash('Ссылка истекла. Запросите новую в боте.', 'error')
-        elif error == 'token already used':
-            flash('Ссылка уже была использована. Запросите новую в боте.', 'error')
-        elif error == 'not a group member':
-            flash('Вы не являетесь участником закрытой группы.', 'error')
-        else:
-            flash('Ссылка недействительна. Запросите новую в боте.', 'error')
-        return redirect(url_for('login'))
+    if not kimchi_data.get('tgmembership'):
+        return jsonify({'ok': False, 'error': 'Доступно только для участников группы'})
 
-    # Всё ок — создаём сессию
     session.clear()
     session['role'] = 'group_member'
-    session['telegram_id'] = data.get('telegram_id')
-
-    return redirect(url_for('group_trainers'))
+    session['telegram_id'] = telegram_id
+    return jsonify({'ok': True})
 
 
 @app.route('/group/trainers')
