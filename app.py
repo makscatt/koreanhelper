@@ -345,12 +345,20 @@ def group_webapp_verify():
     return jsonify({'ok': True})
 
 
+class _GroupStudent:
+    """Фейковый student для шаблонов — чтобы {{ student.id }} и {{ student.name }} не крашились."""
+    id = 0
+    name = 'Группа'
+
+_group_student = _GroupStudent()
+
+
 @app.route('/group/trainers')
 @group_required
 def group_trainers():
     """Меню тренажёров для участника группы — read-only, без фич учителя."""
     return render_template('trainer_menu.html',
-                           student=None, student_mode=True, readonly=True,
+                           student=_group_student, student_mode=True, readonly=True,
                            group_mode=True)
 
 
@@ -383,7 +391,7 @@ def group_trainer(module):
     if not template:
         return redirect(url_for('group_trainers'))
     return render_template(template,
-                           student=None, student_mode=True, readonly=True,
+                           student=_group_student, student_mode=True, readonly=True,
                            group_mode=True)
 
 
