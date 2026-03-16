@@ -1,0 +1,7 @@
+google-tts-key.json
+korean-tts-*.json
+tts_cache/
+__pycache__/
+instance/
+venv/
+*.pyc
