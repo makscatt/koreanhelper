@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "korean-tts-490400",
+  "private_key_id": "b2f5ed208cc6f2dc7244c1bfffc2021aaad8cdb5",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCta3v6WHfOxgXE\nm9RHA1wWCux1bWTGpebr0oHHvwwrYzYP+Fl35kuTGYJrb6Jjs186ZzHP/bTudymP\nOcbk+us8MgpyJ1nS6Tz+AP6jOcKLhQFk9hMTjgZS3Vx69XKhydVZ4AVjgERrkR2G\nuhGHPAA3Z6vP2KCllYmbOBzqPoG6mRxFUnVtYXBBmFa5sFp0klVMocIw22SInIez\nqS1/C0JXcHlBjkLbWlslrUuBSjYfvfH4kF61ep4Q8U7tYw4Nl05rfCyKlxprwJLb\nvr6urPGvrndrnF6mjeHvCgk7KHyFFTneYPiqxJ2GRIb5+SuBo5k8M2Sjgor8K//m\nJFsZo/KZAgMBAAECggEAC0uHYShW8VBDeuk9W7yzyDnA6esMl8WhczWcP1LJq5/E\nGyktRppozLVqIa49MOozZx3miCn5mViIi+wS8MIJBTwrIwE+H/cSAmc1LpNqAOVS\nUG2Yk3r6HXaOefG3nCMFsttc7nyhuDHU7vv6fUjiqLknXxu4ZuCE/GectoMItwr7\nXEIxdwrrttWtRyPF5xQeu2ZmRC0Dzg2SDd9sNpGt0Y42NpYrRt1lPAna/VaaVbtI\nF9VjFarori+ZALlXD1O/KZL6LhtcCE+MHeX7h2cKblace9nkD48Qx+sITrZdz9wC\n9kb59GaTuPfCMgKSAT1zRDLK815FsTXBkP9M/uwIQwKBgQDkIqd7f1RYcYLHJPR0\nubTWGWc4jPUqWZXxPf3ss36CQtytHERjUIOob2itbbzSM5bRKVVluayavTz1/31Y\nVLd43+7TInpZz/3lerlCSeYvy5gJmQzbl+ZrMHa8SJifCZtMTOjiWjhQrTK/SdAV\nZyjAio/73/p5LNph4xvoASsrKwKBgQDCmfu/h+RTO2J4l4UMZGk33AxY93TgjFK3\n9WpbGCSzptKatYDwEC5YL1IUe982+1HAGBmpbK03WVNMObbSrgApMJ9yOyEXl0Hy\naZ8smtbHzkEkLSjAWpqb5kJxGOeyKtn8yMyMBX0Hg9jiewHkbRjZIoGa1SaMP5BN\nwEom2uBnSwKBgGsXCV+jichqoGUzJ72TXxwRmK6nHH7gxs4Tt5rhN0WWdVidqEym\ngucSRSUEGlrh9K4CpR+3ZRrOMkuXvxMz0VxgYg+iY6S9SgXq8gP4BKHzBE+dFLgQ\nOg2fFl2UBnDBZbEPeVKn3z+fze6Vi6RAZJTddnFZ1o4DTBAfN/5Ubhs5AoGAagUs\nc8/cZEAxSNP8B6FY9bbr/zhqM8AffNu24wRHUp0rlmAWbDPUm/TD+ib2mGTZyBcZ\nPAXaZRJEYH39DdEAg3BbHgf64nhk1GYY81s0csz7DnOQBSQXoaIURruz14yjEKZx\nUkPXN1Xsvo8Xm9SYOgwjojBIfRZQTxvZCkwq//sCgYBZdg45DSwgYoM/thgmYH3z\n8BCkAJJPq64FQF8ady4y5XKTq/ccDVY48eVe0p1LdcLHnfb3gQ86w6/0vNcK+lst\nkEXzHbQQ54du3mbSyzTDwEzC/Dt4ADQ2U9XKVk1BeKwLlEndMSxktzy9Ke2rBcTj\nQ2MUjzIyUZu1VwHNbMqpGA==\n-----END PRIVATE KEY-----\n",
+  "client_email": "korean-service@korean-tts-490400.iam.gserviceaccount.com",
+  "client_id": "111064986238847412294",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/korean-service%40korean-tts-490400.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

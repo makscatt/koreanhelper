@@ -8,6 +8,24 @@ import hmac
 import hashlib
 import json
 import requests as http_requests  # ← ДОБАВЛЕНО: для запросов к kimchi-серверу
+from flask import send_file
+
+# ── Google Cloud TTS ──
+try:
+    from google.cloud import texttospeech as gtts
+    _GOOGLE_CREDS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'google-tts-key.json')
+    if os.path.exists(_GOOGLE_CREDS):
+        os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", _GOOGLE_CREDS)
+    _tts_client = gtts.TextToSpeechClient()
+    TTS_ENABLED = True
+    print("✅ Google Cloud TTS подключён")
+except Exception as _tts_err:
+    _tts_client = None
+    TTS_ENABLED = False
+    print(f"⚠️  Google Cloud TTS недоступен: {_tts_err}")
+
+TTS_CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tts_cache')
+os.makedirs(TTS_CACHE_DIR, exist_ok=True)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-change-in-production'
@@ -811,6 +829,46 @@ def items_set():
 
     db.session.commit()
     return jsonify({'ok': True})
+
+
+# ══════════════════════════════════════════
+#  GOOGLE CLOUD TTS API
+# ══════════════════════════════════════════
+
+@app.route('/api/tts')
+def api_tts():
+    """Озвучка корейского текста через Google Cloud TTS с кешированием"""
+    if not TTS_ENABLED:
+        return jsonify({'error': 'TTS not configured'}), 503
+
+    text = request.args.get('text', '').strip()
+    if not text or len(text) > 1000:
+        return jsonify({'error': 'Bad request'}), 400
+
+    # Кеш по хешу текста
+    filename = hashlib.md5(text.encode('utf-8')).hexdigest() + '.mp3'
+    filepath = os.path.join(TTS_CACHE_DIR, filename)
+
+    if not os.path.exists(filepath):
+        try:
+            synthesis_input = gtts.SynthesisInput(text=text)
+            voice = gtts.VoiceSelectionParams(
+                language_code='ko-KR',
+                ssml_gender=gtts.SsmlVoiceGender.FEMALE
+            )
+            audio_config = gtts.AudioConfig(
+                audio_encoding=gtts.AudioEncoding.MP3
+            )
+            response = _tts_client.synthesize_speech(
+                input=synthesis_input, voice=voice, audio_config=audio_config
+            )
+            with open(filepath, 'wb') as f:
+                f.write(response.audio_content)
+        except Exception as e:
+            print(f"TTS error: {e}")
+            return jsonify({'error': 'TTS synthesis failed'}), 500
+
+    return send_file(filepath, mimetype='audio/mpeg')
 
 
 # ══════════════════════════════════════════

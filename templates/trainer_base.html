@@ -394,12 +394,18 @@
 var IS_READONLY = {{ 'true' if readonly else 'false' }};
 
 function speakText(text) {
-  if (!window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'ko-KR';
-  u.rate = 0.85;
-  window.speechSynthesis.speak(u);
+  if (!text) return;
+  // Сервер TTS (Google Cloud) — работает в Telegram WebView
+  const audio = new Audio('/api/tts?text=' + encodeURIComponent(text));
+  audio.play().catch(() => {
+    // Fallback на браузерный TTS если сервер недоступен
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ko-KR';
+    u.rate = 0.85;
+    window.speechSynthesis.speak(u);
+  });
 }
 
 function randExcept(len, cur) {
