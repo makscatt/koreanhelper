@@ -13,10 +13,25 @@ from flask import send_file
 # ── Google Cloud TTS ──
 try:
     from google.cloud import texttospeech as gtts
-    _GOOGLE_CREDS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'google-tts-key.json')
-    if os.path.exists(_GOOGLE_CREDS):
-        os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", _GOOGLE_CREDS)
-    _tts_client = gtts.TextToSpeechClient()
+    from google.oauth2 import service_account as _sa
+    import tempfile as _tempfile
+
+    _tts_client = None
+
+    # 1) Переменная окружения GOOGLE_TTS_CREDENTIALS (для Render и т.п.)
+    _creds_json = os.environ.get('GOOGLE_TTS_CREDENTIALS', '')
+    if _creds_json:
+        _info = json.loads(_creds_json)
+        _credentials = _sa.Credentials.from_service_account_info(_info)
+        _tts_client = gtts.TextToSpeechClient(credentials=_credentials)
+
+    # 2) Файл рядом с app.py (для локальной разработки)
+    if not _tts_client:
+        _GOOGLE_CREDS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'google-tts-key.json')
+        if os.path.exists(_GOOGLE_CREDS):
+            os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", _GOOGLE_CREDS)
+        _tts_client = gtts.TextToSpeechClient()
+
     TTS_ENABLED = True
     print("✅ Google Cloud TTS подключён")
 except Exception as _tts_err:
