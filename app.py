@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, request, session, flash, jsonify
+from flask import Flask, render_template, redirect, url_for, request, session, flash, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timezone
@@ -8,36 +8,15 @@ import hmac
 import hashlib
 import json
 import requests as http_requests  # ← ДОБАВЛЕНО: для запросов к kimchi-серверу
-from flask import send_file
+import base64
 
-# ── Google Cloud TTS ──
-try:
-    from google.cloud import texttospeech as gtts
-    from google.oauth2 import service_account as _sa
-    import tempfile as _tempfile
-
-    _tts_client = None
-
-    # 1) Переменная окружения GOOGLE_TTS_CREDENTIALS (для Render и т.п.)
-    _creds_json = os.environ.get('GOOGLE_TTS_CREDENTIALS', '')
-    if _creds_json:
-        _info = json.loads(_creds_json)
-        _credentials = _sa.Credentials.from_service_account_info(_info)
-        _tts_client = gtts.TextToSpeechClient(credentials=_credentials)
-
-    # 2) Файл рядом с app.py (для локальной разработки)
-    if not _tts_client:
-        _GOOGLE_CREDS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'google-tts-key.json')
-        if os.path.exists(_GOOGLE_CREDS):
-            os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", _GOOGLE_CREDS)
-        _tts_client = gtts.TextToSpeechClient()
-
-    TTS_ENABLED = True
-    print("✅ Google Cloud TTS подключён")
-except Exception as _tts_err:
-    _tts_client = None
-    TTS_ENABLED = False
-    print(f"⚠️  Google Cloud TTS недоступен: {_tts_err}")
+# ── Google Cloud TTS (через API Key — без библиотеки) ──
+GOOGLE_TTS_API_KEY = os.environ.get('GOOGLE_TTS_API_KEY', '')
+TTS_ENABLED = bool(GOOGLE_TTS_API_KEY)
+if TTS_ENABLED:
+    print("✅ Google Cloud TTS подключён (API Key)")
+else:
+    print("⚠️  Google Cloud TTS: нет GOOGLE_TTS_API_KEY")
 
 TTS_CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tts_cache')
 os.makedirs(TTS_CACHE_DIR, exist_ok=True)
@@ -852,7 +831,7 @@ def items_set():
 
 @app.route('/api/tts')
 def api_tts():
-    """Озвучка корейского текста через Google Cloud TTS с кешированием"""
+    """Озвучка корейского текста через Google Cloud TTS REST API"""
     if not TTS_ENABLED:
         return jsonify({'error': 'TTS not configured'}), 503
 
@@ -866,19 +845,22 @@ def api_tts():
 
     if not os.path.exists(filepath):
         try:
-            synthesis_input = gtts.SynthesisInput(text=text)
-            voice = gtts.VoiceSelectionParams(
-                language_code='ko-KR',
-                ssml_gender=gtts.SsmlVoiceGender.FEMALE
+            resp = http_requests.post(
+                f'https://texttospeech.googleapis.com/v1/text:synthesize?key={GOOGLE_TTS_API_KEY}',
+                json={
+                    'input': {'text': text},
+                    'voice': {'languageCode': 'ko-KR', 'ssmlGender': 'FEMALE'},
+                    'audioConfig': {'audioEncoding': 'MP3'}
+                },
+                timeout=10
             )
-            audio_config = gtts.AudioConfig(
-                audio_encoding=gtts.AudioEncoding.MP3
-            )
-            response = _tts_client.synthesize_speech(
-                input=synthesis_input, voice=voice, audio_config=audio_config
-            )
+            if resp.status_code != 200:
+                print(f"TTS error: {resp.status_code} {resp.text[:200]}")
+                return jsonify({'error': 'TTS failed'}), 500
+
+            audio_bytes = base64.b64decode(resp.json()['audioContent'])
             with open(filepath, 'wb') as f:
-                f.write(response.audio_content)
+                f.write(audio_bytes)
         except Exception as e:
             print(f"TTS error: {e}")
             return jsonify({'error': 'TTS synthesis failed'}), 500
