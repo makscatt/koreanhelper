@@ -2,17 +2,8 @@
 """
 Gemini News Bot — Корейский шоубиз + Мировое кино
 Работает ВНУТРИ Flask-приложения на Render.
-Ключи читает из переменных окружения (Environment Variables на Render).
 
-Подключение: в app.py добавить одну строку:
-    import bot
-
-Команды бота:
-    /start    — приветствие и список команд
-    /news     — получить сводку прямо сейчас
-    /topics   — включить/выключить тематики
-    /interval — изменить частоту сводок
-    /help     — справк
+Подключение: в app.py добавить:  import bot
 """
 
 import os
@@ -29,28 +20,30 @@ import requests
 import google.generativeai as genai
 
 # ============================================================
-# НАСТРОЙКИ ИЗ ПЕРЕМЕННЫХ ОКРУЖЕНИЯ (Render Environment)
+# НАСТРОЙКИ
 # ============================================================
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
+CHANNEL_USERNAME = "@KoreanMaks"
+CHANNEL_LINK = "https://t.me/KoreanMaks"
 GEMINI_MODEL = "gemini-3.1-pro-preview"
 NEWS_PER_FEED = 10
 TG_MAX_LENGTH = 4000
 
 # ============================================================
-# СОСТОЯНИЕ БОТА (в памяти, сбрасывается при рестарте)
+# СОСТОЯНИЕ
 # ============================================================
 
 _state = {
-    "interval": 4 * 60 * 60,       # интервал в секундах (по умолчанию 4ч)
-    "topics": {
-        "korean": True,             # корейский шоубиз включён
-        "cinema": True,             # мировое кино включено
-    },
-    "news_cache": {},               # кэш новостей для кнопок
+    "interval": 4 * 60 * 60,
+    "topics": {"korean": True, "cinema": True},
+    "news_cache": {},
+    "digest_list": [],
+    "last_post_text": "",
+    "last_post_nid": "",
 }
 
 # ============================================================
@@ -59,7 +52,7 @@ _state = {
 
 FEEDS = {
     "korean": {
-        "label": "🇰🇷 Корейский шоубиз",
+        "label": "🇰🇷 КОРЕЙСКИЙ ШОУБИЗ",
         "feeds": [
             "https://www.soompi.com/feed",
             "https://www.koreaboo.com/feed",
@@ -67,53 +60,94 @@ FEEDS = {
             "https://www.koreaherald.com/rss/kpop",
             "https://www.allkpop.com/rss",
         ],
-        "topic": (
-            "Корейская индустрия развлечений: K-pop (новые релизы, скандалы, камбэки, "
-            "концерты, рекорды), K-drama (новые дорамы, кастинги, рейтинги), "
-            "корейские фильмы, награды, корейские знаменитости."
-        ),
+        "topic_filter": """
+Корейская индустрия развлечений.
+
+ОЦЕНИВАЙ ПО ШКАЛЕ 1-10. Оставляй ТОЛЬКО 7-10 баллов.
+
+ЧТО ЦЕННО (7-10 баллов):
+- Новости про BTS, BLACKPINK, Stray Kids, SEVENTEEN, aespa, NewJeans и другие топовые группы (камбэки, рекорды, скандалы, мировые туры)
+- Топовые актёры: Чжи Чан Ук, Ви Ха Джун, Ли Джун Ги, Сон Джун Ки, Пак Со Джун, Чон Джи Хён, Хан Со Хи, Ким Су Хён — любые новости про них
+- Крупные премьеры дорам и корейских фильмов с известным кастом
+- Скандалы и резонансные события (уход из группы, судебные дела, неожиданные камбэки)
+- Рекорды на Billboard, Grammy, мировые чарты
+- Корейское кино на международных фестивалях (Канны, Оскар, Венеция)
+
+ЧТО МУСОР (1-6 баллов, ВЫКИДЫВАЙ):
+- Малоизвестные айдолы без широкой аудитории
+- Рутинные фанмитинги и мелкие ивенты
+- Фандомные склоки без реального инфоповода
+- Мелкие обновления без новостной ценности
+""",
+        "topic_summary": "Корейский шоубиз (K-pop, K-drama, корейское кино)",
     },
     "cinema": {
-        "label": "🎬 Мировое кино",
+        "label": "🎬 МИРОВОЕ КИНО",
         "feeds": [
             "https://variety.com/feed",
             "https://deadline.com/feed",
             "https://www.hollywoodreporter.com/c/movies/feed",
             "https://feeds.feedburner.com/slashfilm",
         ],
-        "topic": (
-            "Мировая киноиндустрия: самые резонансные новости — Оскар, Канны и другие "
-            "кинопремии, громкие премьеры, бокс-офис рекорды, скандалы в Голливуде, "
-            "кастинги в крупных проектах, стриминговые войны."
-        ),
+        "topic_filter": """
+Мировая киноиндустрия.
+
+ОЦЕНИВАЙ ПО ШКАЛЕ 1-10. Оставляй ТОЛЬКО 7-10 баллов.
+
+ЧТО ЦЕННО (7-10 баллов):
+- Оскар, Золотой глобус, Канны, Венеция — результаты, скандалы, сюрпризы (типа Дикаприо не получил Оскар потому что его отдали Джордану — вот ЭТО резонанс)
+- Крупные кастинги (A-list актёры в новых проектах)
+- Бокс-офис рекорды (фильм собрал $1 млрд и т.п.)
+- Скандалы в Голливуде с известными именами
+- Netflix/Disney+/HBO — крупные анонсы, отмены популярных шоу
+- Смена руководства крупных студий (Disney, Warner, Universal)
+- Сиквелы/ребуты культовых франшиз (Marvel, DC, Star Wars, Dune и т.д.)
+
+ЧТО МУСОР (1-6 баллов, ВЫКИДЫВАЙ):
+- Мелкие инди-фильмы без известных имён
+- Рутинные кастинги в незначительных проектах
+- Бизнес-новости без общественного резонанса
+- Телешоу и реалити без широкого интереса
+""",
+        "topic_summary": "Мировое кино (Голливуд, кинопремии, стриминги)",
     },
 }
 
 # ============================================================
-# ПРОМПТ ДЛЯ ГЕНЕРАЦИИ ПОСТА
+# ПРОМПТ ДЛЯ ПОСТА
 # ============================================================
 
 POST_PROMPT = """
-Ты — блогер, который ведёт популярный Telegram-канал о корейской культуре и кино.
-Твой стиль: разговорный, живой, с эмоциями, как будто рассказываешь другу.
+Ты — редактор лаконичного новостного Telegram-канала.
 
-Напиши пост для Telegram-канала на основе этой новости:
+Напиши короткий пост на основе этой новости:
 
 Заголовок: {title}
 Описание: {description}
 Ссылка: {link}
 
+ФОРМАТ (строго следуй):
+1 строка: один эмодзи + краткий заголовок (до 60 символов)
+2-4 строки: суть новости — только факты, без воды и восторгов. Кто, что, где, когда. Важные имена/даты/детали.
+Последняя строка: Оригинал (ссылка)
+
+ПРИМЕРЫ:
+
+🤝 Японский храм отпраздновал возвращение «ДжоДжо»
+Японская ассоциация конной стрельбы из лука и храм Окунитама-дзиндзя выложили видео в честь начала Steel Ball Run. Это седьмая часть «ДжоДжо», где Джонни Джостар и Джайро Цеппели отправятся на гонку от Сан-Диего до Нью-Йорка.
+Первая серия длится 47 минут и уже доступна на Netflix.
+
+📺 Полноценный трейлер нового «Барашка Шона»
+Сюжет полнометражки: неуклюжий фермер уничтожит все тыквы перед Хэллоуином. Барашек Шон обратится к безумному учёному, чтобы спасти праздник, но что-то пойдёт не так.
+Премьера «Зверя из Мосси Боттом» — 18 сентября.
+
 ПРАВИЛА:
-1. Пиши на русском языке.
-2. Длина: 800-1500 символов.
-3. Начни с цепляющего хука — вопрос, восклицание или провокация.
-4. Изложи суть своими словами, добавь свои мысли/реакцию.
-5. Используй эмодзи уместно (3-5 штук).
-6. Заверши призывом к обсуждению.
-7. Добавь 3-5 хештегов в конце.
-8. Ссылку на оригинал вставь перед хештегами.
-9. НЕ используй HTML-теги, пиши чистым текстом.
-10. Тон: дружелюбный, увлечённый, немного дерзкий.
+1. На русском языке. 200-500 символов. КОРОТКО.
+2. Тон: спокойный, информативный, без кринжа.
+3. Чистый текст, без HTML. Без хештегов.
+4. Без призывов и вопросов читателям.
+5. Без «Подписаться» — добавится автоматически.
+6. Один эмодзи только в заголовке.
 """
 
 # ============================================================
@@ -131,22 +165,20 @@ logger = logging.getLogger("newsbot")
 # ============================================================
 
 def tg_api(method: str, payload: dict):
-    """Вызов любого метода Telegram Bot API."""
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/{method}"
     try:
         resp = requests.post(url, json=payload, timeout=30)
         if resp.status_code != 200:
             logger.error(f"TG {method} {resp.status_code}: {resp.text[:200]}")
-        return resp.json() if resp.status_code == 200 else None
+            return None
+        return resp.json()
     except Exception as e:
         logger.error(f"TG {method} error: {e}")
         return None
 
 
 def tg_send(text: str, reply_markup: dict = None, chat_id: str = None):
-    """Отправка сообщения. Разбивает длинные."""
     cid = chat_id or TELEGRAM_CHAT_ID
-
     chunks = []
     if len(text) <= TG_MAX_LENGTH:
         chunks = [text]
@@ -155,36 +187,30 @@ def tg_send(text: str, reply_markup: dict = None, chat_id: str = None):
         current = ""
         for part in parts:
             if len(current) + len(part) + 2 > TG_MAX_LENGTH:
-                if current:
-                    chunks.append(current.strip())
+                if current: chunks.append(current.strip())
                 current = part
             else:
                 current += "\n\n" + part if current else part
-        if current:
-            chunks.append(current.strip())
+        if current: chunks.append(current.strip())
 
     for i, chunk in enumerate(chunks):
-        payload = {
-            "chat_id": cid,
-            "text": chunk,
-            "parse_mode": "HTML",
-            "disable_web_page_preview": True,
-        }
+        payload = {"chat_id": cid, "text": chunk, "parse_mode": "HTML", "disable_web_page_preview": True}
         if reply_markup and i == len(chunks) - 1:
             payload["reply_markup"] = reply_markup
         tg_api("sendMessage", payload)
-        if i < len(chunks) - 1:
-            time.sleep(0.5)
+        if i < len(chunks) - 1: time.sleep(0.5)
 
 
-def tg_send_with_button(text: str, news_id: str, chat_id: str = None):
-    """Новость с кнопкой «Напиши пост»."""
-    markup = {
-        "inline_keyboard": [[
-            {"text": "📝 Напиши пост", "callback_data": f"post:{news_id}"}
-        ]]
-    }
-    tg_send(text, reply_markup=markup, chat_id=chat_id)
+def tg_send_photo(photo_url: str, caption: str, reply_markup: dict = None, chat_id: str = None):
+    cid = chat_id or TELEGRAM_CHAT_ID
+    if len(caption) > 1024: caption = caption[:1020] + "..."
+    payload = {"chat_id": cid, "photo": photo_url, "caption": caption, "parse_mode": "HTML"}
+    if reply_markup: payload["reply_markup"] = reply_markup
+    result = tg_api("sendPhoto", payload)
+    if not result or not result.get("ok"):
+        logger.warning("sendPhoto failed, fallback to text")
+        tg_send(caption, reply_markup=reply_markup, chat_id=chat_id)
+    return result
 
 
 # ============================================================
@@ -192,18 +218,33 @@ def tg_send_with_button(text: str, news_id: str, chat_id: str = None):
 # ============================================================
 
 def _news_id(title: str, link: str) -> str:
-    raw = f"{title}|{link}"
-    return hashlib.md5(raw.encode()).hexdigest()[:12]
+    return hashlib.md5(f"{title}|{link}".encode()).hexdigest()[:12]
 
+def _interval_text(s: int) -> str:
+    h = s // 3600
+    return "1 час" if h == 1 else f"{h} часа" if h < 5 else f"{h} часов"
 
-def _interval_text(seconds: int) -> str:
-    hours = seconds // 3600
-    if hours == 1:
-        return "1 час"
-    elif hours < 5:
-        return f"{hours} часа"
-    else:
-        return f"{hours} часов"
+def _extract_image(entry) -> str:
+    media = entry.get("media_content", [])
+    if media:
+        for m in media:
+            url = m.get("url", "")
+            if url and any(ext in url for ext in ("jpg", "jpeg", "png", "webp")):
+                return url
+        if media[0].get("url"): return media[0]["url"]
+    thumb = entry.get("media_thumbnail", [])
+    if thumb and thumb[0].get("url"): return thumb[0]["url"]
+    for enc in entry.get("enclosures", []):
+        if enc.get("type", "").startswith("image"):
+            return enc.get("href", "") or enc.get("url", "")
+    content = entry.get("content", [{}])
+    html = entry.get("description", "") or ""
+    if content and isinstance(content, list): html = content[0].get("value", html)
+    img = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', html)
+    if img:
+        url = img.group(1)
+        if "gravatar" not in url and "pixel" not in url and "1x1" not in url: return url
+    return ""
 
 
 # ============================================================
@@ -216,24 +257,18 @@ def fetch_news(feeds: list, section: str) -> list:
         try:
             feed = feedparser.parse(url)
             if feed.bozo and not feed.entries:
-                logger.warning(f"Parse failed: {url}")
-                continue
-
+                logger.warning(f"Parse failed: {url}"); continue
             source = feed.feed.get("title", url)
             for entry in feed.entries[:NEWS_PER_FEED]:
                 title = entry.get("title", "").strip()
                 desc = entry.get("description", "").strip()
                 link = entry.get("link", "").strip()
-
-                desc = re.sub(r"<[^>]+>", "", desc)
-                if len(desc) > 500:
-                    desc = desc[:500] + "..."
-
+                image = _extract_image(entry)
+                desc_clean = re.sub(r"<[^>]+>", "", desc)
+                if len(desc_clean) > 500: desc_clean = desc_clean[:500] + "..."
                 nid = _news_id(title, link)
-                item = {
-                    "id": nid, "title": title, "description": desc,
-                    "link": link, "source": source, "section": section,
-                }
+                item = {"id": nid, "title": title, "description": desc_clean,
+                        "link": link, "source": source, "section": section, "image": image}
                 _state["news_cache"][nid] = item
                 items.append(item)
         except Exception as e:
@@ -243,10 +278,10 @@ def fetch_news(feeds: list, section: str) -> list:
 
 
 # ============================================================
-# GEMINI
+# GEMINI — ФИЛЬТРАЦИЯ С ОЦЕНКАМИ
 # ============================================================
 
-def gemini_digest(news_items: list, topic: str) -> list:
+def gemini_digest(news_items: list, topic_filter: str) -> list:
     news_text = ""
     for item in news_items:
         news_text += (
@@ -258,23 +293,30 @@ def gemini_digest(news_items: list, topic: str) -> list:
         )
 
     prompt = f"""
-Ты — профессиональный редактор новостного Telegram-канала на русском языке.
+Ты — строгий редактор новостного канала. Твоя задача — отобрать ТОЛЬКО по-настоящему важные и резонансные новости.
 
-Проанализируй новости и выбери 3-7 самых интересных/резонансных по теме:
-«{topic}»
+ТЕМАТИКА И КРИТЕРИИ ОЦЕНКИ:
+{topic_filter}
 
-ВЕРНИ ОТВЕТ СТРОГО В JSON (без markdown, без ```):
+ИНСТРУКЦИЯ:
+1. Оцени КАЖДУЮ новость по шкале 1-10.
+2. ВЫКИНЬ всё что ниже 7.
+3. Оставшиеся отсортируй от высшего балла к низшему.
+4. Оставь максимум 5 новостей.
+
+ВЕРНИ СТРОГО JSON (без markdown, без ```):
 [
   {{
     "id": "ID новости",
+    "score": 9,
     "headline": "Краткий заголовок на русском (до 80 символов)",
     "summary": "Суть в 1-2 предложениях на русском"
   }}
 ]
 
-Если подходящих новостей нет, верни: []
+Если ни одна новость не набрала 7+, верни: []
 
-НОВОСТИ:
+НОВОСТИ ДЛЯ ОЦЕНКИ:
 {news_text}
 """
     try:
@@ -284,8 +326,9 @@ def gemini_digest(news_items: list, topic: str) -> list:
         text = response.text.strip()
         text = re.sub(r"^```json\s*", "", text)
         text = re.sub(r"\s*```$", "", text)
-        result = json.loads(text)
-        return result if isinstance(result, list) else []
+        result = json.loads(text) if text.startswith("[") else []
+        # Доп. фильтр на случай если Gemini проигнорировала порог
+        return [r for r in result if r.get("score", 0) >= 7]
     except Exception as e:
         logger.error(f"Gemini digest error: {e}")
         return []
@@ -297,14 +340,16 @@ def gemini_post(title: str, description: str, link: str) -> str:
         genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel(GEMINI_MODEL)
         response = model.generate_content(prompt)
-        return response.text.strip()
+        text = response.text.strip()
+        text += f"\n\nПодписаться на KoreanMaks ({CHANNEL_LINK})"
+        return text
     except Exception as e:
         logger.error(f"Gemini post error: {e}")
         return f"❌ Ошибка генерации: {e}"
 
 
 # ============================================================
-# СВОДКА НОВОСТЕЙ
+# СВОДКА — ОТДЕЛЬНОЕ СООБЩЕНИЕ НА КАЖДЫЙ БЛОК
 # ============================================================
 
 def send_news_digest(chat_id: str = None):
@@ -312,105 +357,112 @@ def send_news_digest(chat_id: str = None):
     logger.info("🚀 News digest started")
 
     today = datetime.datetime.now().strftime("%d.%m.%Y %H:%M")
-    tg_send(f"📰 <b>Новостная сводка</b>  •  {today}\n{'—' * 30}", chat_id=cid)
-
     active_topics = {k: v for k, v in FEEDS.items() if _state["topics"].get(k, True)}
 
     if not active_topics:
-        tg_send("⚠ Все тематики выключены. Используйте /topics чтобы включить.", chat_id=cid)
+        tg_send("⚠ Все тематики выключены. /topics", chat_id=cid)
         return
+
+    tg_send(f"📰 <b>Новостная сводка</b>  •  {today}", chat_id=cid)
+
+    digest_list = []
+    counter = 1
 
     for key, config in active_topics.items():
         logger.info(f"Fetching {key}...")
         items = fetch_news(config["feeds"], key)
-        if items:
-            digest = gemini_digest(items, config["topic"])
-            if digest:
-                tg_send(f"\n{config['label'].upper()}\n", chat_id=cid)
-                for item in digest:
-                    nid = item.get("id", "")
-                    headline = item.get("headline", "—")
-                    summary = item.get("summary", "")
-                    text = f"<b>🔹 {headline}</b>\n{summary}"
-                    tg_send_with_button(text, nid, chat_id=cid)
-                    time.sleep(0.5)
+        if not items:
+            continue
+
+        digest_items = gemini_digest(items, config["topic_filter"])
+        if not digest_items:
+            tg_send(f"\n<b>{config['label']}</b>\n\n🤷 Ничего достойного не найдено (все новости ниже 7 баллов).", chat_id=cid)
+            time.sleep(1)
+            continue
+
+        # Формируем сообщение для этого блока
+        lines = [f"<b>{config['label']}</b>\n"]
+
+        for item in digest_items:
+            nid = item.get("id", "")
+            score = item.get("score", "?")
+            headline = item.get("headline", "—")
+            summary = item.get("summary", "")
+
+            lines.append(f"<b>{counter}.</b> [{score}/10] <b>{headline}</b>\n{summary}\n")
+            digest_list.append({"num": counter, "id": nid, "headline": headline, "summary": summary, "score": score})
+            counter += 1
+
+        lines.append(f"{'—' * 25}")
+        lines.append("Пост: <code>/post номер</code>")
+
+        block_text = "\n".join(lines)
+        tg_send(block_text, chat_id=cid)
         time.sleep(2)
 
-    logger.info("✅ Digest sent!")
+    _state["digest_list"] = digest_list
+
+    if counter == 1:
+        tg_send("🤷 Ни одна новость не прошла фильтр качества.", chat_id=cid)
+
+    logger.info(f"✅ Digest sent! {counter - 1} items (7+ score)")
 
 
 # ============================================================
-# ОБРАБОТКА КОМАНД И КНОПОК
+# ОБРАБОТКА
 # ============================================================
 
 def handle_update(update: dict):
-    """Обрабатывает одно обновление от Telegram."""
-
-    # --- Текстовые команды ---
     if "message" in update:
         msg = update["message"]
         text = (msg.get("text") or "").strip()
         chat_id = str(msg["chat"]["id"])
 
-        if text == "/start":
-            cmd_start(chat_id)
+        if text == "/start": cmd_start(chat_id)
         elif text == "/news":
-            tg_send("⏳ Собираю новости, 20-30 секунд...", chat_id=chat_id)
+            tg_send("⏳ Собираю новости...", chat_id=chat_id)
             send_news_digest(chat_id)
-        elif text == "/topics":
-            cmd_topics(chat_id)
-        elif text == "/interval":
-            cmd_interval(chat_id)
-        elif text == "/help":
-            cmd_help(chat_id)
+        elif text.startswith("/post"): cmd_post(text, chat_id)
+        elif text == "/topics": cmd_topics(chat_id)
+        elif text == "/interval": cmd_interval(chat_id)
+        elif text == "/help": cmd_help(chat_id)
 
-    # --- Нажатия кнопок ---
     elif "callback_query" in update:
         cb = update["callback_query"]
         cb_id = cb["id"]
         data = cb.get("data", "")
         chat_id = str(cb["message"]["chat"]["id"])
 
-        # --- Напиши пост ---
-        if data.startswith("post:"):
-            tg_api("answerCallbackQuery", {"callback_query_id": cb_id, "text": "⏳ Генерирую пост..."})
+        if data.startswith("rewrite:"):
+            tg_api("answerCallbackQuery", {"callback_query_id": cb_id, "text": "⏳ Переписываю..."})
             nid = data.split(":", 1)[1]
             news_item = _state["news_cache"].get(nid)
+            if news_item:
+                post_text = gemini_post(news_item["title"], news_item["description"], news_item["link"])
+                _state["last_post_text"] = post_text
+                _state["last_post_nid"] = nid
+                tg_send(f"✅ <b>Новый вариант:</b>\n\n{post_text}", reply_markup=_post_buttons(nid), chat_id=chat_id)
 
-            if not news_item:
-                tg_send("❌ Новость не найдена. Запросите /news заново.", chat_id=chat_id)
-                return
+        elif data.startswith("pub_photo:"):
+            tg_api("answerCallbackQuery", {"callback_query_id": cb_id, "text": "📤 Публикую..."})
+            _publish(data.split(":", 1)[1], True, chat_id)
 
-            logger.info(f"Generating post: {news_item['title'][:50]}...")
-            post_text = gemini_post(news_item["title"], news_item["description"], news_item["link"])
+        elif data.startswith("pub_text:"):
+            tg_api("answerCallbackQuery", {"callback_query_id": cb_id, "text": "📤 Публикую..."})
+            _publish(data.split(":", 1)[1], False, chat_id)
 
-            markup = {"inline_keyboard": [[
-                {"text": "🔄 Переписать", "callback_data": f"post:{nid}"}
-            ]]}
-            tg_send(f"✅ <b>Готовый пост:</b>\n\n{post_text}", reply_markup=markup, chat_id=chat_id)
-
-        # --- Переключение тематики ---
         elif data.startswith("topic:"):
             key = data.split(":", 1)[1]
             if key in _state["topics"]:
                 _state["topics"][key] = not _state["topics"][key]
-                status = "✅ вкл" if _state["topics"][key] else "❌ выкл"
-                label = FEEDS[key]["label"]
-                tg_api("answerCallbackQuery", {
-                    "callback_query_id": cb_id,
-                    "text": f"{label} — {status}",
-                })
-                # Обновляем сообщение с кнопками
+                tg_api("answerCallbackQuery", {"callback_query_id": cb_id,
+                    "text": f"{'✅ вкл' if _state['topics'][key] else '❌ выкл'}"})
                 cmd_topics_update(chat_id, cb["message"]["message_id"])
 
-        # --- Смена интервала ---
         elif data.startswith("int:"):
-            hours = int(data.split(":", 1)[1])
-            _state["interval"] = hours * 3600
-            tg_api("answerCallbackQuery", {
-                "callback_query_id": cb_id,
-                "text": f"Интервал: {_interval_text(hours * 3600)}",
-            })
+            h = int(data.split(":", 1)[1])
+            _state["interval"] = h * 3600
+            tg_api("answerCallbackQuery", {"callback_query_id": cb_id, "text": f"Интервал: {_interval_text(h*3600)}"})
             cmd_interval_update(chat_id, cb["message"]["message_id"])
 
         else:
@@ -418,207 +470,157 @@ def handle_update(update: dict):
 
 
 # ============================================================
+# /post ID
+# ============================================================
+
+def cmd_post(text: str, chat_id: str):
+    parts = text.split()
+    if len(parts) < 2 or not parts[1].isdigit():
+        tg_send("Использование: <code>/post номер</code>\nПример: <code>/post 3</code>", chat_id=chat_id)
+        return
+
+    num = int(parts[1])
+    item = next((d for d in _state.get("digest_list", []) if d["num"] == num), None)
+
+    if not item:
+        total = len(_state.get("digest_list", []))
+        tg_send(f"❌ #{num} не найден. Доступно: 1-{total}" if total else "Сводка пуста. /news", chat_id=chat_id)
+        return
+
+    nid = item["id"]
+    news_item = _state["news_cache"].get(nid)
+    if not news_item:
+        tg_send("❌ Кэш устарел. /news", chat_id=chat_id)
+        return
+
+    tg_send(f"⏳ Генерирую пост #{num}...", chat_id=chat_id)
+
+    post_text = gemini_post(news_item["title"], news_item["description"], news_item["link"])
+    _state["last_post_text"] = post_text
+    _state["last_post_nid"] = nid
+
+    image_url = news_item.get("image", "")
+    markup = _post_buttons(nid)
+
+    if image_url:
+        tg_send_photo(image_url, f"✅ Пост #{num}:\n\n{post_text}", reply_markup=markup, chat_id=chat_id)
+    else:
+        tg_send(f"✅ <b>Пост #{num}:</b>\n\n{post_text}", reply_markup=markup, chat_id=chat_id)
+
+
+def _post_buttons(nid: str) -> dict:
+    has_img = bool(_state["news_cache"].get(nid, {}).get("image"))
+    buttons = []
+    if has_img:
+        buttons.append([{"text": "📷 Опубликовать с фото", "callback_data": f"pub_photo:{nid}"}])
+    buttons.append([{"text": "📝 Опубликовать без фото", "callback_data": f"pub_text:{nid}"}])
+    buttons.append([{"text": "🔄 Переписать", "callback_data": f"rewrite:{nid}"}])
+    return {"inline_keyboard": buttons}
+
+
+def _publish(nid: str, with_photo: bool, chat_id: str):
+    post_text = _state.get("last_post_text", "")
+    news_item = _state["news_cache"].get(nid, {})
+    if not post_text:
+        tg_send("❌ Нет поста. Сначала /post номер", chat_id=chat_id); return
+
+    if with_photo and news_item.get("image"):
+        result = tg_send_photo(news_item["image"], post_text, chat_id=CHANNEL_USERNAME)
+    else:
+        result = tg_api("sendMessage", {"chat_id": CHANNEL_USERNAME, "text": post_text, "disable_web_page_preview": False})
+
+    if result and result.get("ok"):
+        tg_send(f"✅ Опубликовано в {CHANNEL_USERNAME}!", chat_id=chat_id)
+    else:
+        tg_send(f"❌ Ошибка. Бот должен быть админом {CHANNEL_USERNAME} с правом Post Messages.", chat_id=chat_id)
+
+
+# ============================================================
 # КОМАНДЫ
 # ============================================================
 
 def cmd_start(chat_id: str):
-    topics_status = ""
-    for key, config in FEEDS.items():
-        status = "✅" if _state["topics"].get(key, True) else "❌"
-        topics_status += f"  {status} {config['label']}\n"
-
-    text = (
-        "👋 <b>Привет! Я ваш новостной бот.</b>\n\n"
-        "Собираю новости, фильтрую через Gemini AI "
-        "и присылаю сводку в Telegram.\n\n"
-        f"<b>Активные тематики:</b>\n{topics_status}\n"
-        f"<b>Интервал:</b> каждые {_interval_text(_state['interval'])}\n\n"
-        "<b>Команды:</b>\n"
-        "/news — сводка прямо сейчас\n"
-        "/topics — включить/выключить тематики\n"
-        "/interval — изменить частоту сводок\n"
-        "/help — справка\n\n"
-        "Под каждой новостью — кнопка <b>«📝 Напиши пост»</b>, "
-        "я сгенерирую готовый текст для канала!"
-    )
-    tg_send(text, chat_id=chat_id)
-
+    st = ""
+    for k, c in FEEDS.items():
+        st += f"  {'✅' if _state['topics'].get(k) else '❌'} {c['label']}\n"
+    tg_send(f"👋 <b>Новостной бот</b>\n\n<b>Тематики:</b>\n{st}\n"
+            f"<b>Интервал:</b> {_interval_text(_state['interval'])}\n"
+            f"<b>Фильтр:</b> только новости с оценкой 7+/10\n\n"
+            "<b>Команды:</b>\n/news — сводка\n/post <i>номер</i> — пост\n"
+            "/topics — тематики\n/interval — частота\n/help — справка", chat_id=chat_id)
 
 def cmd_help(chat_id: str):
-    text = (
-        "📖 <b>Как пользоваться:</b>\n\n"
-        "1️⃣ Каждые N часов присылаю сводку новостей.\n"
-        "2️⃣ Под каждой новостью — кнопка <b>«📝 Напиши пост»</b>.\n"
-        "3️⃣ Нажмите — получите готовый пост в блогерском стиле.\n"
-        "4️⃣ Не понравился? <b>«🔄 Переписать»</b> — новый вариант.\n"
-        "5️⃣ Перешлите пост в свой канал!\n\n"
-        "<b>Настройки:</b>\n"
-        "/topics — выбрать какие тематики отслеживать\n"
-        "/interval — как часто получать сводки\n"
-        "/news — не ждать, получить сводку сейчас"
-    )
-    tg_send(text, chat_id=chat_id)
-
+    tg_send("📖 <b>Как пользоваться:</b>\n\n"
+            "1️⃣ Приходит сводка с оценками [7-10/10]\n"
+            "2️⃣ <code>/post 3</code> — пост по новости №3\n"
+            "3️⃣ <b>📷 С фото</b> / <b>📝 Без фото</b> → публикация в канал\n"
+            "4️⃣ <b>🔄 Переписать</b> — новый вариант", chat_id=chat_id)
 
 def cmd_topics(chat_id: str):
-    """Показывает тематики с кнопками вкл/выкл."""
-    buttons = []
-    for key, config in FEEDS.items():
-        status = "✅" if _state["topics"].get(key, True) else "❌"
-        buttons.append([{
-            "text": f"{status} {config['label']}",
-            "callback_data": f"topic:{key}",
-        }])
+    b = [[{"text": f"{'✅' if _state['topics'].get(k) else '❌'} {c['label']}", "callback_data": f"topic:{k}"}] for k, c in FEEDS.items()]
+    tg_send("⚙️ <b>Тематики</b>\n\nНажмите:", reply_markup={"inline_keyboard": b}, chat_id=chat_id)
 
-    markup = {"inline_keyboard": buttons}
-    tg_send(
-        "⚙️ <b>Тематики</b>\n\nНажмите чтобы включить/выключить:",
-        reply_markup=markup,
-        chat_id=chat_id,
-    )
-
-
-def cmd_topics_update(chat_id: str, message_id: int):
-    """Обновляет сообщение с тематиками после нажатия."""
-    buttons = []
-    for key, config in FEEDS.items():
-        status = "✅" if _state["topics"].get(key, True) else "❌"
-        buttons.append([{
-            "text": f"{status} {config['label']}",
-            "callback_data": f"topic:{key}",
-        }])
-
-    tg_api("editMessageText", {
-        "chat_id": chat_id,
-        "message_id": message_id,
-        "text": "⚙️ <b>Тематики</b>\n\nНажмите чтобы включить/выключить:",
-        "parse_mode": "HTML",
-        "reply_markup": {"inline_keyboard": buttons},
-    })
-
+def cmd_topics_update(chat_id: str, mid: int):
+    b = [[{"text": f"{'✅' if _state['topics'].get(k) else '❌'} {c['label']}", "callback_data": f"topic:{k}"}] for k, c in FEEDS.items()]
+    tg_api("editMessageText", {"chat_id": chat_id, "message_id": mid,
+        "text": "⚙️ <b>Тематики</b>\n\nНажмите:", "parse_mode": "HTML", "reply_markup": {"inline_keyboard": b}})
 
 def cmd_interval(chat_id: str):
-    """Показывает выбор интервала."""
-    current = _state["interval"] // 3600
-    options = [1, 2, 4, 6, 8, 12]
+    cur = _state["interval"] // 3600
+    b, r = [], []
+    for h in [1, 2, 4, 6, 8, 12]:
+        r.append({"text": f"{'✅ ' if h == cur else ''}{h}ч", "callback_data": f"int:{h}"})
+        if len(r) == 3: b.append(r); r = []
+    if r: b.append(r)
+    tg_send(f"⏰ Сейчас: каждые <b>{_interval_text(_state['interval'])}</b>", reply_markup={"inline_keyboard": b}, chat_id=chat_id)
 
-    buttons = []
-    row = []
-    for h in options:
-        label = f"{'✅ ' if h == current else ''}{h}ч"
-        row.append({"text": label, "callback_data": f"int:{h}"})
-        if len(row) == 3:
-            buttons.append(row)
-            row = []
-    if row:
-        buttons.append(row)
-
-    markup = {"inline_keyboard": buttons}
-    tg_send(
-        f"⏰ <b>Частота сводок</b>\n\nСейчас: каждые <b>{_interval_text(_state['interval'])}</b>\nВыберите новый интервал:",
-        reply_markup=markup,
-        chat_id=chat_id,
-    )
-
-
-def cmd_interval_update(chat_id: str, message_id: int):
-    """Обновляет сообщение с интервалом после нажатия."""
-    current = _state["interval"] // 3600
-    options = [1, 2, 4, 6, 8, 12]
-
-    buttons = []
-    row = []
-    for h in options:
-        label = f"{'✅ ' if h == current else ''}{h}ч"
-        row.append({"text": label, "callback_data": f"int:{h}"})
-        if len(row) == 3:
-            buttons.append(row)
-            row = []
-    if row:
-        buttons.append(row)
-
-    tg_api("editMessageText", {
-        "chat_id": chat_id,
-        "message_id": message_id,
-        "text": f"⏰ <b>Частота сводок</b>\n\nСейчас: каждые <b>{_interval_text(_state['interval'])}</b>\nВыберите новый интервал:",
-        "parse_mode": "HTML",
-        "reply_markup": {"inline_keyboard": buttons},
-    })
+def cmd_interval_update(chat_id: str, mid: int):
+    cur = _state["interval"] // 3600
+    b, r = [], []
+    for h in [1, 2, 4, 6, 8, 12]:
+        r.append({"text": f"{'✅ ' if h == cur else ''}{h}ч", "callback_data": f"int:{h}"})
+        if len(r) == 3: b.append(r); r = []
+    if r: b.append(r)
+    tg_api("editMessageText", {"chat_id": chat_id, "message_id": mid,
+        "text": f"⏰ Сейчас: каждые <b>{_interval_text(_state['interval'])}</b>",
+        "parse_mode": "HTML", "reply_markup": {"inline_keyboard": b}})
 
 
 # ============================================================
-# ФОНОВЫЕ ПОТОКИ
+# ПОТОКИ
 # ============================================================
 
 def polling_loop():
-    """Слушает обновления от Telegram (long polling)."""
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates"
     offset = 0
     logger.info("🎧 Polling started")
-
     while True:
         try:
-            resp = requests.get(url, params={
-                "offset": offset, "timeout": 30,
-            }, timeout=35)
-
+            resp = requests.get(url, params={"offset": offset, "timeout": 30}, timeout=35)
             if resp.status_code != 200:
-                logger.error(f"Polling error {resp.status_code}")
-                time.sleep(5)
-                continue
-
-            data = resp.json()
-            for update in data.get("result", []):
-                offset = update["update_id"] + 1
-                try:
-                    handle_update(update)
-                except Exception as e:
-                    logger.error(f"Update error: {e}")
-
-        except requests.exceptions.Timeout:
-            continue
-        except Exception as e:
-            logger.error(f"Polling error: {e}")
-            time.sleep(5)
-
+                logger.error(f"Polling error {resp.status_code}"); time.sleep(5); continue
+            for u in resp.json().get("result", []):
+                offset = u["update_id"] + 1
+                try: handle_update(u)
+                except Exception as e: logger.error(f"Update error: {e}")
+        except requests.exceptions.Timeout: continue
+        except Exception as e: logger.error(f"Polling error: {e}"); time.sleep(5)
 
 def scheduler_loop():
-    """Отправляет сводку по расписанию."""
     logger.info("⏰ Scheduler started")
-
-    # Первая сводка через 30 секунд после старта
     time.sleep(30)
-    try:
-        send_news_digest()
-    except Exception as e:
-        logger.error(f"First digest error: {e}")
-
+    try: send_news_digest()
+    except Exception as e: logger.error(f"First digest error: {e}")
     while True:
         time.sleep(_state["interval"])
-        try:
-            send_news_digest()
-        except Exception as e:
-            logger.error(f"Scheduled digest error: {e}")
-
-
-# ============================================================
-# ЗАПУСК
-# ============================================================
+        try: send_news_digest()
+        except Exception as e: logger.error(f"Scheduled digest error: {e}")
 
 def start():
-    """Запускает бота в фоновых потоках."""
     if not all([GEMINI_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID]):
-        logger.warning("⚠ Bot env vars not set — bot disabled")
-        return
+        logger.warning("⚠ Bot env vars not set — bot disabled"); return
+    threading.Thread(target=polling_loop, daemon=True).start()
+    threading.Thread(target=scheduler_loop, daemon=True).start()
+    logger.info("🤖 News bot started")
 
-    t1 = threading.Thread(target=polling_loop, daemon=True)
-    t1.start()
-
-    t2 = threading.Thread(target=scheduler_loop, daemon=True)
-    t2.start()
-
-    logger.info("🤖 News bot started (2 background threads)")
-
-
-# Автозапуск при импорте
 start()
