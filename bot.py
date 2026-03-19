@@ -28,6 +28,7 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
 CHANNEL_USERNAME = "@KoreanMaks"
+CHANNEL_DZEN = "@KoreanMakscatt_news"
 CHANNEL_LINK = "https://t.me/KoreanMaks"
 GEMINI_MODEL = "gemini-3.1-pro-preview"
 NEWS_PER_FEED = 10
@@ -577,15 +578,25 @@ def _publish(nid: str, with_photo: bool, chat_id: str):
 
     image_url = _find_image_for(nid)
 
+    # Текст для Дзена — без ссылки на канал
+    dzen_text = re.sub(r'\n\n<a href="[^"]*">Подписаться на KoreanMaks[^<]*</a>', '', post_text).strip()
+
+    # --- Публикация в основной канал (с ссылкой на подписку) ---
     if with_photo and image_url:
         result = tg_send_photo(image_url, post_text, chat_id=CHANNEL_USERNAME)
     else:
-        result = tg_api("sendMessage", {"chat_id": CHANNEL_USERNAME, "text": post_text, "disable_web_page_preview": False})
+        result = tg_api("sendMessage", {"chat_id": CHANNEL_USERNAME, "text": post_text, "parse_mode": "HTML", "disable_web_page_preview": False})
+
+    # --- Публикация в Дзен-канал (без ссылки на подписку) ---
+    if with_photo and image_url:
+        tg_send_photo(image_url, dzen_text, chat_id=CHANNEL_DZEN)
+    else:
+        tg_api("sendMessage", {"chat_id": CHANNEL_DZEN, "text": dzen_text, "parse_mode": "HTML", "disable_web_page_preview": False})
 
     if result and result.get("ok"):
-        tg_send(f"✅ Опубликовано в {CHANNEL_USERNAME}!", chat_id=chat_id)
+        tg_send(f"✅ Опубликовано в {CHANNEL_USERNAME} + Дзен!", chat_id=chat_id)
     else:
-        tg_send(f"❌ Ошибка. Бот должен быть админом {CHANNEL_USERNAME} с правом Post Messages.", chat_id=chat_id)
+        tg_send(f"❌ Ошибка. Бот должен быть админом обоих каналов.", chat_id=chat_id)
 
 
 # ============================================================
