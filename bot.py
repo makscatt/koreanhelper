@@ -503,6 +503,14 @@ def handle_update(update: dict):
             tg_api("answerCallbackQuery", {"callback_query_id": cb_id, "text": "📤 Публикую..."})
             _publish(data.split(":", 1)[1], False, chat_id)
 
+        elif data.startswith("dzen_photo:"):
+            tg_api("answerCallbackQuery", {"callback_query_id": cb_id, "text": "📤 В Дзен..."})
+            _publish_dzen(data.split(":", 1)[1], True, chat_id)
+
+        elif data.startswith("dzen_text:"):
+            tg_api("answerCallbackQuery", {"callback_query_id": cb_id, "text": "📤 В Дзен..."})
+            _publish_dzen(data.split(":", 1)[1], False, chat_id)
+
         elif data.startswith("topic:"):
             key = data.split(":", 1)[1]
             if key in _state["topics"]:
@@ -566,6 +574,9 @@ def _post_buttons(nid: str) -> dict:
     if has_img:
         buttons.append([{"text": "📷 Опубликовать с фото", "callback_data": f"pub_photo:{nid}"}])
     buttons.append([{"text": "📝 Опубликовать без фото", "callback_data": f"pub_text:{nid}"}])
+    if has_img:
+        buttons.append([{"text": "📤 Только в Дзен с фото", "callback_data": f"dzen_photo:{nid}"}])
+    buttons.append([{"text": "📤 Только в Дзен без фото", "callback_data": f"dzen_text:{nid}"}])
     buttons.append([{"text": "🔄 Переписать", "callback_data": f"rewrite:{nid}"}])
     return {"inline_keyboard": buttons}
 
@@ -597,6 +608,28 @@ def _publish(nid: str, with_photo: bool, chat_id: str):
         tg_send(f"✅ Опубликовано в {CHANNEL_USERNAME} + Дзен!", chat_id=chat_id)
     else:
         tg_send(f"❌ Ошибка. Бот должен быть админом обоих каналов.", chat_id=chat_id)
+
+
+def _publish_dzen(nid: str, with_photo: bool, chat_id: str):
+    """Публикация ТОЛЬКО в Дзен-канал."""
+    post_text = _state.get("last_post_text", "")
+    if not post_text:
+        tg_send("❌ Нет поста. Сначала /post номер", chat_id=chat_id); return
+
+    image_url = _find_image_for(nid)
+
+    # Текст без ссылки на канал
+    dzen_text = re.sub(r'\n\n<a href="[^"]*">Подписаться на KoreanMaks[^<]*</a>', '', post_text).strip()
+
+    if with_photo and image_url:
+        result = tg_send_photo(image_url, dzen_text, chat_id=CHANNEL_DZEN)
+    else:
+        result = tg_api("sendMessage", {"chat_id": CHANNEL_DZEN, "text": dzen_text, "parse_mode": "HTML", "disable_web_page_preview": False})
+
+    if result and result.get("ok"):
+        tg_send(f"✅ Опубликовано только в Дзен!", chat_id=chat_id)
+    else:
+        tg_send(f"❌ Ошибка. Бот должен быть админом {CHANNEL_DZEN}.", chat_id=chat_id)
 
 
 # ============================================================
