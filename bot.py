@@ -36,7 +36,7 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
-GEMINI_MODEL = "gemini-1.5-flash"
+GEMINI_MODEL = "gemini-3.1-pro-preview"
 NEWS_PER_FEED = 10
 TG_MAX_LENGTH = 4000
 
