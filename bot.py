@@ -57,6 +57,9 @@ FEEDS = {
             "https://www.soompi.com/feed",
             "https://www.koreaboo.com/feed",
             "https://www.kpopstarz.com/rss/archives/all.xml",
+            "https://dramabeans.com/feed",
+            "https://www.scmp.com/rss/507633/feed",
+            "https://en.yna.co.kr/RSS/news.xml",
             "https://www.koreaherald.com/rss/kpop",
             "https://www.allkpop.com/rss",
         ],
@@ -87,7 +90,9 @@ FEEDS = {
             "https://variety.com/feed",
             "https://deadline.com/feed",
             "https://www.hollywoodreporter.com/c/movies/feed",
+            "https://www.hollywoodreporter.com/c/tv/k-pop/feed",
             "https://feeds.feedburner.com/slashfilm",
+            "https://www.indiewire.com/feed",
         ],
         "topic_filter": """
 Мировая киноиндустрия.
@@ -129,7 +134,7 @@ POST_PROMPT = """
 ФОРМАТ (строго следуй):
 1 строка: один эмодзи + краткий заголовок (до 60 символов)
 2-4 строки: суть новости — только факты, без воды и восторгов. Кто, что, где, когда. Важные имена/даты/детали.
-Последняя строка: Оригинал (ссылка)
+НЕ добавляй ссылку на оригинал — она добавится автоматически.
 
 ПРИМЕРЫ:
 
@@ -341,7 +346,13 @@ def gemini_post(title: str, description: str, link: str) -> str:
         model = genai.GenerativeModel(GEMINI_MODEL)
         response = model.generate_content(prompt)
         text = response.text.strip()
-        text += f"\n\nПодписаться на KoreanMaks ({CHANNEL_LINK})"
+
+        # Убираем ссылки если Gemini их вставила
+        text = re.sub(r'Оригинал\s*\(?\s*https?://[^\s\)]+\)?\s*', '', text).strip()
+        text = re.sub(r'https?://\S+', '', text).strip()
+
+        # Только ссылка на канал
+        text += f'\n\nПодписаться на <a href="{CHANNEL_LINK}">KoreanMaks</a>'
         return text
     except Exception as e:
         logger.error(f"Gemini post error: {e}")
