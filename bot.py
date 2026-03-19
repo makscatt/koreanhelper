@@ -387,7 +387,11 @@ def gemini_post(title: str, description: str, link: str) -> str:
         text = re.sub(r'Оригинал\s*\(?\s*https?://[^\s\)]+\)?\s*', '', text).strip()
         text = re.sub(r'https?://\S+', '', text).strip()
 
-        # Только ссылка на канал — вся строка кликабельная
+        # Пустая строка между каждым абзацем (заголовок, абзац1, абзац2...)
+        lines = [line.strip() for line in text.split('\n') if line.strip()]
+        text = '\n\n'.join(lines)
+
+        # Ссылка на канал
         text += f'\n\n<a href="{CHANNEL_LINK}">Подписаться на KoreanMaks 🔥🚀🇰🇷</a>'
         return text
     except Exception as e:
