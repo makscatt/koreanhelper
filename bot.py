@@ -45,6 +45,8 @@ _state = {
     "digest_list": [],
     "last_post_text": "",
     "last_post_nid": "",
+    "dzen_posted": set(),          # ID новостей уже опубликованных в Дзен
+    "dzen_auto_interval": 2.5 * 60 * 60,  # автопостинг в Дзен каждые 2.5 часа
 }
 
 # ============================================================
@@ -130,12 +132,14 @@ POST_PROMPT = """
 
 Заголовок: {title}
 Описание: {description}
-Ссылка: {link}
+Есть фото к посту: {has_photo}
 
 ФОРМАТ (строго следуй):
 1 строка: один эмодзи + краткий заголовок (до 60 символов)
 2-4 строки: суть новости — только факты, без воды и восторгов. Кто, что, где, когда. Важные имена/даты/детали.
 НЕ добавляй ссылку на оригинал — она добавится автоматически.
+
+ВАЖНО: если к посту НЕТ фото — НЕ пиши про «кадры», «фото», «скриншоты», «первые изображения» и т.д. Сфокусируйся на фактах: кто, что, когда. Заголовок должен быть про суть новости, а не про визуал.
 
 ПРИМЕРЫ:
 
@@ -376,8 +380,9 @@ def gemini_digest(news_items: list, topic_filter: str) -> list:
         return []
 
 
-def gemini_post(title: str, description: str, link: str) -> str:
-    prompt = POST_PROMPT.format(title=title, description=description, link=link)
+def gemini_post(title: str, description: str, link: str, has_photo: bool = False) -> str:
+    photo_info = "ДА — фото будет приложено" if has_photo else "НЕТ — фото не будет, не упоминай визуал"
+    prompt = POST_PROMPT.format(title=title, description=description, has_photo=photo_info)
     try:
         genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel(GEMINI_MODEL)
@@ -490,7 +495,7 @@ def handle_update(update: dict):
             nid = data.split(":", 1)[1]
             news_item = _state["news_cache"].get(nid)
             if news_item:
-                post_text = gemini_post(news_item["title"], news_item["description"], news_item["link"])
+                post_text = gemini_post(news_item["title"], news_item["description"], news_item["link"], bool(_find_image_for(nid)))
                 _state["last_post_text"] = post_text
                 _state["last_post_nid"] = nid
                 tg_send(f"✅ <b>Новый вариант:</b>\n\n{post_text}", reply_markup=_post_buttons(nid), chat_id=chat_id)
@@ -555,11 +560,11 @@ def cmd_post(text: str, chat_id: str):
 
     tg_send(f"⏳ Генерирую пост #{num}...", chat_id=chat_id)
 
-    post_text = gemini_post(news_item["title"], news_item["description"], news_item["link"])
+    image_url = _find_image_for(nid)
+    post_text = gemini_post(news_item["title"], news_item["description"], news_item["link"], bool(image_url))
     _state["last_post_text"] = post_text
     _state["last_post_nid"] = nid
 
-    image_url = _find_image_for(nid)
     markup = _post_buttons(nid)
 
     if image_url:
@@ -605,6 +610,7 @@ def _publish(nid: str, with_photo: bool, chat_id: str):
         tg_api("sendMessage", {"chat_id": CHANNEL_DZEN, "text": dzen_text, "parse_mode": "HTML", "disable_web_page_preview": False})
 
     if result and result.get("ok"):
+        _state["dzen_posted"].add(nid)
         tg_send(f"✅ Опубликовано в {CHANNEL_USERNAME} + Дзен!", chat_id=chat_id)
     else:
         tg_send(f"❌ Ошибка. Бот должен быть админом обоих каналов.", chat_id=chat_id)
@@ -627,9 +633,88 @@ def _publish_dzen(nid: str, with_photo: bool, chat_id: str):
         result = tg_api("sendMessage", {"chat_id": CHANNEL_DZEN, "text": dzen_text, "parse_mode": "HTML", "disable_web_page_preview": False})
 
     if result and result.get("ok"):
+        _state["dzen_posted"].add(nid)
         tg_send(f"✅ Опубликовано только в Дзен!", chat_id=chat_id)
     else:
         tg_send(f"❌ Ошибка. Бот должен быть админом {CHANNEL_DZEN}.", chat_id=chat_id)
+
+
+def _send_to_dzen(nid: str, post_text: str, with_photo: bool) -> bool:
+    """Отправка в Дзен-канал (без уведомлений). Возвращает True если ок."""
+    image_url = _find_image_for(nid)
+    dzen_text = re.sub(r'\n\n<a href="[^"]*">Подписаться на KoreanMaks[^<]*</a>', '', post_text).strip()
+
+    if with_photo and image_url:
+        result = tg_send_photo(image_url, dzen_text, chat_id=CHANNEL_DZEN)
+    else:
+        result = tg_api("sendMessage", {"chat_id": CHANNEL_DZEN, "text": dzen_text, "parse_mode": "HTML", "disable_web_page_preview": False})
+
+    if result and result.get("ok"):
+        _state["dzen_posted"].add(nid)
+        return True
+    return False
+
+
+def auto_dzen_post():
+    """Автопостинг в Дзен: берёт лучшую непопубликованную новость, генерит пост, отправляет."""
+    logger.info("📤 Dzen auto-post started")
+
+    # Собираем свежие новости если кэш пустой
+    if not _state["news_cache"]:
+        for key, config in FEEDS.items():
+            if _state["topics"].get(key, True):
+                fetch_news(config["feeds"], key)
+
+    # Проходим по всем активным тематикам, собираем кандидатов
+    candidates = []
+    for key, config in FEEDS.items():
+        if not _state["topics"].get(key, True):
+            continue
+
+        items = [item for item in _state["news_cache"].values()
+                 if item.get("section") == key and item["id"] not in _state["dzen_posted"]]
+
+        if not items:
+            # Подтянем свежие
+            items = fetch_news(config["feeds"], key)
+            items = [i for i in items if i["id"] not in _state["dzen_posted"]]
+
+        if not items:
+            continue
+
+        # Прогоняем через Gemini фильтр
+        digest = gemini_digest(items, config["topic_filter"])
+        for d in digest:
+            if d.get("id") not in _state["dzen_posted"]:
+                candidates.append(d)
+
+    if not candidates:
+        logger.info("📤 Dzen auto-post: нет новых новостей для публикации")
+        return
+
+    # Берём топ-1 по скору
+    candidates.sort(key=lambda x: x.get("score", 0), reverse=True)
+    best = candidates[0]
+    nid = best["id"]
+    news_item = _state["news_cache"].get(nid)
+
+    if not news_item:
+        logger.warning(f"📤 Dzen auto-post: news {nid} not in cache")
+        return
+
+    # Генерируем пост
+    has_photo = bool(_find_image_for(nid))
+    post_text = gemini_post(news_item["title"], news_item["description"], news_item["link"], has_photo)
+
+    # Отправляем
+    success = _send_to_dzen(nid, post_text, has_photo)
+
+    if success:
+        logger.info(f"📤 Dzen auto-post OK: {news_item['title'][:50]}")
+        # Уведомляем владельца
+        tg_send(f"🤖 <b>Автопост в Дзен:</b>\n\n{best.get('headline', '')}\n\n<i>(оценка: {best.get('score', '?')}/10)</i>")
+    else:
+        logger.error("📤 Dzen auto-post FAILED")
 
 
 # ============================================================
@@ -713,11 +798,24 @@ def scheduler_loop():
         try: send_news_digest()
         except Exception as e: logger.error(f"Scheduled digest error: {e}")
 
+def dzen_autopost_loop():
+    """Автопостинг в Дзен каждые 2.5 часа."""
+    logger.info("📤 Dzen autopost loop started")
+    # Первый автопост через 1 час (дать время собрать кэш)
+    time.sleep(60 * 60)
+    while True:
+        try:
+            auto_dzen_post()
+        except Exception as e:
+            logger.error(f"Dzen autopost error: {e}")
+        time.sleep(_state["dzen_auto_interval"])
+
 def start():
     if not all([GEMINI_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID]):
         logger.warning("⚠ Bot env vars not set — bot disabled"); return
     threading.Thread(target=polling_loop, daemon=True).start()
     threading.Thread(target=scheduler_loop, daemon=True).start()
-    logger.info("🤖 News bot started")
+    threading.Thread(target=dzen_autopost_loop, daemon=True).start()
+    logger.info("🤖 News bot started (3 threads: polling, digest, dzen autopost)")
 
 start()
