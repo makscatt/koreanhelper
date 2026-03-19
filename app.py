@@ -348,7 +348,7 @@ def group_webapp_verify():
     except Exception:
         return jsonify({'ok': False, 'error': 'Ошибка связи с сервером'})
 
-    if not kimchi_data.get('tgmembership'):
+    if not kimchi_data.get('tgmembership') and not kimchi_data.get('promember'):
         return jsonify({'ok': False, 'error': 'Доступно только для участников группы'})
 
     session.clear()
