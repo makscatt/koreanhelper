@@ -1013,5 +1013,8 @@ with app.app_context():
         db.session.commit()
         print('Создан тестовый учитель: admin/admin')
 
+# ── Gemini News Bot (работает в фоновых потоках) ──
+import bot
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -4,3 +4,6 @@ Werkzeug==3.0.1
 gunicorn
 psycopg2-binary
 requests
+feedparser
+google-generativeai
+python-telegram-bot[job-scheduler]
