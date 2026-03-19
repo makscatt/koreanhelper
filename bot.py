@@ -229,6 +229,38 @@ def _interval_text(s: int) -> str:
     h = s // 3600
     return "1 час" if h == 1 else f"{h} часа" if h < 5 else f"{h} часов"
 
+
+def _find_image_for(nid: str) -> str:
+    """Ищет фото для новости. Сначала в самой записи, потом по похожим заголовкам в кэше."""
+    item = _state["news_cache"].get(nid, {})
+    if item.get("image"):
+        return item["image"]
+
+    # Ищем среди всех записей в кэше по похожему заголовку
+    title = item.get("title", "").lower()
+    if not title:
+        return ""
+
+    # Берём ключевые слова из заголовка (слова длиннее 4 символов)
+    keywords = [w for w in re.split(r'\W+', title) if len(w) > 4]
+    if not keywords:
+        return ""
+
+    best_match = ""
+    best_score = 0
+
+    for other_id, other in _state["news_cache"].items():
+        if other_id == nid or not other.get("image"):
+            continue
+        other_title = other.get("title", "").lower()
+        # Считаем совпадения ключевых слов
+        score = sum(1 for kw in keywords if kw in other_title)
+        if score > best_score and score >= 2:  # минимум 2 совпадения
+            best_score = score
+            best_match = other["image"]
+
+    return best_match
+
 def _extract_image(entry) -> str:
     media = entry.get("media_content", [])
     if media:
@@ -274,6 +306,10 @@ def fetch_news(feeds: list, section: str) -> list:
                 nid = _news_id(title, link)
                 item = {"id": nid, "title": title, "description": desc_clean,
                         "link": link, "source": source, "section": section, "image": image}
+                # Если такой ID уже в кэше без фото, а сейчас фото есть — обновить
+                existing = _state["news_cache"].get(nid)
+                if existing and not existing.get("image") and image:
+                    existing["image"] = image
                 _state["news_cache"][nid] = item
                 items.append(item)
         except Exception as e:
@@ -351,8 +387,8 @@ def gemini_post(title: str, description: str, link: str) -> str:
         text = re.sub(r'Оригинал\s*\(?\s*https?://[^\s\)]+\)?\s*', '', text).strip()
         text = re.sub(r'https?://\S+', '', text).strip()
 
-        # Только ссылка на канал
-        text += f'\n\nПодписаться на <a href="{CHANNEL_LINK}">KoreanMaks</a>'
+        # Только ссылка на канал — вся строка кликабельная
+        text += f'\n\n<a href="{CHANNEL_LINK}">Подписаться на KoreanMaks 🔥🚀🇰🇷</a>'
         return text
     except Exception as e:
         logger.error(f"Gemini post error: {e}")
@@ -510,7 +546,7 @@ def cmd_post(text: str, chat_id: str):
     _state["last_post_text"] = post_text
     _state["last_post_nid"] = nid
 
-    image_url = news_item.get("image", "")
+    image_url = _find_image_for(nid)
     markup = _post_buttons(nid)
 
     if image_url:
@@ -520,7 +556,7 @@ def cmd_post(text: str, chat_id: str):
 
 
 def _post_buttons(nid: str) -> dict:
-    has_img = bool(_state["news_cache"].get(nid, {}).get("image"))
+    has_img = bool(_find_image_for(nid))
     buttons = []
     if has_img:
         buttons.append([{"text": "📷 Опубликовать с фото", "callback_data": f"pub_photo:{nid}"}])
@@ -535,8 +571,10 @@ def _publish(nid: str, with_photo: bool, chat_id: str):
     if not post_text:
         tg_send("❌ Нет поста. Сначала /post номер", chat_id=chat_id); return
 
-    if with_photo and news_item.get("image"):
-        result = tg_send_photo(news_item["image"], post_text, chat_id=CHANNEL_USERNAME)
+    image_url = _find_image_for(nid)
+
+    if with_photo and image_url:
+        result = tg_send_photo(image_url, post_text, chat_id=CHANNEL_USERNAME)
     else:
         result = tg_api("sendMessage", {"chat_id": CHANNEL_USERNAME, "text": post_text, "disable_web_page_preview": False})
 
