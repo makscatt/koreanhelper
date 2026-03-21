@@ -74,6 +74,20 @@
   <a class="trainer-menu-card" href="{{ trainer_url('video') }}">
     <span class="tmcard-icon">📹</span><span class="tmcard-title">Видео</span>
   </a>
+  <a class="trainer-menu-card tmcard-hub" href="{{ trainer_url('hub') }}">
+    <span class="tmcard-icon">📚</span><span class="tmcard-title">Мой словарь</span>
+  </a>
 </div>
+
+<style>
+  .tmcard-hub {
+    border: 2px solid #ff9800 !important;
+    background: linear-gradient(135deg, #fff8e1 0%, #fff 100%) !important;
+  }
+  .tmcard-hub:hover {
+    border-color: #e65100 !important;
+    box-shadow: 0 4px 16px rgba(255,152,0,.25) !important;
+  }
+</style>
 
 {% endblock %}
