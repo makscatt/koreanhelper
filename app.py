@@ -865,7 +865,7 @@ def _analyze_korean_word(text):
             json={
                 'model': OPENAI_MODEL,
                 'reasoning_effort': 'none',
-                'max_tokens': 200,
+                'max_completion_tokens': 200,
                 'messages': [
                     {'role': 'system', 'content': (
                         'Ты — помощник для изучения корейского языка. '
@@ -1177,6 +1177,26 @@ with app.app_context():
         ))
         db.session.commit()
         print("Миграция: добавлен столбец password_plain")
+    except Exception:
+        db.session.rollback()
+    # Миграция: создаём таблицу word_hub если её нет
+    try:
+        db.session.execute(db.text("""
+            CREATE TABLE IF NOT EXISTS word_hub (
+                id SERIAL PRIMARY KEY,
+                student_id INTEGER NOT NULL REFERENCES student(id),
+                word_kor VARCHAR(100) NOT NULL,
+                word_rus VARCHAR(200) NOT NULL,
+                original_form VARCHAR(100) NOT NULL,
+                part_of_speech VARCHAR(50) DEFAULT '',
+                is_learned BOOLEAN DEFAULT FALSE,
+                added_by VARCHAR(20) DEFAULT 'teacher',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT uq_student_word UNIQUE (student_id, word_kor)
+            )
+        """))
+        db.session.commit()
+        print("Миграция: таблица word_hub готова")
     except Exception:
         db.session.rollback()
     if not Teacher.query.filter_by(username='admin').first():
