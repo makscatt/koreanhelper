@@ -1217,12 +1217,60 @@ noteSaveBtn.addEventListener('click', async () => {
   });
 
   // ── Кнопка «В хаб» ──
+  // ── Hub Queue (localStorage fallback) ──
+  const HUB_QUEUE_KEY = `hub_queue_${studentId}`;
+
+  function getHubQueue() {
+    try { return JSON.parse(localStorage.getItem(HUB_QUEUE_KEY)) || []; }
+    catch { return []; }
+  }
+  function saveHubQueue(q) { localStorage.setItem(HUB_QUEUE_KEY, JSON.stringify(q)); }
+
+  function processHubQueue() {
+    const queue = getHubQueue();
+    if (!queue.length) return;
+    const item = queue[0];
+
+    fetch('/api/hub/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ student_id: parseInt(studentId), word: item })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok || (data.error && data.error !== 'ai_failed')) {
+        // Успех или дубликат — убираем из очереди
+        const q = getHubQueue();
+        q.shift();
+        saveHubQueue(q);
+        // Обработать следующее
+        if (q.length) setTimeout(processHubQueue, 500);
+      }
+    })
+    .catch(() => {
+      // Сеть недоступна — попробуем позже
+      setTimeout(processHubQueue, 10000);
+    });
+  }
+
+  function addToHub(word) {
+    const queue = getHubQueue();
+    // Не добавляем дубликат в очередь
+    if (queue.includes(word)) return;
+    queue.push(word);
+    saveHubQueue(queue);
+    processHubQueue();
+  }
+
+  // При загрузке страницы — дообработать очередь если осталось
+  setTimeout(processHubQueue, 2000);
+
   btnHub.addEventListener('click', e => {
     e.preventDefault(); e.stopPropagation();
     const txt = selectedText;
     if (!txt) return;
 
-    // Скрываем кнопки, показываем loader
+    // Сразу показываем тост и закрываем popup — не ждём ответа
     btnSearch.style.display = 'none';
     btnHub.style.display = 'none';
     btnNote.style.display = 'none';
@@ -1232,37 +1280,20 @@ noteSaveBtn.addEventListener('click', async () => {
       toast.className = 'sel-toast';
       popup.appendChild(toast);
     }
-    toast.textContent = '⏳ Анализ...';
+    toast.textContent = '✓ Добавлено в словарь';
     toast.style.display = '';
+    window.getSelection().removeAllRanges();
 
-    fetch('/api/hub/add', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ student_id: parseInt(studentId), word: txt })
-    })
-    .then(r => r.json())
-    .then(data => {
-      if (data.ok) {
-        if (data.duplicate) {
-          toast.textContent = '⚠ ' + data.word.word_kor + ' уже в хабе';
-        } else {
-          toast.textContent = '✓ ' + data.word.word_kor + ' → ' + data.word.word_rus;
-        }
-      } else {
-        toast.textContent = '✗ Ошибка';
-      }
-    })
-    .catch(() => { toast.textContent = '✗ Ошибка сети'; })
-    .finally(() => {
-      window.getSelection().removeAllRanges();
-      setTimeout(() => {
-        toast.style.display = 'none';
-        btnSearch.style.display = '';
-        btnHub.style.display = '';
-        btnNote.style.display = '';
-        hidePopup();
-      }, 1500);
-    });
+    // Добавляем в очередь — обработка в фоне
+    addToHub(txt);
+
+    setTimeout(() => {
+      toast.style.display = 'none';
+      btnSearch.style.display = '';
+      btnHub.style.display = '';
+      btnNote.style.display = '';
+      hidePopup();
+    }, 900);
   });
 })();
 </script>
