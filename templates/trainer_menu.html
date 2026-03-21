@@ -77,11 +77,6 @@
   <a class="trainer-menu-card tmcard-hub" href="{{ trainer_url('hub') }}">
     <span class="tmcard-icon">📚</span><span class="tmcard-title">Мой словарь</span>
   </a>
-  {% if not group_mode %}
-  <a class="trainer-menu-card tmcard-history" href="{% if student_mode %}{{ url_for('student_history') }}{% else %}{{ url_for('history', student_id=student.id) }}{% endif %}">
-    <span class="tmcard-icon">📋</span><span class="tmcard-title">История</span>
-  </a>
-  {% endif %}
 </div>
 
 <style>
@@ -92,14 +87,6 @@
   .tmcard-hub:hover {
     border-color: #e65100 !important;
     box-shadow: 0 4px 16px rgba(255,152,0,.25) !important;
-  }
-  .tmcard-history {
-    border: 2px solid #7c4dff !important;
-    background: linear-gradient(135deg, #ede7f6 0%, #fff 100%) !important;
-  }
-  .tmcard-history:hover {
-    border-color: #651fff !important;
-    box-shadow: 0 4px 16px rgba(124,77,255,.25) !important;
   }
 </style>
 
