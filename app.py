@@ -51,7 +51,8 @@ class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    teacher_id = db.Column(db.Integer, db.ForeignKey('teacher.id'), nullable=False)
+    teacher_id = db.Column(db.Integer, db.ForeignKey('teacher.id'), nullable=True)
+    telegram_id = db.Column(db.String(50), nullable=True, unique=True)  # для ТГ-юзеров
 
 class StudentAccount(db.Model):
     """Логин/пароль для ученика — создаётся учителем"""
@@ -348,7 +349,7 @@ def group_webapp():
 
 @app.route('/group/webapp/verify', methods=['POST'])
 def group_webapp_verify():
-    """Проверяет initData и создаёт сессию group_member."""
+    """Проверяет initData и создаёт сессию group_member с реальным Student."""
     data = request.get_json() or {}
     init_data = data.get('init_data', '')
 
@@ -370,33 +371,60 @@ def group_webapp_verify():
     if not kimchi_data.get('tgmembership') and not kimchi_data.get('promember'):
         return jsonify({'ok': False, 'error': 'Доступно только для участников группы'})
 
+    # Находим или создаём виртуального Student для этого ТГ-юзера
+    student = Student.query.filter_by(telegram_id=telegram_id).first()
+    if not student:
+        tg_name = user.get('first_name', 'TG') + (' ' + user.get('last_name', '')).rstrip()
+        student = Student(
+            name=tg_name,
+            telegram_id=telegram_id,
+            teacher_id=None,
+        )
+        db.session.add(student)
+        db.session.commit()
+
     session.clear()
     session['role'] = 'group_member'
     session['telegram_id'] = telegram_id
+    session['student_id'] = student.id
+    session['student_name'] = student.name
     return jsonify({'ok': True})
 
 
 class _GroupStudent:
-    """Фейковый student для шаблонов — чтобы {{ student.id }} и {{ student.name }} не крашились."""
+    """Фейковый student-заглушка — на случай если сессия без student_id."""
     id = 0
     name = 'Группа'
 
 _group_student = _GroupStudent()
 
 
+def _get_group_student():
+    """Возвращает реального Student для group_member или заглушку."""
+    sid = session.get('student_id')
+    if sid:
+        s = Student.query.get(sid)
+        if s:
+            return s
+    return _group_student
+
+
 @app.route('/group/trainers')
 @group_required
 def group_trainers():
-    """Меню тренажёров для участника группы — read-only, без фич учителя."""
+    """Меню тренажёров для участника группы."""
+    student = _get_group_student()
+    has_real_student = student.id != 0
     return render_template('trainer_menu.html',
-                           student=_group_student, student_mode=True, readonly=True,
+                           student=student, student_mode=True,
+                           readonly=not has_real_student,
                            group_mode=True)
 
 
 @app.route('/group/trainer/<module>')
 @group_required
 def group_trainer(module):
-    """Любой тренажёр в read-only режиме для участника группы."""
+    """Любой тренажёр для участника группы."""
     template_map = {
         'alphabet':  'trainer_alphabet.html',
         'numbers':   'trainer_numbers.html',
@@ -422,8 +450,11 @@ def group_trainer(module):
     template = template_map.get(module)
     if not template:
         return redirect(url_for('group_trainers'))
+    student = _get_group_student()
+    has_real_student = student.id != 0
     return render_template(template,
-                           student=_group_student, student_mode=True, readonly=True,
+                           student=student, student_mode=True,
+                           readonly=not has_real_student,
                            group_mode=True)
 
 
@@ -607,16 +638,19 @@ def student_history():
 
 def _get_student_id_from_request(data):
     """Определяет student_id в зависимости от роли"""
-    if session.get('role') == 'student':
+    role = session.get('role')
+    if role == 'student':
         return session.get('student_id')
+    if role == 'group_member':
+        return session.get('student_id')  # реальный Student, созданный при верификации
     return data.get('student_id')  # учитель передаёт явно
 
 @app.route('/api/progress/ping', methods=['POST'])
 @login_required
 def progress_ping():
     """Вызывается при входе в тренажёр — логирует начало сессии"""
-    # ── ДОБАВЛЕНО: group_member не логирует прогресс ──
-    if session.get('role') == 'group_member':
+    # group_member без реального student_id — пропускаем
+    if session.get('role') == 'group_member' and not session.get('student_id'):
         return jsonify({'ok': True, 'session_id': None})
 
     data = request.get_json()
@@ -635,8 +669,8 @@ def progress_ping():
 @login_required
 def progress_update():
     """Вызывается при каждом выполненном упражнении"""
-    # ── ДОБАВЛЕНО: group_member не обновляет прогресс ──
-    if session.get('role') == 'group_member':
+    # group_member без реального student_id — пропускаем
+    if session.get('role') == 'group_member' and not session.get('student_id'):
         return jsonify({'ok': True, 'total': 0})
 
     data = request.get_json()
@@ -1200,6 +1234,24 @@ with app.app_context():
         """))
         db.session.commit()
         print("Миграция: таблица word_hub готова")
+    except Exception:
+        db.session.rollback()
+    # Миграция: добавляем telegram_id в student
+    try:
+        db.session.execute(db.text(
+            "ALTER TABLE student ADD COLUMN telegram_id VARCHAR(50) UNIQUE"
+        ))
+        db.session.commit()
+        print("Миграция: добавлен столбец telegram_id")
+    except Exception:
+        db.session.rollback()
+    # Миграция: делаем teacher_id nullable
+    try:
+        db.session.execute(db.text(
+            "ALTER TABLE student ALTER COLUMN teacher_id DROP NOT NULL"
+        ))
+        db.session.commit()
+        print("Миграция: teacher_id теперь nullable")
     except Exception:
         db.session.rollback()
     if not Teacher.query.filter_by(username='admin').first():
