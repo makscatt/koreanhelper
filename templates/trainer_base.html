@@ -328,6 +328,7 @@
 {% if not readonly %}
 <div id="sel-popup" class="sel-popup">
   <button id="sel-search" class="sel-btn sel-btn-search">🔍 Найти</button>
+  <button id="sel-hub"    class="sel-btn sel-btn-hub">📚 В хаб</button>
   <button id="sel-note"   class="sel-btn sel-btn-note">📝 В заметки</button>
 </div>
 <style>
@@ -365,6 +366,14 @@
   }
   .sel-btn-search:hover {
     background: var(--primary, #4758d6);
+    color: #fff;
+  }
+  .sel-btn-hub {
+    background: #fff3e0;
+    color: #e65100;
+  }
+  .sel-btn-hub:hover {
+    background: #ff9800;
     color: #fff;
   }
   .sel-btn-note {
@@ -1043,6 +1052,7 @@ noteSaveBtn.addEventListener('click', async () => {
 (function() {
   const popup     = document.getElementById('sel-popup');
   const btnSearch = document.getElementById('sel-search');
+  const btnHub    = document.getElementById('sel-hub');
   const btnNote   = document.getElementById('sel-note');
   if (!popup) return;
 
@@ -1186,6 +1196,7 @@ noteSaveBtn.addEventListener('click', async () => {
 
     // Показываем «Добавлено ✓» вместо кнопок
     btnSearch.style.display = 'none';
+    btnHub.style.display = 'none';
     btnNote.style.display = 'none';
     let toast = popup.querySelector('.sel-toast');
     if (!toast) {
@@ -1199,9 +1210,59 @@ noteSaveBtn.addEventListener('click', async () => {
     setTimeout(() => {
       toast.style.display = 'none';
       btnSearch.style.display = '';
+      btnHub.style.display = '';
       btnNote.style.display = '';
       hidePopup();
     }, 900);
+  });
+
+  // ── Кнопка «В хаб» ──
+  btnHub.addEventListener('click', e => {
+    e.preventDefault(); e.stopPropagation();
+    const txt = selectedText;
+    if (!txt) return;
+
+    // Скрываем кнопки, показываем loader
+    btnSearch.style.display = 'none';
+    btnHub.style.display = 'none';
+    btnNote.style.display = 'none';
+    let toast = popup.querySelector('.sel-toast');
+    if (!toast) {
+      toast = document.createElement('span');
+      toast.className = 'sel-toast';
+      popup.appendChild(toast);
+    }
+    toast.textContent = '⏳ Анализ...';
+    toast.style.display = '';
+
+    fetch('/api/hub/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ student_id: parseInt(studentId), word: txt })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        if (data.duplicate) {
+          toast.textContent = '⚠ ' + data.word.word_kor + ' уже в хабе';
+        } else {
+          toast.textContent = '✓ ' + data.word.word_kor + ' → ' + data.word.word_rus;
+        }
+      } else {
+        toast.textContent = '✗ Ошибка';
+      }
+    })
+    .catch(() => { toast.textContent = '✗ Ошибка сети'; })
+    .finally(() => {
+      window.getSelection().removeAllRanges();
+      setTimeout(() => {
+        toast.style.display = 'none';
+        btnSearch.style.display = '';
+        btnHub.style.display = '';
+        btnNote.style.display = '';
+        hidePopup();
+      }, 1500);
+    });
   });
 })();
 </script>

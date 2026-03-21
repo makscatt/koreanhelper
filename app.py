@@ -32,6 +32,10 @@ db = SQLAlchemy(app)
 KIMCHI_API_URL = os.environ.get('KIMCHI_API_URL', 'https://kimchi-server.onrender.com')
 KIMCHI_BOT_TOKEN = os.environ.get('KIMCHI_BOT_TOKEN', '')
 
+# ── OpenAI для Word Hub ──
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
+OPENAI_MODEL = 'gpt-5.1'
+
 
 # ══════════════════════════════════════════
 #  МОДЕЛИ
@@ -110,6 +114,21 @@ class TrainerItemProgress(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow)
     __table_args__ = (
         db.UniqueConstraint('student_id', 'trainer', 'item_id', name='uq_item_progress'),
+    )
+
+class WordHub(db.Model):
+    """Персональный словарь ученика — слова добавляются через ИИ-анализ"""
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    word_kor = db.Column(db.String(100), nullable=False)      # словарная форма
+    word_rus = db.Column(db.String(200), nullable=False)      # перевод
+    original_form = db.Column(db.String(100), nullable=False)  # как было выделено
+    part_of_speech = db.Column(db.String(50), default='')      # 동사, 명사 и т.д.
+    is_learned = db.Column(db.Boolean, default=False)
+    added_by = db.Column(db.String(20), default='teacher')     # 'teacher' или 'student'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    __table_args__ = (
+        db.UniqueConstraint('student_id', 'word_kor', name='uq_student_word'),
     )
 
 
@@ -398,6 +417,7 @@ def group_trainer(module):
         'video':     'trainer_video.html',
         'pictures':  'trainer_pictures.html',
         'phrases':   'trainer_phrases.html',
+        'hub':       'trainer_hub.html',
     }
     template = template_map.get(module)
     if not template:
@@ -440,6 +460,7 @@ def delete_student(student_id):
         SessionLog.query.filter_by(student_id=student_id).delete()
         SectionCheck.query.filter_by(student_id=student_id).delete()
         TrainerItemProgress.query.filter_by(student_id=student_id).delete()
+        WordHub.query.filter_by(student_id=student_id).delete()
         db.session.delete(student)
         db.session.commit()
         flash('Ученик удалён', 'success')
@@ -565,6 +586,7 @@ def student_trainer(module):
         'video':     'trainer_video.html',
         'pictures':  'trainer_pictures.html',
         'phrases':   'trainer_phrases.html',
+        'hub':       'trainer_hub.html',
     }
     template = template_map.get(module)
     if not template:
@@ -826,6 +848,154 @@ def items_set():
 
 
 # ══════════════════════════════════════════
+#  WORD HUB API  (персональный словарь с ИИ)
+# ══════════════════════════════════════════
+
+def _analyze_korean_word(text):
+    """Отправляет слово в OpenAI для анализа: словарная форма + перевод + часть речи"""
+    if not OPENAI_API_KEY:
+        return None
+    try:
+        resp = http_requests.post(
+            'https://api.openai.com/v1/chat/completions',
+            headers={
+                'Authorization': f'Bearer {OPENAI_API_KEY}',
+                'Content-Type': 'application/json',
+            },
+            json={
+                'model': OPENAI_MODEL,
+                'reasoning_effort': 'none',
+                'max_tokens': 200,
+                'messages': [
+                    {'role': 'system', 'content': (
+                        'Ты — помощник для изучения корейского языка. '
+                        'Пользователь пришлёт корейское слово (возможно в спрягаемой форме). '
+                        'Верни JSON и НИЧЕГО кроме JSON: '
+                        '{"base":"словарная форма на корейском","rus":"перевод на русский (краткий)","pos":"часть речи на русском (глагол/существительное/прилагательное/наречие/частица/и т.д.)"} '
+                        'Если слово уже в словарной форме, base = само слово. '
+                        'Если не можешь определить — верни {"base":"","rus":"","pos":""}.'
+                    )},
+                    {'role': 'user', 'content': text.strip()}
+                ],
+            },
+            timeout=15,
+        )
+        if resp.status_code != 200:
+            print(f"OpenAI error: {resp.status_code} {resp.text[:200]}")
+            return None
+        content = resp.json()['choices'][0]['message']['content']
+        # Чистим от возможных markdown-обёрток
+        content = content.strip()
+        if content.startswith('```'):
+            content = content.split('\n', 1)[-1].rsplit('```', 1)[0]
+        return json.loads(content)
+    except Exception as e:
+        print(f"OpenAI analyze error: {e}")
+        return None
+
+
+@app.route('/api/hub/add', methods=['POST'])
+@login_required
+def hub_add():
+    """Добавить слово в хаб через ИИ-анализ"""
+    data = request.get_json() or {}
+    student_id = _get_student_id_from_request(data)
+    raw_word = data.get('word', '').strip()
+    if not student_id or not raw_word:
+        return jsonify({'ok': False, 'error': 'missing data'}), 400
+
+    # Проверяем дубликат по оригинальной форме
+    existing = WordHub.query.filter_by(student_id=student_id, original_form=raw_word).first()
+    if existing:
+        return jsonify({'ok': True, 'duplicate': True, 'word': {
+            'id': existing.id, 'word_kor': existing.word_kor,
+            'word_rus': existing.word_rus, 'pos': existing.part_of_speech
+        }})
+
+    # Анализ через ИИ
+    analysis = _analyze_korean_word(raw_word)
+    if not analysis or not analysis.get('base'):
+        return jsonify({'ok': False, 'error': 'ai_failed'}), 500
+
+    base_form = analysis['base']
+    # Проверяем дубликат по словарной форме
+    existing = WordHub.query.filter_by(student_id=student_id, word_kor=base_form).first()
+    if existing:
+        return jsonify({'ok': True, 'duplicate': True, 'word': {
+            'id': existing.id, 'word_kor': existing.word_kor,
+            'word_rus': existing.word_rus, 'pos': existing.part_of_speech
+        }})
+
+    added_by = 'teacher' if session.get('role') == 'teacher' else 'student'
+    word = WordHub(
+        student_id=student_id,
+        word_kor=base_form,
+        word_rus=analysis.get('rus', ''),
+        original_form=raw_word,
+        part_of_speech=analysis.get('pos', ''),
+        added_by=added_by,
+    )
+    db.session.add(word)
+    db.session.commit()
+    return jsonify({'ok': True, 'word': {
+        'id': word.id, 'word_kor': word.word_kor,
+        'word_rus': word.word_rus, 'pos': word.part_of_speech
+    }})
+
+
+@app.route('/api/hub/list', methods=['POST'])
+@login_required
+def hub_list():
+    """Получить все слова хаба ученика"""
+    data = request.get_json() or {}
+    student_id = _get_student_id_from_request(data)
+    if not student_id:
+        return jsonify({'ok': False}), 400
+
+    words = WordHub.query.filter_by(student_id=student_id)\
+        .order_by(WordHub.created_at.desc()).all()
+    return jsonify({'ok': True, 'words': [{
+        'id': w.id, 'word_kor': w.word_kor, 'word_rus': w.word_rus,
+        'original_form': w.original_form, 'pos': w.part_of_speech,
+        'is_learned': w.is_learned, 'added_by': w.added_by,
+    } for w in words]})
+
+
+@app.route('/api/hub/toggle-learned', methods=['POST'])
+@login_required
+def hub_toggle_learned():
+    """Переключить статус выученного слова"""
+    data = request.get_json() or {}
+    word_id = data.get('word_id')
+    if not word_id:
+        return jsonify({'ok': False}), 400
+
+    word = WordHub.query.get(word_id)
+    if not word:
+        return jsonify({'ok': False}), 404
+
+    word.is_learned = not word.is_learned
+    db.session.commit()
+    return jsonify({'ok': True, 'is_learned': word.is_learned})
+
+
+@app.route('/api/hub/delete', methods=['POST'])
+@login_required
+def hub_delete():
+    """Удалить слово из хаба"""
+    data = request.get_json() or {}
+    word_id = data.get('word_id')
+    if not word_id:
+        return jsonify({'ok': False}), 400
+
+    word = WordHub.query.get(word_id)
+    if word:
+        db.session.delete(word)
+        db.session.commit()
+    return jsonify({'ok': True})
+
+
+# ══════════════════════════════════════════
 #  GOOGLE CLOUD TTS API
 # ══════════════════════════════════════════
 
@@ -979,6 +1149,11 @@ def trainer_pictures(student_id):
 @teacher_required
 def trainer_phrases(student_id):
     return _teacher_trainer(student_id, 'trainer_phrases.html')
+
+@app.route('/student/<int:student_id>/trainer/hub')
+@teacher_required
+def trainer_hub(student_id):
+    return _teacher_trainer(student_id, 'trainer_hub.html')
 
 @app.route('/student/<int:student_id>/history')
 @teacher_required

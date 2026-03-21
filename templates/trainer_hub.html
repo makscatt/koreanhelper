@@ -1,0 +1,514 @@
+{% extends "trainer_base.html" %}
+{% block title %}Словарь — {{ student.name }}{% endblock %}
+
+{% block trainer_content %}
+<script>document.body.dataset.module = 'hub';</script>
+<div class="trainer-header">
+  <span class="trainer-title">📚 Мой словарь</span>
+</div>
+
+<div style="max-width:860px;width:100%;">
+
+  <!-- MODE TABS -->
+  <div class="hub-tabs">
+    <button class="hub-tab active" data-mode="list" onclick="setHubMode('list',this)">📋 Список</button>
+    <button class="hub-tab" data-mode="cards-kr" onclick="setHubMode('cards-kr',this)">🇰🇷→🇷🇺 Карточки</button>
+    <button class="hub-tab" data-mode="cards-ru" onclick="setHubMode('cards-ru',this)">🇷🇺→🇰🇷 Карточки</button>
+    <button class="hub-tab" data-mode="quiz" onclick="setHubMode('quiz',this)">🧪 Тест</button>
+  </div>
+
+  <!-- FILTER -->
+  <div class="hub-filter">
+    <button class="hub-filter-btn active" data-f="active" onclick="setFilter('active',this)">Учу (<span id="cnt-active">0</span>)</button>
+    <button class="hub-filter-btn" data-f="learned" onclick="setFilter('learned',this)">Выучено (<span id="cnt-learned">0</span>)</button>
+    <button class="hub-filter-btn" data-f="all" onclick="setFilter('all',this)">Все (<span id="cnt-all">0</span>)</button>
+  </div>
+
+  <!-- LIST MODE -->
+  <div class="hub-mode hub-mode-list active" id="mode-list">
+    <div class="hub-word-list" id="word-list"></div>
+    <div class="hub-empty" id="list-empty" style="display:none;">
+      <div style="font-size:3rem;margin-bottom:12px;">📚</div>
+      <div>Словарь пуст</div>
+      <div style="font-size:12px;color:var(--text-tertiary);margin-top:6px;">Выделяйте корейские слова в тренажёрах и нажимайте «📚 В хаб»</div>
+    </div>
+  </div>
+
+  <!-- CARDS KR→RU MODE -->
+  <div class="hub-mode hub-mode-cards" id="mode-cards-kr">
+    <div class="hub-card" id="card-kr">
+      <div class="hub-card-pos" id="card-kr-pos"></div>
+      <div class="hub-card-main" id="card-kr-main" style="font-family:'Noto Sans KR',sans-serif;"></div>
+      <div class="hub-card-answer" id="card-kr-answer"></div>
+      <div class="hub-card-num" id="card-kr-num">#1</div>
+    </div>
+    <div class="hub-card-btns">
+      <button class="btn" onclick="cardPrev('kr')">← Назад</button>
+      <button class="btn" onclick="speakCardWord('kr')">🔊</button>
+      <button class="btn btn-primary" onclick="cardFlip('kr')">👁 Перевод</button>
+      <button class="btn" onclick="cardNext('kr')">Далее →</button>
+    </div>
+    <div class="hub-card-progress">
+      <span id="card-kr-progress">0 / 0</span>
+    </div>
+  </div>
+
+  <!-- CARDS RU→KR MODE -->
+  <div class="hub-mode hub-mode-cards" id="mode-cards-ru">
+    <div class="hub-card" id="card-ru">
+      <div class="hub-card-pos" id="card-ru-pos"></div>
+      <div class="hub-card-main" id="card-ru-main"></div>
+      <div class="hub-card-answer" id="card-ru-answer" style="font-family:'Noto Sans KR',sans-serif;"></div>
+      <div class="hub-card-num" id="card-ru-num">#1</div>
+    </div>
+    <div class="hub-card-btns">
+      <button class="btn" onclick="cardPrev('ru')">← Назад</button>
+      <button class="btn btn-primary" onclick="cardFlip('ru')">👁 Ответ</button>
+      <button class="btn" onclick="speakCardWord('ru')">🔊</button>
+      <button class="btn" onclick="cardNext('ru')">Далее →</button>
+    </div>
+    <div class="hub-card-progress">
+      <span id="card-ru-progress">0 / 0</span>
+    </div>
+  </div>
+
+  <!-- QUIZ MODE -->
+  <div class="hub-mode hub-mode-quiz" id="mode-quiz">
+    <div class="hub-quiz-card" id="quiz-card">
+      <div class="hub-quiz-question" id="quiz-question" style="font-family:'Noto Sans KR',sans-serif;"></div>
+      <div class="hub-quiz-options" id="quiz-options"></div>
+      <div class="hub-quiz-result" id="quiz-result"></div>
+    </div>
+    <div class="hub-card-btns">
+      <button class="btn btn-primary" id="quiz-next-btn" onclick="quizNext()" style="display:none;">Следующий →</button>
+    </div>
+    <div class="hub-card-progress">
+      Правильно: <b id="quiz-score">0</b> / <span id="quiz-total">0</span>
+    </div>
+    <div class="hub-empty" id="quiz-empty" style="display:none;">
+      Нужно минимум 4 слова для теста
+    </div>
+  </div>
+
+</div>
+
+<style>
+/* ── Tabs ── */
+.hub-tabs {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.hub-tab {
+  padding: 8px 16px; font-size: 13px; font-weight: 600;
+  font-family: var(--font-main, inherit);
+  border: 1px solid var(--border-color, #e2e5ec); border-radius: 8px;
+  background: var(--bg-surface, #fff); color: var(--text-secondary, #666);
+  cursor: pointer; transition: all 0.12s;
+}
+.hub-tab:hover { border-color: var(--primary); }
+.hub-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* ── Filter ── */
+.hub-filter {
+  display: flex; gap: 6px; margin-bottom: 16px;
+}
+.hub-filter-btn {
+  padding: 5px 12px; font-size: 12px; font-weight: 600;
+  font-family: var(--font-main, inherit);
+  border: 1px solid var(--border-color, #e2e5ec); border-radius: 20px;
+  background: var(--bg-surface, #fff); color: var(--text-tertiary, #999);
+  cursor: pointer; transition: all 0.12s;
+}
+.hub-filter-btn.active { background: var(--bg-app, #f5f6fa); color: var(--text-primary); border-color: var(--text-tertiary); }
+
+/* ── Modes ── */
+.hub-mode { display: none; }
+.hub-mode.active { display: block; }
+
+/* ── List ── */
+.hub-word-list { display: flex; flex-direction: column; gap: 6px; }
+.hub-word-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e2e5ec);
+  border-radius: 10px;
+  transition: all 0.12s;
+}
+.hub-word-item.learned { opacity: 0.55; }
+.hub-word-kor {
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 18px; font-weight: 600; color: var(--text-primary);
+  min-width: 100px;
+}
+.hub-word-rus {
+  flex: 1; font-size: 14px; color: var(--text-secondary);
+}
+.hub-word-pos {
+  font-size: 10px; color: var(--text-tertiary);
+  background: var(--bg-app, #f5f6fa);
+  padding: 2px 8px; border-radius: 10px;
+  font-family: var(--font-mono, monospace);
+}
+.hub-word-actions { display: flex; gap: 4px; }
+.hub-word-btn {
+  width: 32px; height: 32px;
+  border: 1px solid var(--border-color, #e2e5ec);
+  border-radius: 8px; background: var(--bg-surface, #fff);
+  cursor: pointer; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.12s;
+}
+.hub-word-btn:hover { background: var(--bg-app); }
+.hub-word-btn.active-learned { background: #dcfce7; border-color: #86efac; }
+
+/* ── Empty ── */
+.hub-empty {
+  text-align: center; padding: 48px 20px;
+  color: var(--text-secondary); font-size: 14px;
+}
+
+/* ── Card ── */
+.hub-card, .hub-quiz-card {
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e2e5ec);
+  border-radius: 14px;
+  padding: 40px 32px;
+  text-align: center;
+  position: relative;
+  min-height: 180px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px;
+}
+.hub-card-pos { font-size: 10px; color: var(--text-tertiary); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px; }
+.hub-card-main { font-size: 2.6rem; font-weight: 400; color: var(--text-primary); }
+.hub-card-answer {
+  font-size: 1.2rem; color: var(--text-tertiary);
+  visibility: hidden; opacity: 0; transition: opacity 0.2s;
+}
+.hub-card-answer.visible { visibility: visible; opacity: 1; }
+.hub-card-num { position: absolute; top: 14px; right: 18px; font-size: 11px; color: var(--text-tertiary); font-family: var(--font-mono); }
+.hub-card-btns { display: flex; gap: 8px; justify-content: center; margin-top: 16px; flex-wrap: nowrap; }
+.hub-card-btns .btn { flex: 1; }
+.hub-card-progress { text-align: center; margin-top: 10px; font-size: 12px; color: var(--text-tertiary); font-family: var(--font-mono); }
+
+/* ── Quiz ── */
+.hub-quiz-question { font-size: 2.2rem; font-weight: 400; color: var(--text-primary); margin-bottom: 20px; }
+.hub-quiz-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; max-width: 400px; }
+.hub-quiz-opt {
+  padding: 12px 16px; font-size: 14px; font-weight: 500;
+  border: 1px solid var(--border-color, #e2e5ec);
+  border-radius: 10px; background: var(--bg-surface, #fff);
+  cursor: pointer; transition: all 0.15s; text-align: center;
+}
+.hub-quiz-opt:hover { border-color: var(--primary); background: var(--primary-container, #e8eaf6); }
+.hub-quiz-opt.correct { background: #dcfce7; border-color: #22c55e; color: #15803d; }
+.hub-quiz-opt.wrong { background: #fef2f2; border-color: #ef4444; color: #991b1b; }
+.hub-quiz-opt.disabled { pointer-events: none; }
+.hub-quiz-result { font-size: 13px; font-weight: 600; margin-top: 8px; min-height: 20px; }
+
+@media (max-width: 600px) {
+  .hub-card-main { font-size: 2rem; }
+  .hub-quiz-question { font-size: 1.7rem; }
+  .hub-quiz-options { grid-template-columns: 1fr; }
+  .hub-word-kor { min-width: 70px; font-size: 15px; }
+}
+</style>
+{% endblock %}
+
+{% block trainer_js %}
+<script>
+  const STUDENT_ID = {{ student.id }};
+  let allWords = [];
+  let filtered = [];
+  let activeMode = 'list';
+  let activeFilter = 'active';
+  let cardIdx = { kr: 0, ru: 0 };
+  let cardFlipped = { kr: false, ru: false };
+  let quizIdx = 0, quizScore = 0, quizAnswered = false;
+
+  // ── LOAD ──
+  async function loadHub() {
+    try {
+      const res = await fetch('/api/hub/list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: STUDENT_ID })
+      });
+      const data = await res.json();
+      if (data.ok) allWords = data.words;
+    } catch(e) { console.error('Hub load error', e); }
+    updateCounts();
+    applyFilter();
+  }
+
+  function updateCounts() {
+    const active = allWords.filter(w => !w.is_learned).length;
+    const learned = allWords.filter(w => w.is_learned).length;
+    document.getElementById('cnt-active').textContent = active;
+    document.getElementById('cnt-learned').textContent = learned;
+    document.getElementById('cnt-all').textContent = allWords.length;
+  }
+
+  function setFilter(f, btn) {
+    activeFilter = f;
+    document.querySelectorAll('.hub-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyFilter();
+  }
+
+  function applyFilter() {
+    if (activeFilter === 'active') filtered = allWords.filter(w => !w.is_learned);
+    else if (activeFilter === 'learned') filtered = allWords.filter(w => w.is_learned);
+    else filtered = [...allWords];
+    renderMode();
+  }
+
+  function setHubMode(mode, btn) {
+    activeMode = mode;
+    document.querySelectorAll('.hub-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.hub-mode').forEach(m => m.classList.remove('active'));
+    const modeId = mode.startsWith('cards') ? 'mode-' + mode : 'mode-' + mode;
+    document.getElementById(modeId).classList.add('active');
+    cardIdx.kr = 0; cardIdx.ru = 0;
+    quizIdx = 0; quizScore = 0;
+    renderMode();
+  }
+
+  function renderMode() {
+    if (activeMode === 'list') renderList();
+    else if (activeMode === 'cards-kr') renderCard('kr');
+    else if (activeMode === 'cards-ru') renderCard('ru');
+    else if (activeMode === 'quiz') renderQuiz();
+  }
+
+  // ── LIST ──
+  function renderList() {
+    const container = document.getElementById('word-list');
+    const empty = document.getElementById('list-empty');
+    if (!filtered.length) {
+      container.innerHTML = '';
+      empty.style.display = '';
+      return;
+    }
+    empty.style.display = 'none';
+    container.innerHTML = filtered.map(w => `
+      <div class="hub-word-item ${w.is_learned ? 'learned' : ''}">
+        <div class="hub-word-kor">${w.word_kor}</div>
+        <div class="hub-word-rus">${w.word_rus}</div>
+        ${w.pos ? '<div class="hub-word-pos">' + w.pos + '</div>' : ''}
+        <div class="hub-word-actions">
+          <button class="hub-word-btn" onclick="speakWord('${w.word_kor}')" title="Озвучить">🔊</button>
+          <button class="hub-word-btn ${w.is_learned ? 'active-learned' : ''}" onclick="toggleLearned(${w.id})" title="${w.is_learned ? 'Вернуть в изучение' : 'Отметить выученным'}">✅</button>
+          <button class="hub-word-btn" onclick="deleteWord(${w.id})" title="Удалить">🗑</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function speakWord(kor) { speakText(kor); }
+
+  async function toggleLearned(wordId) {
+    try {
+      const res = await fetch('/api/hub/toggle-learned', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ word_id: wordId })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        const w = allWords.find(x => x.id === wordId);
+        if (w) w.is_learned = data.is_learned;
+        updateCounts();
+        applyFilter();
+      }
+    } catch(e) {}
+  }
+
+  async function deleteWord(wordId) {
+    if (!confirm('Удалить слово из хаба?')) return;
+    try {
+      await fetch('/api/hub/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ word_id: wordId })
+      });
+      allWords = allWords.filter(w => w.id !== wordId);
+      updateCounts();
+      applyFilter();
+    } catch(e) {}
+  }
+
+  // ── CARDS ──
+  function renderCard(dir) {
+    const answer = document.getElementById(`card-${dir}-answer`);
+    answer.classList.remove('visible');
+    cardFlipped[dir] = false;
+
+    if (!filtered.length) {
+      document.getElementById(`card-${dir}-main`).textContent = '—';
+      document.getElementById(`card-${dir}-pos`).textContent = '';
+      answer.textContent = '';
+      document.getElementById(`card-${dir}-num`).textContent = '';
+      document.getElementById(`card-${dir}-progress`).textContent = '0 / 0';
+      return;
+    }
+
+    const idx = cardIdx[dir] % filtered.length;
+    const w = filtered[idx];
+
+    if (dir === 'kr') {
+      document.getElementById('card-kr-main').textContent = w.word_kor;
+      document.getElementById('card-kr-answer').textContent = w.word_rus;
+    } else {
+      document.getElementById('card-ru-main').textContent = w.word_rus;
+      document.getElementById('card-ru-answer').textContent = w.word_kor;
+    }
+    document.getElementById(`card-${dir}-pos`).textContent = w.pos || '';
+    document.getElementById(`card-${dir}-num`).textContent = '#' + (idx + 1);
+    document.getElementById(`card-${dir}-progress`).textContent = (idx + 1) + ' / ' + filtered.length;
+  }
+
+  function cardFlip(dir) {
+    const answer = document.getElementById(`card-${dir}-answer`);
+    cardFlipped[dir] = !cardFlipped[dir];
+    answer.classList.toggle('visible', cardFlipped[dir]);
+    if (cardFlipped[dir]) trackExercise();
+  }
+
+  function cardNext(dir) {
+    if (!filtered.length) return;
+    cardIdx[dir] = (cardIdx[dir] + 1) % filtered.length;
+    renderCard(dir);
+  }
+
+  function cardPrev(dir) {
+    if (!filtered.length) return;
+    cardIdx[dir] = (cardIdx[dir] - 1 + filtered.length) % filtered.length;
+    renderCard(dir);
+  }
+
+  function speakCardWord(dir) {
+    if (!filtered.length) return;
+    const w = filtered[cardIdx[dir] % filtered.length];
+    speakText(w.word_kor);
+  }
+
+  // ── QUIZ ──
+  let quizOrder = [];
+
+  function renderQuiz() {
+    const empty = document.getElementById('quiz-empty');
+    const card = document.getElementById('quiz-card');
+    const nextBtn = document.getElementById('quiz-next-btn');
+
+    if (filtered.length < 4) {
+      empty.style.display = '';
+      card.style.display = 'none';
+      nextBtn.style.display = 'none';
+      return;
+    }
+    empty.style.display = 'none';
+    card.style.display = '';
+
+    // Shuffle order
+    quizOrder = filtered.map((_, i) => i);
+    for (let i = quizOrder.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [quizOrder[i], quizOrder[j]] = [quizOrder[j], quizOrder[i]];
+    }
+    quizIdx = 0; quizScore = 0; quizAnswered = false;
+    document.getElementById('quiz-score').textContent = '0';
+    document.getElementById('quiz-total').textContent = filtered.length;
+    showQuizQuestion();
+  }
+
+  function showQuizQuestion() {
+    if (quizIdx >= quizOrder.length) {
+      document.getElementById('quiz-question').textContent = '🎉 Готово!';
+      document.getElementById('quiz-options').innerHTML = '';
+      document.getElementById('quiz-result').textContent =
+        'Результат: ' + quizScore + ' из ' + quizOrder.length;
+      document.getElementById('quiz-next-btn').style.display = 'none';
+      return;
+    }
+
+    quizAnswered = false;
+    document.getElementById('quiz-next-btn').style.display = 'none';
+    document.getElementById('quiz-result').textContent = '';
+
+    const correct = filtered[quizOrder[quizIdx]];
+    document.getElementById('quiz-question').textContent = correct.word_kor;
+
+    // Pick 3 wrong answers
+    const wrongPool = filtered.filter(w => w.id !== correct.id);
+    const wrongs = [];
+    const used = new Set();
+    while (wrongs.length < 3 && wrongs.length < wrongPool.length) {
+      const ri = Math.floor(Math.random() * wrongPool.length);
+      if (!used.has(ri)) { used.add(ri); wrongs.push(wrongPool[ri]); }
+    }
+
+    const options = [correct, ...wrongs];
+    // Shuffle options
+    for (let i = options.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [options[i], options[j]] = [options[j], options[i]];
+    }
+
+    const container = document.getElementById('quiz-options');
+    container.innerHTML = options.map(o =>
+      `<div class="hub-quiz-opt" data-id="${o.id}" onclick="quizAnswer(${o.id},${correct.id},this)">${o.word_rus}</div>`
+    ).join('');
+  }
+
+  function quizAnswer(selectedId, correctId, el) {
+    if (quizAnswered) return;
+    quizAnswered = true;
+    trackExercise();
+
+    const opts = document.querySelectorAll('.hub-quiz-opt');
+    opts.forEach(o => {
+      o.classList.add('disabled');
+      if (parseInt(o.dataset.id) === correctId) o.classList.add('correct');
+    });
+
+    if (selectedId === correctId) {
+      quizScore++;
+      document.getElementById('quiz-result').textContent = '✓ Верно!';
+      document.getElementById('quiz-result').style.color = '#22c55e';
+    } else {
+      el.classList.add('wrong');
+      document.getElementById('quiz-result').textContent = '✗ Неверно';
+      document.getElementById('quiz-result').style.color = '#ef4444';
+    }
+
+    document.getElementById('quiz-score').textContent = quizScore;
+    document.getElementById('quiz-next-btn').style.display = '';
+
+    // Speak correct word
+    const correct = filtered.find(w => w.id === correctId);
+    if (correct) speakText(correct.word_kor);
+  }
+
+  function quizNext() {
+    quizIdx++;
+    showQuizQuestion();
+  }
+
+  // ── KEYBOARD ──
+  document.addEventListener('keydown', e => {
+    if (activeMode === 'cards-kr' || activeMode === 'cards-ru') {
+      const dir = activeMode === 'cards-kr' ? 'kr' : 'ru';
+      if (e.key === 'ArrowRight') cardNext(dir);
+      else if (e.key === 'ArrowLeft') cardPrev(dir);
+      else if (e.key === ' ') { e.preventDefault(); cardFlip(dir); }
+      else if (['s','ы','Ы'].includes(e.key)) speakCardWord(dir);
+    }
+  });
+
+  // ── INIT ──
+  loadHub();
+</script>
+{% endblock %}
