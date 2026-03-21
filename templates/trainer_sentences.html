@@ -118,16 +118,7 @@
 
   // ── LOAD ──
   async function loadData() {
-    // Загружаем состояния чекбоксов из БД
-    try {
-      const res = await fetch('/api/sections/get', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ student_id: STUDENT_ID, trainer: 'sentences' })
-      });
-      const data = await res.json();
-      if (data.ok) grammarChecks = data.sections;
-    } catch(e) {}
+    // grammarChecks уже загружены в loadChecks() через /api/items/get
 
     try {
       const res = await fetch('/static/data/sentences.json');
