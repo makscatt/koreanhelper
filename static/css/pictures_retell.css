@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════
    PICTURES TRAINER — TABS + RETELL MODULE
-   Add this to the end of style.css or trainer_base.css
+   Add to end of style.css or include as separate file
    ═══════════════════════════════════════════════════════ */
 
 /* ── Tabs bar ── */
@@ -12,6 +12,7 @@
   border-radius: 12px;
   padding: 4px;
   margin-bottom: 16px;
+  max-width: 420px;
 }
 .pic-tab {
   flex: 1;
@@ -49,11 +50,7 @@
 }
 .pic-tab-icon { font-size: 16px; }
 .pic-tab-label { font-size: 14px; }
-.pic-tab-sub {
-  font-size: 10px;
-  opacity: 0.5;
-  font-weight: 500;
-}
+.pic-tab-sub { font-size: 10px; opacity: 0.5; font-weight: 500; }
 
 /* ── Tab description ── */
 .pic-tab-desc {
@@ -74,20 +71,17 @@
   border-color: rgba(71, 88, 214, 0.15);
 }
 
-/* ── Menu card badge ── */
-.pic-menu-card {
-  position: relative;
-}
+/* ── Menu card badge (inside card, not absolute) ── */
+.pic-menu-card { position: relative; overflow: hidden; }
 .pic-menu-card-badge {
-  position: absolute;
-  top: 8px;
-  right: 8px;
+  display: inline-block;
   font-size: 10px;
   font-weight: 700;
   padding: 3px 8px;
   border-radius: 10px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  margin-top: 6px;
 }
 .pic-menu-card-badge.retell {
   background: rgba(251, 191, 36, 0.15);
@@ -98,7 +92,6 @@
   color: var(--primary);
 }
 
-/* ── Empty state ── */
 .pic-empty {
   text-align: center;
   color: var(--text-tertiary);
@@ -106,123 +99,215 @@
   font-size: 14px;
 }
 
-/* ── Image hint ── */
-.pic-image-hint {
-  text-align: center;
-  color: var(--text-tertiary);
-  font-size: 11px;
-  margin-top: 8px;
-}
-
-/* ══════════════════════════════════════
-   RETELL: Single-column layout
-   ══════════════════════════════════════ */
+/* ══════════════════════════════════════════
+   RETELL: Main layout
+   ══════════════════════════════════════════ */
 .retell-layout {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
-}
-.retell-image-block {
-  width: 100%;
-  max-width: 720px;
-}
-.retell-blocks {
-  width: 100%;
-  max-width: 720px;
+  gap: 24px;
 }
 
-/* ══════════════════════════════════════
-   RETELL: Text for reading
-   ══════════════════════════════════════ */
-.pic-text-line {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  background: var(--primary-container);
-  margin-bottom: 6px;
-  cursor: pointer;
-  transition: background 0.15s;
+/* Image — centered, not stretched */
+.retell-image-block {
+  width: 100%;
+  max-width: 640px;
 }
-.pic-text-line:hover {
-  background: rgba(71, 88, 214, 0.12);
+.retell-image-block .pic-image-container {
+  border-radius: 14px;
+  overflow: hidden;
 }
-.pic-text-content {
-  flex: 1;
-  min-width: 0;
-}
-.pic-text-kor {
-  color: var(--text-primary);
-  font-size: 18px;
-  font-weight: 500;
-  line-height: 1.6;
-  font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
-}
-.pic-text-rus {
-  color: var(--text-tertiary);
-  font-size: 14px;
-  margin-top: 4px;
-  font-style: italic;
-  transition: opacity 0.2s;
-}
-.pic-text-rus.hidden {
-  display: none;
-}
-.pic-text-toggle {
-  color: var(--text-tertiary);
-  font-size: 11px;
-  flex-shrink: 0;
-  margin-top: 4px;
-  white-space: nowrap;
-}
-.pic-text-hint {
+.retell-image-hint {
   text-align: center;
   color: var(--text-tertiary);
   font-size: 11px;
   margin-top: 8px;
 }
 
-/* ══════════════════════════════════════
+/* Two columns: vocab left, text right */
+.retell-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 16px;
+  width: 100%;
+}
+
+/* Bottom blocks full width */
+.retell-bottom-blocks { width: 100%; }
+
+/* ══════════════════════════════════════════
+   RETELL: Vocab (left column)
+   ══════════════════════════════════════════ */
+.retell-vocab-block {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  height: fit-content;
+}
+.retell-section-header {
+  padding: 14px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+}
+.retell-section-header:hover { background: var(--bg-app); }
+.retell-section-arrow {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  transition: transform 0.2s;
+}
+.retell-section.collapsed .retell-section-arrow {
+  transform: rotate(-90deg);
+}
+.retell-section.collapsed .retell-section-body {
+  display: none;
+}
+.retell-vocab-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.12s;
+  border-bottom: 1px solid var(--border-light);
+}
+.retell-vocab-row:last-child { border-bottom: none; }
+.retell-vocab-row:hover { background: var(--primary-container); }
+.retell-vocab-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.retell-vocab-num {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--primary); color: #fff;
+  font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.retell-vocab-kor {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--primary);
+  font-family: "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+}
+.retell-vocab-rus {
+  font-size: 14px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════
+   RETELL: Text (right column)
+   ══════════════════════════════════════════ */
+.retell-text-block {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  height: fit-content;
+}
+/* Each sentence row: toggle + korean + speaker — one line */
+.retell-text-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background 0.12s;
+  border-bottom: 1px solid var(--border-light);
+}
+.retell-text-row:last-of-type { border-bottom: none; }
+.retell-text-row:hover { background: var(--primary-container); }
+
+.retell-text-toggle {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  min-width: 30px;
+  cursor: pointer;
+  user-select: none;
+  text-align: center;
+}
+.retell-text-toggle.open { color: var(--primary); font-weight: 600; }
+
+.retell-text-kor {
+  flex: 1;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-family: "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+  line-height: 1.5;
+}
+.retell-text-speaker {
+  font-size: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 2px;
+  line-height: 1;
+}
+/* Translation row — hidden by default, shown when toggled */
+.retell-text-rus {
+  padding: 0 16px 10px 56px;
+  font-size: 14px;
+  color: var(--text-tertiary);
+  font-style: italic;
+  display: none;
+  border-bottom: 1px solid var(--border-light);
+}
+.retell-text-rus.visible { display: block; }
+
+.retell-text-hint {
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  padding: 10px 0;
+}
+
+/* ══════════════════════════════════════════
    RETELL: Keywords
-   ══════════════════════════════════════ */
+   ══════════════════════════════════════════ */
 .pic-keywords-wrap {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 .pic-keyword-btn {
-  background: rgba(251, 191, 36, 0.1);
-  border: 1px solid rgba(251, 191, 36, 0.25);
+  background: rgba(251,191,36,0.1);
+  border: 1px solid rgba(251,191,36,0.25);
   border-radius: 20px;
-  padding: 8px 16px;
+  padding: 8px 18px;
   color: #d97706;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
   cursor: pointer;
-  font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  font-family: "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
   transition: background 0.15s, transform 0.1s;
 }
-.pic-keyword-btn:hover {
-  background: rgba(251, 191, 36, 0.2);
-  transform: scale(1.05);
-}
-.pic-keyword-btn:active {
-  transform: scale(0.95);
-}
+.pic-keyword-btn:hover { background: rgba(251,191,36,0.2); transform: scale(1.05); }
+.pic-keyword-btn:active { transform: scale(0.95); }
 .pic-keywords-hint {
   color: var(--text-tertiary);
   font-size: 11px;
   margin-top: 10px;
 }
 
-/* ══════════════════════════════════════
-   RETELL: Prompts (questions for retelling)
-   ══════════════════════════════════════ */
+/* ══════════════════════════════════════════
+   RETELL: Prompts
+   ══════════════════════════════════════════ */
 .pic-retell-prompt {
-  background: rgba(52, 211, 153, 0.06);
-  border: 1px solid rgba(52, 211, 153, 0.15);
+  background: rgba(52,211,153,0.06);
+  border: 1px solid rgba(52,211,153,0.15);
   border-radius: 10px;
   padding: 12px 16px;
   margin-bottom: 8px;
@@ -233,17 +318,12 @@
   gap: 8px;
   margin-bottom: 4px;
 }
-.pic-retell-num {
-  color: #10b981;
-  font-weight: 700;
-  font-size: 14px;
-  flex-shrink: 0;
-}
+.pic-retell-num { color: #10b981; font-weight: 700; font-size: 14px; flex-shrink: 0; }
 .pic-retell-q {
   color: #10b981;
   font-weight: 600;
   font-size: 17px;
-  font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  font-family: "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
 }
 .pic-retell-rus {
   color: var(--text-tertiary);
@@ -257,46 +337,36 @@
   border-radius: 6px;
   cursor: pointer;
   color: var(--text-tertiary);
-  font-size: 13px;
+  font-size: 14px;
   padding: 5px 12px;
   margin-left: 28px;
   font-family: var(--font-main, inherit);
   transition: all 0.15s;
 }
 .pic-retell-hint-btn:hover {
-  background: rgba(52, 211, 153, 0.08);
+  background: rgba(52,211,153,0.08);
   color: var(--text-secondary);
 }
 .pic-retell-hint-btn.shown {
-  background: rgba(52, 211, 153, 0.08);
-  border-color: rgba(52, 211, 153, 0.2);
+  background: rgba(52,211,153,0.08);
+  border-color: rgba(52,211,153,0.2);
   color: var(--text-primary);
   cursor: default;
-  font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  font-size: 16px;
+  font-family: "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
 }
 
-/* ══════════════════════════════════════
+/* ══════════════════════════════════════════
    RESPONSIVE
-   ══════════════════════════════════════ */
-@media (max-width: 768px) {
-  .pic-tabs {
-    margin-bottom: 12px;
-  }
-  .pic-tab {
-    padding: 8px 10px;
-    font-size: 13px;
-  }
-  .pic-tab-sub {
-    font-size: 9px;
-  }
-  .pic-text-kor {
-    font-size: 14px;
-  }
-  .pic-retell-q {
-    font-size: 14px;
-  }
-  .pic-keyword-btn {
-    font-size: 13px;
-    padding: 5px 12px;
-  }
+   ══════════════════════════════════════════ */
+@media (max-width: 900px) {
+  .retell-two-col { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .pic-tabs { max-width: 100%; }
+  .retell-image-block { max-width: 100%; }
+  .retell-vocab-kor { font-size: 16px; }
+  .retell-text-kor { font-size: 16px; }
+  .pic-keyword-btn { font-size: 15px; padding: 6px 14px; }
+  .pic-retell-q { font-size: 15px; }
 }

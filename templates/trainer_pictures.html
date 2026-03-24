@@ -75,41 +75,41 @@
 <div id="retell-view" class="hidden">
   <div class="retell-layout">
 
-    <!-- Картинка — на всю ширину -->
+    <!-- Картинка — по центру, не на весь экран -->
     <div class="retell-image-block">
       <div class="pic-image-container" id="retell-image-wrapper">
         <img src="" alt="Lesson Image" class="pic-main-image" id="retell-main-image">
       </div>
-      <div class="pic-image-hint">Наведите на маркер или нажмите для озвучки</div>
+      <div class="retell-image-hint">Наведите на маркер или нажмите для озвучки</div>
     </div>
 
-    <!-- Блоки — центрированные под картинкой -->
-    <div class="retell-blocks">
+    <!-- Две колонки: Словарь слева, Текст справа -->
+    <div class="retell-two-col">
 
-      <!-- Словарь -->
-      <div class="pic-collapse-block open">
-        <div class="pic-collapse-header" onclick="toggleBlock(this)">
+      <!-- LEFT: Словарь -->
+      <div class="retell-vocab-block retell-section" id="retell-vocab-section">
+        <div class="retell-section-header" onclick="this.parentNode.classList.toggle('collapsed')">
           <span>📍 Словарь</span>
-          <span class="pic-collapse-arrow">▼</span>
+          <span class="retell-section-arrow">▼</span>
         </div>
-        <div class="pic-collapse-body">
-          <ul class="pic-vocab-list" id="retell-vocab-list"></ul>
-        </div>
+        <div class="retell-section-body" id="retell-vocab-body"></div>
       </div>
 
-      <!-- Текст для чтения -->
-      <div class="pic-collapse-block open">
-        <div class="pic-collapse-header" onclick="toggleBlock(this)">
+      <!-- RIGHT: Текст для чтения -->
+      <div class="retell-text-block retell-section" id="retell-text-section">
+        <div class="retell-section-header" onclick="this.parentNode.classList.toggle('collapsed')">
           <span>📖 Текст для чтения</span>
-          <span class="pic-collapse-arrow">▼</span>
+          <span class="retell-section-arrow">▼</span>
         </div>
-        <div class="pic-collapse-body">
-          <div id="retell-text-container"></div>
-          <div class="pic-text-hint">Нажмите на строку — увидите перевод</div>
-        </div>
+        <div class="retell-section-body" id="retell-text-body"></div>
+        <div class="retell-text-hint">Нажмите на строку — увидите перевод</div>
       </div>
 
-      <!-- Опорные слова -->
+    </div>
+
+    <!-- Под двумя колонками: keywords + prompts -->
+    <div class="retell-bottom-blocks">
+
       <div class="pic-collapse-block open">
         <div class="pic-collapse-header" onclick="toggleBlock(this)">
           <span>🔑 Опорные слова</span>
@@ -121,7 +121,6 @@
         </div>
       </div>
 
-      <!-- Пересказ по вопросам -->
       <div class="pic-collapse-block open">
         <div class="pic-collapse-header" onclick="toggleBlock(this)">
           <span>🗣 Пересказ по вопросам</span>
@@ -158,9 +157,9 @@
   /* Retell refs */
   const retellImageWrapper = document.getElementById('retell-image-wrapper');
   const retellMainImage    = document.getElementById('retell-main-image');
-  const retellVocabList    = document.getElementById('retell-vocab-list');
-  const retellTextContainer   = document.getElementById('retell-text-container');
-  const retellKeywords        = document.getElementById('retell-keywords');
+  const retellVocabBody    = document.getElementById('retell-vocab-body');
+  const retellTextBody     = document.getElementById('retell-text-body');
+  const retellKeywords     = document.getElementById('retell-keywords');
   const retellPromptsContainer = document.getElementById('retell-prompts-container');
 
   let inLesson = false;
@@ -254,16 +253,16 @@
   function renderRetellLesson(data) {
     retellMainImage.src = data.image;
 
-    /* Clean old markers */
+    /* Clean old */
     retellImageWrapper.querySelectorAll('.pic-marker').forEach(m => m.remove());
-    retellVocabList.innerHTML = '';
-    retellTextContainer.innerHTML = '';
+    retellVocabBody.innerHTML = '';
+    retellTextBody.innerHTML = '';
     retellKeywords.innerHTML = '';
     retellPromptsContainer.innerHTML = '';
 
-    /* ── Markers + Vocab ── */
+    /* ── Markers + Vocab rows ── */
     data.items.forEach(item => {
-      // Marker
+      // Marker on image
       const marker = document.createElement('div');
       marker.className = 'pic-marker';
       marker.style.left = item.x + '%';
@@ -275,45 +274,53 @@
       marker.onclick = e => { e.stopPropagation(); speakText(item.kor); };
       retellImageWrapper.appendChild(marker);
 
-      // Vocab item
-      const li = document.createElement('li');
-      li.className = 'pic-vocab-item';
-      li.id = `retell-vocab-${item.id}`;
-      li.innerHTML = `
-        <div>
-          <span class="pic-vocab-id">${item.id}</span>
-          <span class="pic-vocab-kor">${item.kor}</span>
+      // Vocab row
+      const row = document.createElement('div');
+      row.className = 'retell-vocab-row';
+      row.id = `retell-vocab-${item.id}`;
+      row.innerHTML = `
+        <div class="retell-vocab-left">
+          <span class="retell-vocab-num">${item.id}</span>
+          <span class="retell-vocab-kor">${item.kor}</span>
         </div>
-        <span class="pic-vocab-rus">${item.rus}</span>
+        <span class="retell-vocab-rus">${item.rus}</span>
       `;
-      li.onmouseenter = () => highlightRetellMarker(item.id, true);
-      li.onmouseleave = () => highlightRetellMarker(item.id, false);
-      li.onclick = () => speakText(item.kor);
-      retellVocabList.appendChild(li);
+      row.onmouseenter = () => highlightRetellMarker(item.id, true);
+      row.onmouseleave = () => highlightRetellMarker(item.id, false);
+      row.onclick = () => speakText(item.kor);
+      retellVocabBody.appendChild(row);
     });
 
-    /* ── Text for reading ── */
+    /* ── Text rows: toggle | korean | speaker — one line ── */
     if (data.text && data.text.length > 0) {
       data.text.forEach((line, i) => {
-        const row = document.createElement('div');
-        row.className = 'pic-text-line';
         const korSafe = line.kor.replace(/'/g, "\\'");
+
+        // Main row
+        const row = document.createElement('div');
+        row.className = 'retell-text-row';
         row.innerHTML = `
-          <span class="pic-speaker" onclick="event.stopPropagation();speakText('${korSafe}')">🔊</span>
-          <div class="pic-text-content">
-            <div class="pic-text-kor">${line.kor}</div>
-            <div class="pic-text-rus hidden">${line.rus}</div>
-          </div>
-          <span class="pic-text-toggle">RU ▼</span>
+          <span class="retell-text-toggle" title="Показать перевод">RU ▼</span>
+          <span class="retell-text-kor">${line.kor}</span>
+          <button class="retell-text-speaker" onclick="event.stopPropagation();speakText('${korSafe}')">🔊</button>
         `;
+
+        // Translation div (hidden)
+        const rus = document.createElement('div');
+        rus.className = 'retell-text-rus';
+        rus.textContent = line.rus;
+
+        // Toggle logic
         row.onclick = function(e) {
-          if (e.target.classList.contains('pic-speaker')) return;
-          const rus = this.querySelector('.pic-text-rus');
-          const tog = this.querySelector('.pic-text-toggle');
-          rus.classList.toggle('hidden');
-          tog.textContent = rus.classList.contains('hidden') ? 'RU ▼' : '▲';
+          if (e.target.classList.contains('retell-text-speaker')) return;
+          const toggle = this.querySelector('.retell-text-toggle');
+          rus.classList.toggle('visible');
+          toggle.classList.toggle('open');
+          toggle.textContent = rus.classList.contains('visible') ? '▲' : 'RU ▼';
         };
-        retellTextContainer.appendChild(row);
+
+        retellTextBody.appendChild(row);
+        retellTextBody.appendChild(rus);
       });
     }
 
