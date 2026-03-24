@@ -438,26 +438,34 @@
 .gr-ex-page {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  gap: 0;
   min-width: 100%;
   flex-shrink: 0;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
 }
 .gr-ex-card {
   background: var(--bg-app);
-  border-radius: var(--radius-md);
   padding: 10px 12px;
   min-width: 0;
   overflow: hidden;
+  border-right: 1px solid var(--border-color);
+}
+.gr-ex-card:last-child {
+  border-right: none;
 }
 .gr-ex-card-head {
   display: flex;
   align-items: baseline;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: 5px;
+  margin-bottom: 8px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--border-light);
 }
 .gr-ex-card-base {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary);
   font-family: "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
 }
@@ -471,9 +479,13 @@
 }
 .gr-ex-card-applied {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 700;
   color: var(--primary);
   font-family: "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+}
+.gr-ex-hl {
+  color: var(--primary);
+  font-weight: 600;
 }
 .gr-ex-card-sents {
   display: flex;
@@ -481,24 +493,24 @@
   gap: 0;
 }
 .gr-ex-card-sent {
-  padding: 0;
-  margin-bottom: 4px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-light);
 }
 .gr-ex-card-sent:last-child {
-  margin-bottom: 0;
+  border-bottom: none;
+  padding-bottom: 0;
 }
 .gr-ex-card-kor {
   font-size: 12px;
   color: var(--text-primary);
-  line-height: 1.5;
+  line-height: 1.45;
   font-family: "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
   word-break: keep-all;
 }
 .gr-ex-card-rus {
   font-size: 11px;
   color: var(--text-tertiary);
-  margin-top: 0;
-  margin-bottom: 2px;
+  margin-top: 1px;
 }
 
 /* Carousel nav */
@@ -843,6 +855,7 @@
     pages.forEach(page => {
       h += '<div class="gr-ex-page">';
       page.forEach(ex => {
+        const hlApplied = (txt) => txt.replace(new RegExp('(' + ex.applied.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'g'), '<b class="gr-ex-hl">$1</b>');
         h += `<div class="gr-ex-card">
           <div class="gr-ex-card-head">
             <span class="gr-ex-card-base">${ex.base}</span>
@@ -853,7 +866,7 @@
           <div class="gr-ex-card-sents">
             ${ex.sentences.map((s, i) => `
               <div class="gr-ex-card-sent">
-                <div class="gr-ex-card-kor">${s}</div>
+                <div class="gr-ex-card-kor">${hlApplied(s)}</div>
                 <div class="gr-ex-card-rus">${ex.translations[i]}</div>
               </div>`).join('')}
           </div>

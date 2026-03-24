@@ -182,7 +182,7 @@ trackPing();
     }
   });
 
-  // ── Modal card carousel renderer (COMPACT) ──
+  // ── Modal card carousel renderer (uses g-ex-* classes from trainer_base.css) ──
   var gCarN = 0;
   function renderExCards(items, label) {
     var id = 'g-car-' + (gCarN++);
@@ -190,24 +190,28 @@ trackPing();
     var pages = [];
     for (var i = 0; i < items.length; i += pp) pages.push(items.slice(i, i + pp));
 
-    var h = '<div data-gcar="' + id + '" style="margin:6px 0 10px;">';
-    h += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-tertiary);margin-bottom:6px;">' + (label || 'Примеры') + '</div>';
-    h += '<div style="overflow:hidden;position:relative;"><div id="' + id + '-t" style="display:flex;transition:transform .3s ease;">';
+    var h = '<div class="g-ex-carousel" data-gcar="' + id + '">';
+    h += '<div class="g-ex-carousel-label">' + (label || 'Примеры') + '</div>';
+    h += '<div class="g-ex-track-wrap"><div class="g-ex-track" id="' + id + '-t">';
 
     pages.forEach(function(page) {
-      h += '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;min-width:100%;flex-shrink:0;">';
+      h += '<div class="g-ex-page">';
       page.forEach(function(ex) {
-        h += '<div style="background:var(--bg-app,#f0f4f9);border-radius:8px;padding:10px 12px;">' +
-          '<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:6px;">' +
-            '<span style="font-size:14px;font-weight:500;color:var(--text-primary);">' + ex.base + '</span>' +
-            '<span style="font-size:11px;color:var(--text-tertiary);">' + ex.type + '</span>' +
-            '<span style="font-size:11px;color:var(--text-tertiary);">→</span>' +
-            '<span style="font-size:14px;font-weight:500;color:var(--primary,#0b57d0);">' + ex.applied + '</span>' +
+        var appliedEsc = ex.applied.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        var appliedRe = new RegExp('(' + appliedEsc + ')', 'g');
+        h += '<div class="g-ex-card">' +
+          '<div class="g-ex-card-head">' +
+            '<span class="g-ex-card-base">' + ex.base + '</span>' +
+            '<span class="g-ex-card-type">' + ex.type + '</span>' +
+            '<span class="g-ex-card-arrow">→</span>' +
+            '<span class="g-ex-card-applied">' + ex.applied + '</span>' +
           '</div>' +
-          '<div>';
+          '<div class="g-ex-card-sents">';
         ex.sentences.forEach(function(s, i) {
-          h += '<div style="font-size:12px;color:var(--text-primary);line-height:1.5;margin-bottom:2px;">' + s + '</div>' +
-            '<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:4px;">' + ex.translations[i] + '</div>';
+          h += '<div class="g-ex-card-sent">' +
+            '<div class="g-ex-card-kor">' + s.replace(appliedRe, '<b class="g-ex-hl">$1</b>') + '</div>' +
+            '<div class="g-ex-card-rus">' + ex.translations[i] + '</div>' +
+          '</div>';
         });
         h += '</div></div>';
       });
@@ -216,10 +220,10 @@ trackPing();
     h += '</div></div>';
 
     if (pages.length > 1) {
-      h += '<div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:6px;">' +
-        '<button data-gdir="-1" data-gt="' + id + '" style="width:24px;height:24px;border:1px solid var(--border-color);background:var(--bg-surface);border-radius:50%;cursor:pointer;font-size:11px;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;">◂</button>' +
-        '<span id="' + id + '-pg" style="font-size:11px;color:var(--text-tertiary);">1 / ' + pages.length + '</span>' +
-        '<button data-gdir="1" data-gt="' + id + '" style="width:24px;height:24px;border:1px solid var(--border-color);background:var(--bg-surface);border-radius:50%;cursor:pointer;font-size:11px;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;">▸</button>' +
+      h += '<div class="g-ex-nav">' +
+        '<button class="g-ex-nav-btn" data-gdir="-1" data-gt="' + id + '">◂</button>' +
+        '<span class="g-ex-nav-pg" id="' + id + '-pg">1 / ' + pages.length + '</span>' +
+        '<button class="g-ex-nav-btn" data-gdir="1" data-gt="' + id + '">▸</button>' +
       '</div>';
     }
     h += '</div>';
@@ -287,7 +291,7 @@ trackPing();
       var cid = el.dataset.gcar;
       var track = document.getElementById(cid + '-t');
       if (!track) return;
-      var total = track.querySelectorAll('div[style*="grid-template"]').length;
+      var total = track.querySelectorAll('.g-ex-page').length;
       gCarState[cid] = { cur: 0, total: total, track: track };
     });
     modalBody.addEventListener('click', function(e) {

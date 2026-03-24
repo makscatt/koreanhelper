@@ -302,3 +302,125 @@
 @keyframes selToastIn {
   from { opacity: 0; } to { opacity: 1; }
 }
+
+/* ── GLOBAL GRAMMAR EXAMPLE CARDS (used by trainer_base.js) ── */
+.g-ex-carousel {
+  margin: 6px 0 10px;
+}
+.g-ex-carousel-label {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  margin-bottom: 6px;
+}
+.g-ex-track-wrap {
+  position: relative;
+  overflow: hidden;
+}
+.g-ex-track {
+  display: flex;
+  transition: transform 0.3s ease;
+}
+.g-ex-page {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  min-width: 100%;
+  flex-shrink: 0;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+}
+.g-ex-card {
+  background: var(--bg-app);
+  padding: 10px 12px;
+  min-width: 0;
+  overflow: hidden;
+  border-right: 1px solid var(--border-color);
+}
+.g-ex-card:last-child {
+  border-right: none;
+}
+.g-ex-card-head {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-bottom: 8px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--border-light);
+}
+.g-ex-card-base {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+}
+.g-ex-card-type {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.g-ex-card-arrow {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.g-ex-card-applied {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary);
+  font-family: "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+}
+.g-ex-hl {
+  color: var(--primary);
+  font-weight: 600;
+}
+.g-ex-card-sents {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.g-ex-card-sent {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+.g-ex-card-sent:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.g-ex-card-kor {
+  font-size: 12px;
+  color: var(--text-primary);
+  line-height: 1.45;
+  font-family: "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+  word-break: keep-all;
+}
+.g-ex-card-rus {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 1px;
+}
+.g-ex-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+.g-ex-nav-btn {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.g-ex-nav-pg {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
