@@ -2,6 +2,7 @@
 {% block title %}Картинки — {{ student.name }}{% endblock %}
 
 {% block trainer_content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pictures_retell.css') }}">
 <script>document.body.dataset.module = 'pictures';</script>
 
 <div class="trainer-header">
