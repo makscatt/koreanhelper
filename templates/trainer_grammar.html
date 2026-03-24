@@ -849,67 +849,7 @@
       pages.push(items.slice(i, i + perPage));
     }
 
-    // Collect ALL unique suffixes from all items in this example block
-    const allSuffixes = [];
-    items.forEach(ex => {
-      const stem = ex.base.replace(/다$/, '');
-      let prefix = '';
-      for (let ci = 0; ci < Math.min(stem.length, ex.applied.length); ci++) {
-        if (stem[ci] === ex.applied[ci]) prefix += stem[ci]; else break;
-      }
-      const suffix = ex.applied.slice(prefix.length);
-      if (suffix && !allSuffixes.includes(suffix)) allSuffixes.push(suffix);
-    });
-    // Sort longest first
-    allSuffixes.sort((a, b) => b.length - a.length);
-
-    // Build highlight patterns:
-    // - Multi-word suffixes (e.g. "는 것 같아요"): extract invariant core ("것 같아요")
-    //   and match any Korean word(s) + core, to catch all grammar variants
-    // - Single-word suffixes (e.g. "이", "가"): match as word ending
-    const hlPatterns = [];
-    const coresAdded = new Set();
-    allSuffixes.forEach(s => {
-      const esc = s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const spaceIdx = s.indexOf(' ');
-      if (spaceIdx > 0) {
-        // Multi-word: extract core (everything after first space-separated token)
-        const core = s.slice(spaceIdx + 1);
-        const coreEsc = core.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        if (!coresAdded.has(core)) {
-          coresAdded.add(core);
-          // Match: (Korean chars + possible spaces) + core
-          hlPatterns.push({ re: new RegExp('([가-힣]+\\s+' + coreEsc + ')', 'g'), cls: 'gr-ex-hl' });
-        }
-      } else {
-        // Single-word: match Korean word ending with this suffix
-        hlPatterns.push({ re: new RegExp('([가-힣]+?)(' + esc + ')(?=[^가-힣]|$)', 'g'), cls: 'gr-ex-hl', group: true });
-      }
-    });
-
-    function hlSentence(txt) {
-      if (!hlPatterns.length) return txt;
-      let result = txt;
-      hlPatterns.forEach(p => {
-        p.re.lastIndex = 0;
-        if (p.group) {
-          result = result.replace(p.re, '$1<b class="' + p.cls + '">$2</b>');
-        } else {
-          result = result.replace(p.re, '<b class="' + p.cls + '">$1</b>');
-        }
-      });
-      return result;
-    }
-
-    function hlApplied(ex) {
-      const stem = ex.base.replace(/다$/, '');
-      let prefix = '';
-      for (let ci = 0; ci < Math.min(stem.length, ex.applied.length); ci++) {
-        if (stem[ci] === ex.applied[ci]) prefix += stem[ci]; else break;
-      }
-      const suffix = ex.applied.slice(prefix.length);
-      return suffix ? (prefix + '<b class="gr-ex-hl">' + suffix + '</b>') : ex.applied;
-    }
+    const hl = GrammarHighlight.build(items, 'gr-ex-hl');
 
     let h = `<div class="gr-ex-carousel" data-carousel="${id}">`;
     h += `<div class="gr-ex-carousel-label">${label || 'Примеры'}</div>`;
@@ -923,12 +863,12 @@
             <span class="gr-ex-card-base">${ex.base}</span>
             <span class="gr-ex-card-type">${ex.type}</span>
             <span class="gr-ex-card-arrow">→</span>
-            <span class="gr-ex-card-applied">${hlApplied(ex)}</span>
+            <span class="gr-ex-card-applied">${hl.hlApplied(ex)}</span>
           </div>
           <div class="gr-ex-card-sents">
             ${ex.sentences.map((s, i) => `
               <div class="gr-ex-card-sent">
-                <div class="gr-ex-card-kor">${hlSentence(s)}</div>
+                <div class="gr-ex-card-kor">${hl.hlSentence(s)}</div>
                 <div class="gr-ex-card-rus">${ex.translations[i]}</div>
               </div>`).join('')}
           </div>

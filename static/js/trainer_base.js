@@ -190,61 +190,7 @@ trackPing();
     var pages = [];
     for (var i = 0; i < items.length; i += pp) pages.push(items.slice(i, i + pp));
 
-    // Collect ALL unique suffixes from all items
-    var allSuffixes = [];
-    items.forEach(function(ex) {
-      var stem = ex.base.replace(/다$/, '');
-      var prefix = '';
-      for (var ci = 0; ci < Math.min(stem.length, ex.applied.length); ci++) {
-        if (stem[ci] === ex.applied[ci]) prefix += stem[ci]; else break;
-      }
-      var suffix = ex.applied.slice(prefix.length);
-      if (suffix && allSuffixes.indexOf(suffix) === -1) allSuffixes.push(suffix);
-    });
-    allSuffixes.sort(function(a, b) { return b.length - a.length; });
-
-    // Build highlight patterns
-    var hlPatterns = [];
-    var coresAdded = {};
-    allSuffixes.forEach(function(s) {
-      var esc = s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      var spaceIdx = s.indexOf(' ');
-      if (spaceIdx > 0) {
-        var core = s.slice(spaceIdx + 1);
-        var coreEsc = core.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        if (!coresAdded[core]) {
-          coresAdded[core] = true;
-          hlPatterns.push({ re: new RegExp('([가-힣]+\\s+' + coreEsc + ')', 'g'), cls: 'g-ex-hl', group: false });
-        }
-      } else {
-        hlPatterns.push({ re: new RegExp('([가-힣]+?)(' + esc + ')(?=[^가-힣]|$)', 'g'), cls: 'g-ex-hl', group: true });
-      }
-    });
-
-    function hlSentence(txt) {
-      if (!hlPatterns.length) return txt;
-      var result = txt;
-      for (var pi = 0; pi < hlPatterns.length; pi++) {
-        var p = hlPatterns[pi];
-        p.re.lastIndex = 0;
-        if (p.group) {
-          result = result.replace(p.re, '$1<b class="' + p.cls + '">$2</b>');
-        } else {
-          result = result.replace(p.re, '<b class="' + p.cls + '">$1</b>');
-        }
-      }
-      return result;
-    }
-
-    function hlApplied(ex) {
-      var stem = ex.base.replace(/다$/, '');
-      var prefix = '';
-      for (var ci = 0; ci < Math.min(stem.length, ex.applied.length); ci++) {
-        if (stem[ci] === ex.applied[ci]) prefix += stem[ci]; else break;
-      }
-      var suffix = ex.applied.slice(prefix.length);
-      return suffix ? (prefix + '<b class="g-ex-hl">' + suffix + '</b>') : ex.applied;
-    }
+    var hl = GrammarHighlight.build(items, 'g-ex-hl');
 
     var h = '<div class="g-ex-carousel" data-gcar="' + id + '">';
     h += '<div class="g-ex-carousel-label">' + (label || 'Примеры') + '</div>';
@@ -258,12 +204,12 @@ trackPing();
             '<span class="g-ex-card-base">' + ex.base + '</span>' +
             '<span class="g-ex-card-type">' + ex.type + '</span>' +
             '<span class="g-ex-card-arrow">→</span>' +
-            '<span class="g-ex-card-applied">' + hlApplied(ex) + '</span>' +
+            '<span class="g-ex-card-applied">' + hl.hlApplied(ex) + '</span>' +
           '</div>' +
           '<div class="g-ex-card-sents">';
         ex.sentences.forEach(function(s, i) {
           h += '<div class="g-ex-card-sent">' +
-            '<div class="g-ex-card-kor">' + hlSentence(s) + '</div>' +
+            '<div class="g-ex-card-kor">' + hl.hlSentence(s) + '</div>' +
             '<div class="g-ex-card-rus">' + ex.translations[i] + '</div>' +
           '</div>';
         });

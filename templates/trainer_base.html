@@ -97,6 +97,7 @@
   window._isTeacher = {{ 'true' if session.get('role') == 'teacher' else 'false' }};
   window._grammarUrl = "{{ url_for('student_trainer', module='grammar') if session.role == 'student' else '/student/' ~ (session.get('current_student_id', '') | string) ~ '/trainer/grammar' }}";
 </script>
+<script src="{{ url_for('static', filename='js/grammar_highlight.js') }}"></script>
 <script src="{{ url_for('static', filename='js/trainer_base.js') }}"></script>
 {% block trainer_js %}{% endblock %}
 {% endblock %}
