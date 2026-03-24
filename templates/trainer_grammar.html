@@ -855,18 +855,32 @@
     pages.forEach(page => {
       h += '<div class="gr-ex-page">';
       page.forEach(ex => {
-        const hlApplied = (txt) => txt.replace(new RegExp('(' + ex.applied.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'g'), '<b class="gr-ex-hl">$1</b>');
+        // Find common prefix between base (without 다) and applied to isolate grammar suffix
+        const stem = ex.base.replace(/다$/, '');
+        let prefix = '';
+        for (let ci = 0; ci < Math.min(stem.length, ex.applied.length); ci++) {
+          if (stem[ci] === ex.applied[ci]) prefix += stem[ci]; else break;
+        }
+        const suffix = ex.applied.slice(prefix.length);
+        // In applied display: base part + highlighted suffix
+        const appliedHTML = suffix ? (prefix + '<b class="gr-ex-hl">' + suffix + '</b>') : ex.applied;
+        // In sentences: find applied word and highlight only the suffix part
+        const appliedEsc = ex.applied.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const hlSentence = (txt) => {
+          if (!suffix) return txt;
+          return txt.replace(new RegExp(appliedEsc, 'g'), prefix + '<b class="gr-ex-hl">' + suffix + '</b>');
+        };
         h += `<div class="gr-ex-card">
           <div class="gr-ex-card-head">
             <span class="gr-ex-card-base">${ex.base}</span>
             <span class="gr-ex-card-type">${ex.type}</span>
             <span class="gr-ex-card-arrow">→</span>
-            <span class="gr-ex-card-applied">${ex.applied}</span>
+            <span class="gr-ex-card-applied">${appliedHTML}</span>
           </div>
           <div class="gr-ex-card-sents">
             ${ex.sentences.map((s, i) => `
               <div class="gr-ex-card-sent">
-                <div class="gr-ex-card-kor">${hlApplied(s)}</div>
+                <div class="gr-ex-card-kor">${hlSentence(s)}</div>
                 <div class="gr-ex-card-rus">${ex.translations[i]}</div>
               </div>`).join('')}
           </div>

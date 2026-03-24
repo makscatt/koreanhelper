@@ -197,19 +197,27 @@ trackPing();
     pages.forEach(function(page) {
       h += '<div class="g-ex-page">';
       page.forEach(function(ex) {
+        var stem = ex.base.replace(/다$/, '');
+        var prefix = '';
+        for (var ci = 0; ci < Math.min(stem.length, ex.applied.length); ci++) {
+          if (stem[ci] === ex.applied[ci]) prefix += stem[ci]; else break;
+        }
+        var suffix = ex.applied.slice(prefix.length);
+        var appliedHTML = suffix ? (prefix + '<b class="g-ex-hl">' + suffix + '</b>') : ex.applied;
         var appliedEsc = ex.applied.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        var appliedRe = new RegExp('(' + appliedEsc + ')', 'g');
+        var appliedRe = suffix ? new RegExp(appliedEsc, 'g') : null;
         h += '<div class="g-ex-card">' +
           '<div class="g-ex-card-head">' +
             '<span class="g-ex-card-base">' + ex.base + '</span>' +
             '<span class="g-ex-card-type">' + ex.type + '</span>' +
             '<span class="g-ex-card-arrow">→</span>' +
-            '<span class="g-ex-card-applied">' + ex.applied + '</span>' +
+            '<span class="g-ex-card-applied">' + appliedHTML + '</span>' +
           '</div>' +
           '<div class="g-ex-card-sents">';
         ex.sentences.forEach(function(s, i) {
+          var kor = (appliedRe && suffix) ? s.replace(appliedRe, prefix + '<b class="g-ex-hl">' + suffix + '</b>') : s;
           h += '<div class="g-ex-card-sent">' +
-            '<div class="g-ex-card-kor">' + s.replace(appliedRe, '<b class="g-ex-hl">$1</b>') + '</div>' +
+            '<div class="g-ex-card-kor">' + kor + '</div>' +
             '<div class="g-ex-card-rus">' + ex.translations[i] + '</div>' +
           '</div>';
         });
