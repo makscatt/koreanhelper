@@ -7,3 +7,4 @@ requests
 feedparser
 google-generativeai
 python-telegram-bot[job-scheduler]
+python-dotenv
