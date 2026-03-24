@@ -205,11 +205,12 @@ trackPing();
 
     var suffixEscaped = allSuffixes.map(function(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); });
     var hlRegex = suffixEscaped.length
-      ? new RegExp('([가-힣]*?)(' + suffixEscaped.join('|') + ')(?=[^가-힣]|$)', 'g')
+      ? new RegExp('([가-힣]+?)(' + suffixEscaped.join('|') + ')(?=[^가-힣]|$)', 'g')
       : null;
 
     function hlSentence(txt) {
       if (!hlRegex) return txt;
+      hlRegex.lastIndex = 0;
       return txt.replace(hlRegex, '$1<b class="g-ex-hl">$2</b>');
     }
 

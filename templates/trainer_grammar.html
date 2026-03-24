@@ -862,14 +862,16 @@
     // Sort longest first so longer suffixes match before shorter ones
     allSuffixes.sort((a, b) => b.length - a.length);
 
-    // Build regex that matches any Korean word ending with any of the suffixes
+    // Build regex: match a Korean word that ends with one of the suffixes
     const suffixEscaped = allSuffixes.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
     const hlRegex = suffixEscaped.length
-      ? new RegExp('([가-힣]*?)(' + suffixEscaped.join('|') + ')(?=[^가-힣]|$)', 'g')
+      ? new RegExp('([가-힣]+?)(' + suffixEscaped.join('|') + ')(?=[^가-힣]|$)', 'g')
       : null;
 
     function hlSentence(txt) {
       if (!hlRegex) return txt;
+      // Reset lastIndex for global regex
+      hlRegex.lastIndex = 0;
       return txt.replace(hlRegex, '$1<b class="gr-ex-hl">$2</b>');
     }
 
@@ -919,7 +921,6 @@
         </div>
         <button class="gr-ex-nav-btn" data-dir="1" data-target="${id}">▸</button>
       </div>`;
-    }
     }
 
     h += '</div>';
