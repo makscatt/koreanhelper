@@ -312,11 +312,21 @@
 .batch-result.partial { background: #fef9c3; color: #854d0e; }
 
 .batch-modal-footer {
-  display: flex; gap: 8px; justify-content: flex-end;
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
   padding: 14px 22px 18px;
   border-top: 1px solid var(--border-color, #e2e5ec);
+  flex-shrink: 0;
 }
-.batch-modal-footer .btn { min-width: 100px; }
+.batch-modal-footer .btn {
+  min-width: 100px;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  justify-content: center;
+}
 </style>
 {% endblock %}
 
