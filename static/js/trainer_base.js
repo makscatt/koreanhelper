@@ -203,15 +203,37 @@ trackPing();
     });
     allSuffixes.sort(function(a, b) { return b.length - a.length; });
 
-    var suffixEscaped = allSuffixes.map(function(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); });
-    var hlRegex = suffixEscaped.length
-      ? new RegExp('([가-힣]+?)(' + suffixEscaped.join('|') + ')(?=[^가-힣]|$)', 'g')
-      : null;
+    // Build highlight patterns
+    var hlPatterns = [];
+    var coresAdded = {};
+    allSuffixes.forEach(function(s) {
+      var esc = s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      var spaceIdx = s.indexOf(' ');
+      if (spaceIdx > 0) {
+        var core = s.slice(spaceIdx + 1);
+        var coreEsc = core.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        if (!coresAdded[core]) {
+          coresAdded[core] = true;
+          hlPatterns.push({ re: new RegExp('([가-힣]+\\s+' + coreEsc + ')', 'g'), cls: 'g-ex-hl', group: false });
+        }
+      } else {
+        hlPatterns.push({ re: new RegExp('([가-힣]+?)(' + esc + ')(?=[^가-힣]|$)', 'g'), cls: 'g-ex-hl', group: true });
+      }
+    });
 
     function hlSentence(txt) {
-      if (!hlRegex) return txt;
-      hlRegex.lastIndex = 0;
-      return txt.replace(hlRegex, '$1<b class="g-ex-hl">$2</b>');
+      if (!hlPatterns.length) return txt;
+      var result = txt;
+      for (var pi = 0; pi < hlPatterns.length; pi++) {
+        var p = hlPatterns[pi];
+        p.re.lastIndex = 0;
+        if (p.group) {
+          result = result.replace(p.re, '$1<b class="' + p.cls + '">$2</b>');
+        } else {
+          result = result.replace(p.re, '<b class="' + p.cls + '">$1</b>');
+        }
+      }
+      return result;
     }
 
     function hlApplied(ex) {

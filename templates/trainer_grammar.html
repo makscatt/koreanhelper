@@ -429,7 +429,9 @@
 }
 .gr-ex-track-wrap {
   position: relative;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 .gr-ex-track {
   display: flex;
@@ -443,13 +445,12 @@
   flex-shrink: 0;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  overflow: hidden;
+  overflow: visible;
 }
 .gr-ex-card {
   background: var(--bg-app);
   padding: 10px 12px;
   min-width: 0;
-  overflow: hidden;
   border-right: 1px solid var(--border-color);
 }
 .gr-ex-card:last-child {
@@ -859,20 +860,45 @@
       const suffix = ex.applied.slice(prefix.length);
       if (suffix && !allSuffixes.includes(suffix)) allSuffixes.push(suffix);
     });
-    // Sort longest first so longer suffixes match before shorter ones
+    // Sort longest first
     allSuffixes.sort((a, b) => b.length - a.length);
 
-    // Build regex: match a Korean word that ends with one of the suffixes
-    const suffixEscaped = allSuffixes.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-    const hlRegex = suffixEscaped.length
-      ? new RegExp('([가-힣]+?)(' + suffixEscaped.join('|') + ')(?=[^가-힣]|$)', 'g')
-      : null;
+    // Build highlight patterns:
+    // - Multi-word suffixes (e.g. "는 것 같아요"): extract invariant core ("것 같아요")
+    //   and match any Korean word(s) + core, to catch all grammar variants
+    // - Single-word suffixes (e.g. "이", "가"): match as word ending
+    const hlPatterns = [];
+    const coresAdded = new Set();
+    allSuffixes.forEach(s => {
+      const esc = s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const spaceIdx = s.indexOf(' ');
+      if (spaceIdx > 0) {
+        // Multi-word: extract core (everything after first space-separated token)
+        const core = s.slice(spaceIdx + 1);
+        const coreEsc = core.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        if (!coresAdded.has(core)) {
+          coresAdded.add(core);
+          // Match: (Korean chars + possible spaces) + core
+          hlPatterns.push({ re: new RegExp('([가-힣]+\\s+' + coreEsc + ')', 'g'), cls: 'gr-ex-hl' });
+        }
+      } else {
+        // Single-word: match Korean word ending with this suffix
+        hlPatterns.push({ re: new RegExp('([가-힣]+?)(' + esc + ')(?=[^가-힣]|$)', 'g'), cls: 'gr-ex-hl', group: true });
+      }
+    });
 
     function hlSentence(txt) {
-      if (!hlRegex) return txt;
-      // Reset lastIndex for global regex
-      hlRegex.lastIndex = 0;
-      return txt.replace(hlRegex, '$1<b class="gr-ex-hl">$2</b>');
+      if (!hlPatterns.length) return txt;
+      let result = txt;
+      hlPatterns.forEach(p => {
+        p.re.lastIndex = 0;
+        if (p.group) {
+          result = result.replace(p.re, '$1<b class="' + p.cls + '">$2</b>');
+        } else {
+          result = result.replace(p.re, '<b class="' + p.cls + '">$1</b>');
+        }
+      });
+      return result;
     }
 
     function hlApplied(ex) {

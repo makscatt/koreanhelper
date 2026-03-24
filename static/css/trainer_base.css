@@ -317,7 +317,9 @@
 }
 .g-ex-track-wrap {
   position: relative;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 .g-ex-track {
   display: flex;
@@ -331,13 +333,12 @@
   flex-shrink: 0;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md, 8px);
-  overflow: hidden;
+  overflow: visible;
 }
 .g-ex-card {
   background: var(--bg-app);
   padding: 10px 12px;
   min-width: 0;
-  overflow: hidden;
   border-right: 1px solid var(--border-color);
 }
 .g-ex-card:last-child {
