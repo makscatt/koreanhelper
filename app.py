@@ -934,6 +934,135 @@ def _analyze_korean_word(text):
         return None
 
 
+def _analyze_korean_batch(words_list):
+    """Отправляет список слов (корейских и/или русских) в OpenAI одним запросом.
+    Возвращает список dict: [{"base":"...", "rus":"...", "pos":"..."}, ...]"""
+    if not OPENAI_API_KEY or not words_list:
+        return None
+    try:
+        numbered = '\n'.join(f'{i+1}. {w}' for i, w in enumerate(words_list))
+        resp = http_requests.post(
+            'https://api.openai.com/v1/chat/completions',
+            headers={
+                'Authorization': f'Bearer {OPENAI_API_KEY}',
+                'Content-Type': 'application/json',
+            },
+            json={
+                'model': OPENAI_MODEL,
+                'reasoning_effort': 'low',
+                'max_completion_tokens': 3000,
+                'messages': [
+                    {'role': 'system', 'content': (
+                        'Ты — помощник для изучения корейского языка. '
+                        'Пользователь пришлёт нумерованный список слов — каждое может быть на корейском (возможно спрягаемое) ИЛИ на русском. '
+                        'Для КАЖДОГО слова верни пару корейское↔русское. '
+                        'Если слово на корейском: приведи к словарной форме, переведи на русский. '
+                        'Если слово на русском: переведи на корейский (словарная форма). '
+                        'Верни ТОЛЬКО JSON-массив без обёрток, ровно столько элементов сколько слов в списке: '
+                        '[{"base":"словарная форма на корейском","rus":"перевод на русский (краткий)","pos":"часть речи на русском"}, ...] '
+                        'Если какое-то слово не удалось определить — верни для него {"base":"","rus":"","pos":""}. '
+                        'Порядок элементов должен точно соответствовать порядку слов во входном списке.'
+                    )},
+                    {'role': 'user', 'content': numbered}
+                ],
+            },
+            timeout=45,
+        )
+        if resp.status_code != 200:
+            print(f"OpenAI batch error: {resp.status_code} {resp.text[:300]}")
+            return None
+        content = resp.json()['choices'][0]['message']['content']
+        content = content.strip()
+        if content.startswith('```'):
+            content = content.split('\n', 1)[-1].rsplit('```', 1)[0]
+        result = json.loads(content)
+        if isinstance(result, list):
+            return result
+        return None
+    except Exception as e:
+        print(f"OpenAI batch analyze error: {e}")
+        return None
+
+
+@app.route('/api/hub/add-batch', methods=['POST'])
+@login_required
+def hub_add_batch():
+    """Добавить список слов в хаб через ИИ-анализ (пакетно)"""
+    data = request.get_json() or {}
+    student_id = _get_student_id_from_request(data)
+    raw_text = data.get('text', '').strip()
+    if not student_id or not raw_text:
+        return jsonify({'ok': False, 'error': 'missing data'}), 400
+
+    # Парсим слова: по строкам, запятым, точкам с запятой
+    import re
+    raw_words = re.split(r'[,;\n]+', raw_text)
+    raw_words = [w.strip() for w in raw_words if w.strip()]
+
+    if not raw_words:
+        return jsonify({'ok': False, 'error': 'empty list'}), 400
+    if len(raw_words) > 50:
+        return jsonify({'ok': False, 'error': 'too_many', 'max': 50}), 400
+
+    # Пакетный анализ через ИИ
+    analyses = _analyze_korean_batch(raw_words)
+    if not analyses:
+        return jsonify({'ok': False, 'error': 'ai_failed'}), 500
+
+    added_by = 'teacher' if session.get('role') == 'teacher' else 'student'
+    added = []
+    duplicates = []
+    failed = []
+
+    for i, analysis in enumerate(analyses):
+        original = raw_words[i] if i < len(raw_words) else '?'
+        base_form = (analysis.get('base') or '').strip()
+        rus = (analysis.get('rus') or '').strip()
+
+        if not base_form:
+            failed.append(original)
+            continue
+
+        # Проверка дубликата
+        existing = WordHub.query.filter_by(student_id=student_id, word_kor=base_form).first()
+        if existing:
+            duplicates.append({'word_kor': existing.word_kor, 'word_rus': existing.word_rus})
+            continue
+
+        word = WordHub(
+            student_id=student_id,
+            word_kor=base_form,
+            word_rus=rus,
+            original_form=original,
+            part_of_speech=analysis.get('pos', ''),
+            added_by=added_by,
+        )
+        db.session.add(word)
+        try:
+            db.session.flush()
+            added.append({
+                'id': word.id, 'word_kor': word.word_kor,
+                'word_rus': word.word_rus, 'pos': word.part_of_speech,
+                'is_learned': False, 'added_by': added_by,
+            })
+        except Exception:
+            db.session.rollback()
+            duplicates.append({'word_kor': base_form, 'word_rus': rus})
+
+    db.session.commit()
+    return jsonify({
+        'ok': True,
+        'added': added,
+        'duplicates': duplicates,
+        'failed': failed,
+        'summary': {
+            'added': len(added),
+            'duplicates': len(duplicates),
+            'failed': len(failed),
+        }
+    })
+
+
 @app.route('/api/hub/add', methods=['POST'])
 @login_required
 def hub_add():
