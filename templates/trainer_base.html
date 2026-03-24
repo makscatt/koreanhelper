@@ -64,6 +64,7 @@
     <button class="rep-react" data-emoji="🔥" title="Огонь!">🔥</button>
   </div>
   <button class="rep-btn rep-btn-note" id="note-fab" title="Заметки">✎</button>
+  <button class="rep-btn rep-btn-vocab" id="vocab-fab" title="Добавить слова в словарь">📚</button>
 </div>
 <!-- Fountain particles container -->
 <div id="rep-fountain" style="position:fixed;inset:0;z-index:9999;pointer-events:none;overflow:hidden;"></div>
@@ -75,6 +76,22 @@
   <div class="rep-goal-opt" data-val="15">15</div>
   <div class="rep-goal-opt" data-val="25">25</div>
   <div class="rep-goal-opt" data-val="50">50</div>
+</div>
+
+<!-- ── VOCAB ADD MODAL ── -->
+<div id="vocab-overlay" class="vocab-overlay">
+  <div class="vocab-modal">
+    <div class="vocab-modal-head">
+      <span class="vocab-modal-title">📚 Добавить слова в словарь</span>
+      <button id="vocab-close-btn" class="vocab-close-btn">✕</button>
+    </div>
+    <textarea id="vocab-input" class="vocab-input" placeholder="Введите слова через запятую, точку с запятой или каждое с новой строки&#10;&#10;Например:&#10;사과, 바나나, 우유&#10;или&#10;яблоко&#10;банан&#10;молоко"></textarea>
+    <div class="vocab-modal-footer">
+      <span id="vocab-status" class="vocab-status"></span>
+      <button id="vocab-add-btn" class="vocab-add-btn">Добавить</button>
+    </div>
+    <div id="vocab-results" class="vocab-results"></div>
+  </div>
 </div>
 {% endif %}
 

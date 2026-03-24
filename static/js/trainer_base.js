@@ -876,3 +876,100 @@ noteSaveBtn.addEventListener('click', async function() {
     }, 900);
   });
 })();
+
+// ── VOCAB ADD MODAL ──
+(function() {
+  var vocabFab     = document.getElementById('vocab-fab');
+  var vocabOverlay = document.getElementById('vocab-overlay');
+  var vocabClose   = document.getElementById('vocab-close-btn');
+  var vocabInput   = document.getElementById('vocab-input');
+  var vocabAddBtn  = document.getElementById('vocab-add-btn');
+  var vocabStatus  = document.getElementById('vocab-status');
+  var vocabResults = document.getElementById('vocab-results');
+  if (!vocabFab || !vocabOverlay) return;
+
+  function openVocab() {
+    vocabOverlay.classList.add('open');
+    vocabInput.value = '';
+    vocabStatus.textContent = '';
+    vocabResults.innerHTML = '';
+    setTimeout(function() { vocabInput.focus(); }, 100);
+  }
+
+  function closeVocab() {
+    vocabOverlay.classList.remove('open');
+  }
+
+  vocabFab.addEventListener('click', openVocab);
+  vocabClose.addEventListener('click', closeVocab);
+  vocabOverlay.addEventListener('click', function(e) {
+    if (e.target === vocabOverlay) closeVocab();
+  });
+
+  vocabAddBtn.addEventListener('click', function() {
+    var text = vocabInput.value.trim();
+    if (!text) return;
+
+    vocabAddBtn.disabled = true;
+    vocabAddBtn.textContent = 'Добавляю...';
+    vocabStatus.textContent = '';
+    vocabResults.innerHTML = '';
+
+    fetch('/api/hub/add-batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        student_id: parseInt(window._studentId),
+        text: text
+      })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      vocabAddBtn.disabled = false;
+      vocabAddBtn.textContent = 'Добавить';
+
+      if (!data.ok) {
+        vocabStatus.textContent = '❌ Ошибка: ' + (data.error || 'unknown');
+        vocabStatus.className = 'vocab-status error';
+        return;
+      }
+
+      var s = data.summary;
+      vocabStatus.textContent = '✅ Добавлено: ' + s.added + '  •  Дубликаты: ' + s.duplicates + (s.failed ? '  •  Не удалось: ' + s.failed : '');
+      vocabStatus.className = 'vocab-status success';
+
+      // Render results
+      var html = '';
+      if (data.added && data.added.length) {
+        html += '<div class="vocab-res-section"><div class="vocab-res-label">✅ Добавлено</div>';
+        data.added.forEach(function(w) {
+          html += '<div class="vocab-res-row added"><span class="vocab-res-kor">' + w.word_kor + '</span><span class="vocab-res-rus">' + w.word_rus + '</span><span class="vocab-res-pos">' + (w.pos || '') + '</span></div>';
+        });
+        html += '</div>';
+      }
+      if (data.duplicates && data.duplicates.length) {
+        html += '<div class="vocab-res-section"><div class="vocab-res-label">⏭ Уже есть</div>';
+        data.duplicates.forEach(function(w) {
+          html += '<div class="vocab-res-row dup"><span class="vocab-res-kor">' + w.word_kor + '</span><span class="vocab-res-rus">' + w.word_rus + '</span></div>';
+        });
+        html += '</div>';
+      }
+      vocabResults.innerHTML = html;
+      vocabInput.value = '';
+    })
+    .catch(function(err) {
+      vocabAddBtn.disabled = false;
+      vocabAddBtn.textContent = 'Добавить';
+      vocabStatus.textContent = '❌ Ошибка сети';
+      vocabStatus.className = 'vocab-status error';
+    });
+  });
+
+  // Enter = add (Shift+Enter = new line)
+  vocabInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      vocabAddBtn.click();
+    }
+  });
+})();
