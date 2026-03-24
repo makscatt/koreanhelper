@@ -1,0 +1,284 @@
+/* ═══════════════════════════════════════════════════════
+   PICTURES TRAINER — TABS + RETELL MODULE
+   Add this to the end of style.css or trainer_base.css
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Tabs bar ── */
+.pic-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 16px;
+}
+.pic-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-family: var(--font-main, inherit);
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s;
+  border-bottom: 2px solid transparent;
+}
+.pic-tab:hover {
+  background: var(--bg-app);
+  color: var(--text-secondary);
+}
+.pic-tab.active[data-tab="retell"] {
+  background: rgba(251, 191, 36, 0.08);
+  color: var(--text-primary);
+  font-weight: 700;
+  border-bottom-color: #fbbf24;
+}
+.pic-tab.active[data-tab="advanced"] {
+  background: var(--primary-container);
+  color: var(--text-primary);
+  font-weight: 700;
+  border-bottom-color: var(--primary);
+}
+.pic-tab-icon { font-size: 16px; }
+.pic-tab-label { font-size: 14px; }
+.pic-tab-sub {
+  font-size: 10px;
+  opacity: 0.5;
+  font-weight: 500;
+}
+
+/* ── Tab description ── */
+.pic-tab-desc {
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  border: 1px solid var(--border-light);
+}
+.pic-tab-desc.retell {
+  background: rgba(251, 191, 36, 0.06);
+  border-color: rgba(251, 191, 36, 0.15);
+}
+.pic-tab-desc.advanced {
+  background: var(--primary-container);
+  border-color: rgba(71, 88, 214, 0.15);
+}
+
+/* ── Menu card badge ── */
+.pic-menu-card {
+  position: relative;
+}
+.pic-menu-card-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.pic-menu-card-badge.retell {
+  background: rgba(251, 191, 36, 0.15);
+  color: #d97706;
+}
+.pic-menu-card-badge.advanced {
+  background: var(--primary-container);
+  color: var(--primary);
+}
+
+/* ── Empty state ── */
+.pic-empty {
+  text-align: center;
+  color: var(--text-tertiary);
+  padding: 40px 20px;
+  font-size: 14px;
+}
+
+/* ── Image hint ── */
+.pic-image-hint {
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  margin-top: 8px;
+}
+
+/* ══════════════════════════════════════
+   RETELL: Text for reading
+   ══════════════════════════════════════ */
+.pic-text-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--primary-container);
+  margin-bottom: 5px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.pic-text-line:hover {
+  background: rgba(71, 88, 214, 0.12);
+}
+.pic-text-content {
+  flex: 1;
+  min-width: 0;
+}
+.pic-text-kor {
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.5;
+  font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+}
+.pic-text-rus {
+  color: var(--text-tertiary);
+  font-size: 13px;
+  margin-top: 3px;
+  font-style: italic;
+  transition: opacity 0.2s;
+}
+.pic-text-rus.hidden {
+  display: none;
+}
+.pic-text-toggle {
+  color: var(--text-tertiary);
+  font-size: 10px;
+  flex-shrink: 0;
+  margin-top: 3px;
+  white-space: nowrap;
+}
+.pic-text-hint {
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  margin-top: 8px;
+}
+
+/* ══════════════════════════════════════
+   RETELL: Keywords
+   ══════════════════════════════════════ */
+.pic-keywords-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pic-keyword-btn {
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  border-radius: 20px;
+  padding: 6px 14px;
+  color: #d97706;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  transition: background 0.15s, transform 0.1s;
+}
+.pic-keyword-btn:hover {
+  background: rgba(251, 191, 36, 0.2);
+  transform: scale(1.05);
+}
+.pic-keyword-btn:active {
+  transform: scale(0.95);
+}
+.pic-keywords-hint {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  margin-top: 10px;
+}
+
+/* ══════════════════════════════════════
+   RETELL: Prompts (questions for retelling)
+   ══════════════════════════════════════ */
+.pic-retell-prompt {
+  background: rgba(52, 211, 153, 0.06);
+  border: 1px solid rgba(52, 211, 153, 0.15);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+}
+.pic-retell-q-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.pic-retell-num {
+  color: #10b981;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.pic-retell-q {
+  color: #10b981;
+  font-weight: 600;
+  font-size: 15px;
+  font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+}
+.pic-retell-rus {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  padding-left: 32px;
+  margin-bottom: 6px;
+}
+.pic-retell-hint-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  padding: 4px 10px;
+  margin-left: 28px;
+  font-family: var(--font-main, inherit);
+  transition: all 0.15s;
+}
+.pic-retell-hint-btn:hover {
+  background: rgba(52, 211, 153, 0.08);
+  color: var(--text-secondary);
+}
+.pic-retell-hint-btn.shown {
+  background: rgba(52, 211, 153, 0.08);
+  border-color: rgba(52, 211, 153, 0.2);
+  color: var(--text-primary);
+  cursor: default;
+  font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+}
+
+/* ══════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════ */
+@media (max-width: 768px) {
+  .pic-tabs {
+    margin-bottom: 12px;
+  }
+  .pic-tab {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+  .pic-tab-sub {
+    font-size: 9px;
+  }
+  .pic-text-kor {
+    font-size: 14px;
+  }
+  .pic-retell-q {
+    font-size: 14px;
+  }
+  .pic-keyword-btn {
+    font-size: 13px;
+    padding: 5px 12px;
+  }
+}

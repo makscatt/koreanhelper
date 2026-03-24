@@ -1,8 +1,8 @@
 ======================================================================
 АНАЛИЗ ПРОЕКТА: TECHERCAB 2.0
 Путь: C:\Users\MakscattSchool\Desktop\techercab 2.0
-Дата анализа: 2026-03-24 09:47
-Всего файлов: 50
+Дата анализа: 2026-03-24 11:36
+Всего файлов: 49
 ======================================================================
 
 
@@ -14,17 +14,16 @@
 📁 СТРУКТУРА ПРОЕКТА
 ----------------------------------------
   analyze_project.py  (37.0 KB)
-  app.py  (50.9 KB)
+  app.py  (56.6 KB)
   bot.py  (44.0 KB)
   get-pip.py  (2142.0 KB)
   korean-roadmap.html  (19.8 KB)
   README.md  (1.7 KB)
   requirements.txt  (166 B)
   static\css\style.css  (100.1 KB)
-  static\css\style1.css  (41.6 KB)
   static\css\trainer_base.css  (9.6 KB)
   static\data\cards.json  (20.8 KB)
-  static\data\grammar.json  (265.9 KB)
+  static\data\grammar.json  (423.0 KB)
   static\data\lesson_1.json  (9.8 KB)
   static\data\phrases.json  (30.1 KB)
   static\data\pictures.json  (5.5 KB)
@@ -46,7 +45,7 @@
   templates\trainer_colors.html  (1.9 KB)
   templates\trainer_dates.html  (917 B)
   templates\trainer_grammar.html  (32.5 KB)
-  templates\trainer_hub.html  (19.3 KB)
+  templates\trainer_hub.html  (27.3 KB)
   templates\trainer_locations.html  (3.8 KB)
   templates\trainer_menu.html  (4.1 KB)
   templates\trainer_money.html  (1.8 KB)
@@ -68,8 +67,8 @@
   html: 29 файл(ов)
   json: 9 файл(ов)
   python: 4 файл(ов)
-  css: 3 файл(ов)
   markdown: 2 файл(ов)
+  css: 2 файл(ов)
   javascript: 2 файл(ов)
   other: 1 файл(ов)
 
@@ -220,6 +219,11 @@
      def _analyze_korean_word(text)
        """Отправляет слово в OpenAI для анализа: словарная форма + перевод + часть речи.
     Принимает как корейские, так и русские слова."""
+     def _analyze_korean_batch(words_list)
+       """Отправляет список слов (корейских и/или русских) в OpenAI одним запросом.
+    Возвращает список dict: [{"base":"...", "rus":"...", "pos":"..."}, ...]"""
+     def hub_add_batch()
+       """Добавить список слов в хаб через ИИ-анализ (пакетно)"""
      def hub_add()
        """Добавить слово в хаб через ИИ-анализ"""
      def hub_list()
@@ -319,6 +323,7 @@
   [POST] /api/sections/toggle  →  sections_toggle()  (app.py)
   [POST] /api/items/get  →  items_get()  (app.py)
   [POST] /api/items/set  →  items_set()  (app.py)
+  [POST] /api/hub/add-batch  →  hub_add_batch()  (app.py)
   [POST] /api/hub/add  →  hub_add()  (app.py)
   [POST] /api/hub/list  →  hub_list()  (app.py)
   [POST] /api/hub/toggle-learned  →  hub_toggle_learned()  (app.py)
@@ -401,7 +406,7 @@
 
   📄 templates\base.html
      title: {% block title %}한국어{% endblock %}
-     blocks: extra_js, extra_css, title, content
+     blocks: content, extra_css, title, extra_js
      scripts: https://telegram.org/js/telegram-web-app.js
 
   📄 templates\dashboard.html
@@ -411,7 +416,7 @@
   📄 templates\history.html
      extends: base.html
      blocks: content, title, extra_js
-     api_calls: /api/notes/delete, /api/notes/list
+     api_calls: /api/notes/list, /api/notes/delete
 
   📄 templates\login.html
      extends: base.html
@@ -428,39 +433,39 @@
 
   📄 templates\trainer_alphabet.html
      extends: trainer_base.html
-     blocks: trainer_content, title, trainer_js
+     blocks: trainer_js, trainer_content, title
 
   📄 templates\trainer_base.html
      extends: base.html
-     blocks: trainer_content, trainer_js, content, extra_js
+     blocks: trainer_js, trainer_content, content, extra_js
      scripts: {{ url_for(, {{ url_for(
 
   📄 templates\trainer_cards.html
      extends: trainer_base.html
-     blocks: trainer_content, title, trainer_js
+     blocks: trainer_js, trainer_content, title
      api_calls: /static/data/cards.json
 
   📄 templates\trainer_colors.html
      extends: trainer_base.html
-     blocks: trainer_content, title, trainer_js
+     blocks: trainer_js, trainer_content, title
 
   📄 templates\trainer_dates.html
      extends: trainer_base.html
-     blocks: trainer_content, title, trainer_js
+     blocks: trainer_js, trainer_content, title
 
   📄 templates\trainer_grammar.html
      extends: trainer_base.html
-     blocks: trainer_content, title, trainer_js
+     blocks: trainer_js, trainer_content, title
      api_calls: /static/data/grammar.json
 
   📄 templates\trainer_hub.html
      extends: trainer_base.html
-     blocks: trainer_content, title, trainer_js
-     api_calls: /api/hub/delete, /api/hub/list, /api/hub/toggle-learned
+     blocks: trainer_js, trainer_content, title
+     api_calls: /api/hub/delete, /api/hub/list, /api/hub/toggle-learned, /api/hub/add-batch
 
   📄 templates\trainer_locations.html
      extends: trainer_base.html
-     blocks: trainer_content, title, trainer_js
+     blocks: trainer_js, trainer_content, title
 
   📄 templates\trainer_menu.html
      extends: trainer_base.html
@@ -468,61 +473,61 @@
 
   📄 templates\trainer_money.html
      extends: trainer_base.html
-     blocks: trainer_content, title, trainer_js
+     blocks: trainer_js, trainer_content, title
 
   📄 templates\trainer_numbers.html
      extends: trainer_base.html
-     blocks: trainer_content, title, trainer_js
+     blocks: trainer_js, trainer_content, title
 
   📄 templates\trainer_phrases.html
      extends: trainer_base.html
-     blocks: trainer_content, title, trainer_js
-     api_calls: /api/sections/get, /api/items/set, /api/sections/toggle, /api/items/get, {{ url_for(
+     blocks: trainer_js, trainer_content, title
+     api_calls: {{ url_for(, /api/items/get, /api/items/set, /api/sections/get, /api/sections/toggle
 
   📄 templates\trainer_pictures.html
      extends: trainer_base.html
-     blocks: trainer_content, title, trainer_js
+     blocks: trainer_js, trainer_content, title
      api_calls: /static/data/pictures.json
 
   📄 templates\trainer_quiz.html
      extends: trainer_base.html
-     blocks: trainer_content, title, trainer_js
+     blocks: trainer_js, trainer_content, title
      api_calls: /static/data/grammar.json
 
   📄 templates\trainer_sentences.html
      extends: trainer_base.html
-     blocks: trainer_content, title, trainer_js
-     api_calls: /api/items/get, /api/items/set, /static/data/sentences.json
+     blocks: trainer_js, trainer_content, title
+     api_calls: /static/data/sentences.json, /api/items/get, /api/items/set
 
   📄 templates\trainer_text.html
      extends: trainer_base.html
-     blocks: trainer_content, title, trainer_js
-     api_calls: /api/items/get, /static/data/texts.json, /api/items/set
+     blocks: trainer_js, trainer_content, title
+     api_calls: /api/items/get, /api/items/set, /static/data/texts.json
 
   📄 templates\trainer_time.html
      extends: trainer_base.html
-     blocks: trainer_content, title, trainer_js
+     blocks: trainer_js, trainer_content, title
 
   📄 templates\trainer_verbs.html
      extends: trainer_base.html
-     blocks: trainer_content, title, trainer_js
+     blocks: trainer_js, trainer_content, title
      api_calls: {{ url_for(
 
   📄 templates\trainer_video.html
      extends: trainer_base.html
-     blocks: trainer_content, title, trainer_js
+     blocks: trainer_js, trainer_content, title
 
   📄 templates\trainer_weather.html
      extends: trainer_base.html
-     blocks: trainer_content, title, trainer_js
+     blocks: trainer_js, trainer_content, title
 
   📄 templates\trainer_weekdays.html
      extends: trainer_base.html
-     blocks: trainer_content, title, trainer_js
+     blocks: trainer_js, trainer_content, title
 
   📄 templates\trainer_words.html
      extends: trainer_base.html
-     blocks: trainer_content, title, trainer_js
+     blocks: trainer_js, trainer_content, title
      api_calls: /static/data/words-data.json
 
 
@@ -540,6 +545,7 @@
   /api/hub/list  ← templates\trainer_hub.html
   /api/hub/toggle-learned  ← templates\trainer_hub.html
   /api/hub/delete  ← templates\trainer_hub.html
+  /api/hub/add-batch  ← templates\trainer_hub.html
   /api/sections/get  ← templates\trainer_phrases.html
   /api/items/get  ← templates\trainer_phrases.html
   {{ url_for(  ← templates\trainer_phrases.html
