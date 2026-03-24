@@ -195,21 +195,19 @@ trackPing();
     h += '<div style="overflow:hidden;position:relative;"><div id="' + id + '-t" style="display:flex;transition:transform .3s ease;">';
 
     pages.forEach(function(page) {
-      h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;min-width:100%;flex-shrink:0;">';
+      h += '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;min-width:100%;flex-shrink:0;">';
       page.forEach(function(ex) {
-        h += '<div style="background:var(--bg-app,#f5f6fa);border:1px solid var(--border-color,#e2e5ec);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;">' +
-          '<div style="text-align:center;padding-bottom:4px;border-bottom:1px solid var(--border-light,#eee);">' +
-            '<div style="font-size:13px;font-weight:700;color:var(--text-primary);">' + ex.base + '</div>' +
-            '<div style="display:inline-block;font-size:9px;color:var(--text-tertiary);background:var(--bg-surface,#fff);border:1px solid var(--border-light,#eee);border-radius:20px;padding:1px 7px;margin:2px 0;">' + ex.type + '</div>' +
-            '<div style="font-size:9px;color:var(--text-tertiary);">↓</div>' +
-            '<div style="font-size:14px;font-weight:700;color:var(--primary,#4758d6);">' + ex.applied + '</div>' +
+        h += '<div style="background:var(--bg-app,#f0f4f9);border-radius:8px;padding:10px 12px;">' +
+          '<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:6px;">' +
+            '<span style="font-size:14px;font-weight:500;color:var(--text-primary);">' + ex.base + '</span>' +
+            '<span style="font-size:11px;color:var(--text-tertiary);">' + ex.type + '</span>' +
+            '<span style="font-size:11px;color:var(--text-tertiary);">→</span>' +
+            '<span style="font-size:14px;font-weight:500;color:var(--primary,#0b57d0);">' + ex.applied + '</span>' +
           '</div>' +
-          '<div style="display:flex;flex-direction:column;gap:2px;flex:1;">';
+          '<div>';
         ex.sentences.forEach(function(s, i) {
-          h += '<div style="padding:3px 7px;background:var(--bg-surface,#fff);border-radius:4px;border-left:2px solid var(--primary-container,#dde);">' +
-            '<div style="font-size:11px;color:var(--text-primary);line-height:1.35;">' + s + '</div>' +
-            '<div style="font-size:9.5px;color:var(--text-tertiary);margin-top:0;">' + ex.translations[i] + '</div>' +
-          '</div>';
+          h += '<div style="font-size:12px;color:var(--text-primary);line-height:1.5;margin-bottom:2px;">' + s + '</div>' +
+            '<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:4px;">' + ex.translations[i] + '</div>';
         });
         h += '</div></div>';
       });

@@ -415,15 +415,15 @@
   margin: 8px 0;
 }
 
-/* ═══ EXAMPLE CARDS CAROUSEL ═══ */
+/* ═══ EXAMPLE CARDS — COMPACT ═══ */
 .gr-ex-carousel {
-  margin: 8px 0 12px;
+  margin: 6px 0 10px;
 }
 .gr-ex-carousel-label {
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: var(--text-tertiary);
   margin-bottom: 6px;
 }
@@ -437,78 +437,68 @@
 }
 .gr-ex-page {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
   min-width: 100%;
   flex-shrink: 0;
 }
 .gr-ex-card {
   background: var(--bg-app);
-  border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+  padding: 10px 12px;
   min-width: 0;
   overflow: hidden;
 }
 .gr-ex-card-head {
-  text-align: center;
-  padding-bottom: 5px;
-  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 6px;
 }
 .gr-ex-card-base {
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--text-primary);
   font-family: "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
 }
 .gr-ex-card-type {
-  display: inline-block;
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-tertiary);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-pill);
-  padding: 1px 7px;
-  margin: 2px 0;
-  font-weight: 500;
 }
 .gr-ex-card-arrow {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-tertiary);
-  margin: 0;
 }
 .gr-ex-card-applied {
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 500;
   color: var(--primary);
   font-family: "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
 }
 .gr-ex-card-sents {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  flex: 1;
+  gap: 0;
 }
 .gr-ex-card-sent {
-  padding: 4px 7px;
-  background: var(--bg-surface);
-  border-radius: var(--radius-sm);
-  border-left: 2px solid var(--primary-container);
+  padding: 0;
+  margin-bottom: 4px;
+}
+.gr-ex-card-sent:last-child {
+  margin-bottom: 0;
 }
 .gr-ex-card-kor {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-primary);
-  line-height: 1.35;
+  line-height: 1.5;
   font-family: "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
   word-break: keep-all;
 }
 .gr-ex-card-rus {
-  font-size: 9.5px;
+  font-size: 11px;
   color: var(--text-tertiary);
   margin-top: 0;
+  margin-bottom: 2px;
 }
 
 /* Carousel nav */
@@ -855,10 +845,10 @@
       page.forEach(ex => {
         h += `<div class="gr-ex-card">
           <div class="gr-ex-card-head">
-            <div class="gr-ex-card-base">${ex.base}</div>
-            <div class="gr-ex-card-type">${ex.type}</div>
-            <div class="gr-ex-card-arrow">↓</div>
-            <div class="gr-ex-card-applied">${ex.applied}</div>
+            <span class="gr-ex-card-base">${ex.base}</span>
+            <span class="gr-ex-card-type">${ex.type}</span>
+            <span class="gr-ex-card-arrow">→</span>
+            <span class="gr-ex-card-applied">${ex.applied}</span>
           </div>
           <div class="gr-ex-card-sents">
             ${ex.sentences.map((s, i) => `
