@@ -190,6 +190,39 @@ trackPing();
     var pages = [];
     for (var i = 0; i < items.length; i += pp) pages.push(items.slice(i, i + pp));
 
+    // Collect ALL unique suffixes from all items
+    var allSuffixes = [];
+    items.forEach(function(ex) {
+      var stem = ex.base.replace(/다$/, '');
+      var prefix = '';
+      for (var ci = 0; ci < Math.min(stem.length, ex.applied.length); ci++) {
+        if (stem[ci] === ex.applied[ci]) prefix += stem[ci]; else break;
+      }
+      var suffix = ex.applied.slice(prefix.length);
+      if (suffix && allSuffixes.indexOf(suffix) === -1) allSuffixes.push(suffix);
+    });
+    allSuffixes.sort(function(a, b) { return b.length - a.length; });
+
+    var suffixEscaped = allSuffixes.map(function(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); });
+    var hlRegex = suffixEscaped.length
+      ? new RegExp('([가-힣]*?)(' + suffixEscaped.join('|') + ')(?=[^가-힣]|$)', 'g')
+      : null;
+
+    function hlSentence(txt) {
+      if (!hlRegex) return txt;
+      return txt.replace(hlRegex, '$1<b class="g-ex-hl">$2</b>');
+    }
+
+    function hlApplied(ex) {
+      var stem = ex.base.replace(/다$/, '');
+      var prefix = '';
+      for (var ci = 0; ci < Math.min(stem.length, ex.applied.length); ci++) {
+        if (stem[ci] === ex.applied[ci]) prefix += stem[ci]; else break;
+      }
+      var suffix = ex.applied.slice(prefix.length);
+      return suffix ? (prefix + '<b class="g-ex-hl">' + suffix + '</b>') : ex.applied;
+    }
+
     var h = '<div class="g-ex-carousel" data-gcar="' + id + '">';
     h += '<div class="g-ex-carousel-label">' + (label || 'Примеры') + '</div>';
     h += '<div class="g-ex-track-wrap"><div class="g-ex-track" id="' + id + '-t">';
@@ -197,27 +230,17 @@ trackPing();
     pages.forEach(function(page) {
       h += '<div class="g-ex-page">';
       page.forEach(function(ex) {
-        var stem = ex.base.replace(/다$/, '');
-        var prefix = '';
-        for (var ci = 0; ci < Math.min(stem.length, ex.applied.length); ci++) {
-          if (stem[ci] === ex.applied[ci]) prefix += stem[ci]; else break;
-        }
-        var suffix = ex.applied.slice(prefix.length);
-        var appliedHTML = suffix ? (prefix + '<b class="g-ex-hl">' + suffix + '</b>') : ex.applied;
-        var appliedEsc = ex.applied.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        var appliedRe = suffix ? new RegExp(appliedEsc, 'g') : null;
         h += '<div class="g-ex-card">' +
           '<div class="g-ex-card-head">' +
             '<span class="g-ex-card-base">' + ex.base + '</span>' +
             '<span class="g-ex-card-type">' + ex.type + '</span>' +
             '<span class="g-ex-card-arrow">→</span>' +
-            '<span class="g-ex-card-applied">' + appliedHTML + '</span>' +
+            '<span class="g-ex-card-applied">' + hlApplied(ex) + '</span>' +
           '</div>' +
           '<div class="g-ex-card-sents">';
         ex.sentences.forEach(function(s, i) {
-          var kor = (appliedRe && suffix) ? s.replace(appliedRe, prefix + '<b class="g-ex-hl">' + suffix + '</b>') : s;
           h += '<div class="g-ex-card-sent">' +
-            '<div class="g-ex-card-kor">' + kor + '</div>' +
+            '<div class="g-ex-card-kor">' + hlSentence(s) + '</div>' +
             '<div class="g-ex-card-rus">' + ex.translations[i] + '</div>' +
           '</div>';
         });
@@ -302,6 +325,13 @@ trackPing();
       var total = track.querySelectorAll('.g-ex-page').length;
       gCarState[cid] = { cur: 0, total: total, track: track };
     });
+
+    function updateGCar(cid, s) {
+      s.track.style.transform = 'translateX(-' + (s.cur * 100) + '%)';
+      var pg = document.getElementById(cid + '-pg');
+      if (pg) pg.textContent = (s.cur + 1) + ' / ' + s.total;
+    }
+
     modalBody.addEventListener('click', function(e) {
       var btn = e.target.closest('[data-gdir]');
       if (!btn) return;
@@ -310,9 +340,35 @@ trackPing();
       var s = gCarState[cid];
       if (!s) return;
       s.cur = Math.max(0, Math.min(s.total - 1, s.cur + dir));
-      s.track.style.transform = 'translateX(-' + (s.cur * 100) + '%)';
-      var pg = document.getElementById(cid + '-pg');
-      if (pg) pg.textContent = (s.cur + 1) + ' / ' + s.total;
+      updateGCar(cid, s);
+    });
+
+    // Touch swipe for global modal carousels
+    modalBody.querySelectorAll('.g-ex-track-wrap').forEach(function(wrap) {
+      var startX = 0, moved = false;
+      var carousel = wrap.closest('[data-gcar]');
+      if (!carousel) return;
+      var cid = carousel.dataset.gcar;
+
+      wrap.addEventListener('touchstart', function(e) {
+        startX = e.touches[0].clientX;
+        moved = false;
+      }, { passive: true });
+
+      wrap.addEventListener('touchmove', function(e) {
+        var dx = Math.abs(e.touches[0].clientX - startX);
+        if (dx > 10) moved = true;
+      }, { passive: true });
+
+      wrap.addEventListener('touchend', function(e) {
+        if (!moved) return;
+        var endX = e.changedTouches[0].clientX;
+        var diff = startX - endX;
+        var s = gCarState[cid];
+        if (!s) return;
+        if (diff > 40 && s.cur < s.total - 1) { s.cur++; updateGCar(cid, s); }
+        if (diff < -40 && s.cur > 0) { s.cur--; updateGCar(cid, s); }
+      }, { passive: true });
     });
 
     overlay.classList.add('open');
