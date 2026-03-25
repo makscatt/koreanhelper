@@ -114,7 +114,7 @@ class TrainerItemProgress(db.Model):
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
     trainer = db.Column(db.String(50), nullable=False)    # например 'phrases'
     item_id = db.Column(db.String(200), nullable=False)   # id элемента из JSON
-    status = db.Column(db.String(20), nullable=False)     # 'know' / 'dunno' и т.д.
+    status = db.Column(db.Text, nullable=False)          # 'know' / 'done' / HTML highlights
     updated_at = db.Column(db.DateTime, default=datetime.utcnow)
     __table_args__ = (
         db.UniqueConstraint('student_id', 'trainer', 'item_id', name='uq_item_progress'),
@@ -884,6 +884,42 @@ def items_set():
     return jsonify({'ok': True})
 
 
+@app.route('/api/highlights/save', methods=['POST'])
+@login_required
+def highlights_save():
+    """Сохранить выделения (маркеры) — доступно и учителю и ученику"""
+    data = request.get_json() or {}
+    student_id = _get_student_id_from_request(data)
+    trainer = data.get('trainer', '')
+    item_id = data.get('item_id', '')
+    html = data.get('html', '')
+    if not student_id or not trainer or not item_id:
+        return jsonify({'ok': False}), 400
+
+    # Store highlights with "hl:" prefix to separate from status items
+    hl_key = f'hl:{item_id}'
+    existing = TrainerItemProgress.query.filter_by(
+        student_id=student_id, trainer=trainer, item_id=hl_key
+    ).first()
+
+    if not html:
+        if existing:
+            db.session.delete(existing)
+    else:
+        if existing:
+            existing.status = html
+            existing.updated_at = datetime.utcnow()
+        else:
+            existing = TrainerItemProgress(
+                student_id=student_id, trainer=trainer,
+                item_id=hl_key, status=html
+            )
+            db.session.add(existing)
+
+    db.session.commit()
+    return jsonify({'ok': True})
+
+
 # ══════════════════════════════════════════
 #  WORD HUB API  (персональный словарь с ИИ)
 # ══════════════════════════════════════════
@@ -1384,6 +1420,15 @@ with app.app_context():
         ))
         db.session.commit()
         print("Миграция: teacher_id теперь nullable")
+    except Exception:
+        db.session.rollback()
+    # Миграция: расширяем status в trainer_item_progress до TEXT (для хранения HTML маркеров)
+    try:
+        db.session.execute(db.text(
+            "ALTER TABLE trainer_item_progress ALTER COLUMN status TYPE TEXT"
+        ))
+        db.session.commit()
+        print("Миграция: trainer_item_progress.status расширен до TEXT")
     except Exception:
         db.session.rollback()
     if not Teacher.query.filter_by(username='admin').first():

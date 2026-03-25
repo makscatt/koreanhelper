@@ -440,7 +440,7 @@ noteSaveBtn.addEventListener('click', async function() {
     curEl.textContent = state.current;
     goalEl.textContent = state.goal;
     var pct = Math.min(100, Math.round((state.current / state.goal) * 100));
-    barEl.style.setProperty('--pct', pct);
+    if (barEl) barEl.style.setProperty('--pct', pct);
     var done = state.current >= state.goal;
     counter.classList.toggle('done', done);
   }

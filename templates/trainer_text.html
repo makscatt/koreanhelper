@@ -25,6 +25,7 @@
       <div class="txt-modal-title" id="txt-modal-title"></div>
       <div class="txt-modal-actions">
         <div class="txt-check-btns" id="txt-modal-checks">
+          <button class="txt-check-btn" id="modal-btn-working" onclick="toggleTextCheck('working')" title="В работе">📖</button>
           <button class="txt-check-btn" id="modal-btn-done" onclick="toggleTextCheck('done')" title="Пройдено">✅</button>
           <button class="txt-check-btn" id="modal-btn-hw" onclick="toggleTextCheck('homework')" title="Домашка">📝</button>
         </div>
@@ -118,6 +119,21 @@
   gap: 8px;
 }
 .text-card:hover { border-color: var(--primary); box-shadow: var(--shadow-1); }
+
+/* ── Card status colors ── */
+.text-card[data-status="working"] {
+  border-left: 4px solid #4758d6;
+  background: linear-gradient(135deg, rgba(71,88,214,0.04), var(--bg-surface));
+}
+.text-card[data-status="done"] {
+  border-left: 4px solid #22c55e;
+  background: linear-gradient(135deg, rgba(34,197,94,0.04), var(--bg-surface));
+}
+.text-card[data-status="homework"] {
+  border-left: 4px solid #f59e0b;
+  background: linear-gradient(135deg, rgba(245,158,11,0.04), var(--bg-surface));
+}
+
 .text-card-head { display:flex; justify-content:space-between; align-items:center; }
 .text-card-title { font-size:15px; font-weight:600; color:var(--text-primary); }
 .text-card-status { font-size:14px; }
@@ -129,6 +145,15 @@
   display:flex; gap:8px; align-items:center; font-size:11px; color:var(--text-tertiary);
   font-family:var(--font-mono);
 }
+
+/* ── Status badge on card ── */
+.text-card-badge {
+  font-size: 10px; font-weight: 600; padding: 2px 8px;
+  border-radius: 20px; white-space: nowrap;
+}
+.text-card-badge[data-status="working"] { background: #e8eaf6; color: #4758d6; }
+.text-card-badge[data-status="done"]    { background: #dcfce7; color: #16a34a; }
+.text-card-badge[data-status="homework"]{ background: #fef3c7; color: #d97706; }
 
 /* ── Modal ── */
 .txt-overlay {
@@ -242,16 +267,28 @@
 <script>
   let allTextsData = [];
   let textChecks = {};
+  let textHighlights = {};
   let currentTextIdx = 0;
   let activeColor = null;
   let currentWordList = [], currentWordIndex = 0;
   const STUDENT_ID = {{ student.id }};
+  let _hlSaveTimer = null;
 
   function slugify(title) { return title.replace(/\s+/g, '_').toLowerCase(); }
+
   function getStatusIcon(slug) {
     const s = textChecks[slug] || '';
     if (s === 'done') return '✅';
+    if (s === 'working') return '📖';
     if (s === 'homework') return '📝';
+    return '';
+  }
+
+  function getStatusLabel(slug) {
+    const s = textChecks[slug] || '';
+    if (s === 'done') return 'Пройдено';
+    if (s === 'working') return 'В работе';
+    if (s === 'homework') return 'Домашка';
     return '';
   }
 
@@ -264,7 +301,15 @@
         body: JSON.stringify({ student_id: STUDENT_ID, trainer: 'texts' })
       });
       const data = await res.json();
-      if (data.ok) textChecks = data.items;
+      if (data.ok) {
+        for (const [key, val] of Object.entries(data.items)) {
+          if (key.startsWith('hl:')) {
+            textHighlights[key.substring(3)] = val;
+          } else {
+            textChecks[key] = val;
+          }
+        }
+      }
     } catch(e) {}
 
     try {
@@ -285,17 +330,23 @@
     const grid = document.getElementById('texts-grid');
     grid.innerHTML = allTextsData.map((item, i) => {
       const slug = slugify(item.title);
+      const status = textChecks[slug] || '';
       const icon = getStatusIcon(slug);
+      const label = getStatusLabel(slug);
       const preview = item.text.replace(/\n/g, ' ').substring(0, 100) + '…';
       const wordCount = (item.vocab && item.vocab.length) || 0;
+      const badgeHtml = status
+        ? `<span class="text-card-badge" data-status="${status}">${label}</span>`
+        : '';
       return `
-        <div class="text-card" onclick="openTextModal(${i})">
+        <div class="text-card" data-status="${status}" onclick="openTextModal(${i})">
           <div class="text-card-head">
             <div class="text-card-title">${item.title}</div>
             <div class="text-card-status">${icon}</div>
           </div>
           <div class="text-card-preview">${preview}</div>
           <div class="text-card-meta">
+            ${badgeHtml}
             ${wordCount ? '<span>📚 ' + wordCount + ' слов</span>' : ''}
           </div>
         </div>`;
@@ -313,6 +364,7 @@
   }
 
   function closeTextModal() {
+    saveHighlightsNow();
     textOverlay.classList.remove('open');
     document.body.style.overflow = '';
     activeColor = null;
@@ -322,10 +374,19 @@
   textOverlay.addEventListener('click', e => { if (e.target === textOverlay) closeTextModal(); });
 
   function renderTextModal() {
+    saveHighlightsNow();
+
     const item = allTextsData[currentTextIdx];
+    const slug = slugify(item.title);
     document.getElementById('txt-modal-title').textContent = item.title;
     document.getElementById('txt-counter').textContent = (currentTextIdx + 1) + ' / ' + allTextsData.length;
-    document.getElementById('txt-modal-body').textContent = item.text;
+
+    const body = document.getElementById('txt-modal-body');
+    if (textHighlights[slug]) {
+      body.innerHTML = textHighlights[slug];
+    } else {
+      body.textContent = item.text;
+    }
 
     const wordsBtn = document.getElementById('txt-words-btn');
     wordsBtn.style.display = (item.vocab && item.vocab.length) ? '' : 'none';
@@ -342,6 +403,7 @@
     const status = textChecks[slug] || '';
     document.getElementById('modal-btn-done').classList.toggle('active', status === 'done');
     document.getElementById('modal-btn-hw').classList.toggle('active', status === 'homework');
+    document.getElementById('modal-btn-working').classList.toggle('active', status === 'working');
   }
 
   async function toggleTextCheck(newStatus) {
@@ -404,6 +466,7 @@
       span.className = `highlight-${activeColor}`;
       range.surroundContents(span);
       sel.removeAllRanges();
+      scheduleHighlightSave();
     } catch(e) {}
   });
 
@@ -413,8 +476,48 @@
       parent.insertBefore(document.createTextNode(e.target.textContent), e.target);
       parent.removeChild(e.target);
       parent.normalize();
+      scheduleHighlightSave();
     }
   });
+
+  // ── HIGHLIGHT PERSISTENCE ──
+  function scheduleHighlightSave() {
+    clearTimeout(_hlSaveTimer);
+    _hlSaveTimer = setTimeout(saveHighlightsNow, 1200);
+  }
+
+  function saveHighlightsNow() {
+    clearTimeout(_hlSaveTimer);
+    if (!allTextsData.length) return;
+    const item = allTextsData[currentTextIdx];
+    if (!item) return;
+    const slug = slugify(item.title);
+    const body = document.getElementById('txt-modal-body');
+    if (!body) return;
+
+    const html = body.innerHTML;
+    const hasHighlights = html.includes('highlight-');
+    const stored = textHighlights[slug] || '';
+    if (html === stored) return;
+    if (!hasHighlights && !stored) return;
+
+    if (hasHighlights) {
+      textHighlights[slug] = html;
+    } else {
+      delete textHighlights[slug];
+    }
+
+    fetch('/api/highlights/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        student_id: STUDENT_ID,
+        trainer: 'texts',
+        item_id: slug,
+        html: hasHighlights ? html : ''
+      })
+    }).catch(() => {});
+  }
 
   // ── WORD STUDY ──
   const wordOverlay = document.getElementById('word-modal-overlay');
