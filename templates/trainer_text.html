@@ -273,6 +273,7 @@
   let currentWordList = [], currentWordIndex = 0;
   const STUDENT_ID = {{ student.id }};
   let _hlSaveTimer = null;
+  let _hlDirty = false;  // only save when user actually changed highlights
 
   function slugify(title) { return title.replace(/\s+/g, '_').toLowerCase(); }
 
@@ -364,7 +365,8 @@
   }
 
   function closeTextModal() {
-    saveHighlightsNow();
+    if (_hlDirty) saveHighlightsNow();
+    _hlDirty = false;
     textOverlay.classList.remove('open');
     document.body.style.overflow = '';
     activeColor = null;
@@ -374,7 +376,8 @@
   textOverlay.addEventListener('click', e => { if (e.target === textOverlay) closeTextModal(); });
 
   function renderTextModal() {
-    saveHighlightsNow();
+    if (_hlDirty) saveHighlightsNow();
+    _hlDirty = false;
 
     const item = allTextsData[currentTextIdx];
     const slug = slugify(item.title);
@@ -466,6 +469,7 @@
       span.className = `highlight-${activeColor}`;
       range.surroundContents(span);
       sel.removeAllRanges();
+      _hlDirty = true;
       scheduleHighlightSave();
     } catch(e) {}
   });
@@ -476,6 +480,7 @@
       parent.insertBefore(document.createTextNode(e.target.textContent), e.target);
       parent.removeChild(e.target);
       parent.normalize();
+      _hlDirty = true;
       scheduleHighlightSave();
     }
   });
@@ -488,6 +493,7 @@
 
   function saveHighlightsNow() {
     clearTimeout(_hlSaveTimer);
+    if (!_hlDirty) return;
     if (!allTextsData.length) return;
     const item = allTextsData[currentTextIdx];
     if (!item) return;
@@ -497,9 +503,6 @@
 
     const html = body.innerHTML;
     const hasHighlights = html.includes('highlight-');
-    const stored = textHighlights[slug] || '';
-    if (html === stored) return;
-    if (!hasHighlights && !stored) return;
 
     if (hasHighlights) {
       textHighlights[slug] = html;
@@ -517,6 +520,7 @@
         html: hasHighlights ? html : ''
       })
     }).catch(() => {});
+    _hlDirty = false;
   }
 
   // ── WORD STUDY ──
