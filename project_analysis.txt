@@ -1,7 +1,7 @@
 ======================================================================
 АНАЛИЗ ПРОЕКТА: TECHERCAB 2.0
 Путь: C:\Users\MakscattSchool\Desktop\techercab 2.0
-Дата анализа: 2026-03-31 08:55
+Дата анализа: 2026-03-31 14:06
 Всего файлов: 50
 ======================================================================
 
@@ -14,7 +14,7 @@
 📁 СТРУКТУРА ПРОЕКТА
 ----------------------------------------
   analyze_project.py  (38.8 KB)
-  app.py  (58.2 KB)
+  app.py  (59.1 KB)
   bot.py  (48.5 KB)
   get-pip.py  (2142.0 KB)
   korean-roadmap.html  (19.8 KB)
@@ -37,7 +37,7 @@
   templates\base.html  (14.0 KB)
   templates\dashboard.html  (1.4 KB)
   templates\history.html  (4.0 KB)
-  templates\login.html  (2.5 KB)
+  templates\login.html  (13.0 KB)
   templates\register.html  (871 B)
   templates\select_student.html  (11.0 KB)
   templates\trainer_alphabet.html  (6.4 KB)
@@ -260,6 +260,8 @@
      def trainer_phrases(student_id)
      def trainer_hub(student_id)
      def history(student_id)
+     def proxy_yandex(filepath)
+       """Проксирует запросы к видео-контенту на Яндексе"""
 
   📄 bot.py
      def tg_api(method: str, payload: dict)
@@ -358,6 +360,7 @@
   [ROUTE] /student/<int:student_id>/trainer/phrases  →  trainer_phrases()  (app.py)
   [ROUTE] /student/<int:student_id>/trainer/hub  →  trainer_hub()  (app.py)
   [ROUTE] /student/<int:student_id>/history  →  history()  (app.py)
+  [ROUTE] /content/<path:filepath>  →  proxy_yandex()  (app.py)
 
 
 📜 JAVASCRIPT/TYPESCRIPT: СТРУКТУРА
@@ -415,21 +418,23 @@
 
   📄 templates\base.html
      title: {% block title %}한국어{% endblock %}
-     blocks: extra_css, extra_js, title, content
+     blocks: extra_css, title, content, extra_js
      scripts: https://telegram.org/js/telegram-web-app.js
 
   📄 templates\dashboard.html
      extends: base.html
-     blocks: extra_js, title, content
+     blocks: title, content, extra_js
 
   📄 templates\history.html
      extends: base.html
-     blocks: extra_js, title, content
+     blocks: title, content, extra_js
      api_calls: /api/notes/delete, /api/notes/list
 
   📄 templates\login.html
      extends: base.html
-     blocks: title, content
+     blocks: extra_css, title, body, tab_bar, extra_head, extra_js, body_class
+     scripts: {{ url_for(
+     api_calls: /auth/me, /auth/check-token?token=${token}, /auth/create-token
 
   📄 templates\register.html
      extends: base.html
@@ -446,7 +451,7 @@
 
   📄 templates\trainer_base.html
      extends: base.html
-     blocks: trainer_content, extra_js, trainer_js, content
+     blocks: trainer_content, content, trainer_js, extra_js
      scripts: {{ url_for(, {{ url_for(
 
   📄 templates\trainer_cards.html
@@ -470,7 +475,7 @@
   📄 templates\trainer_hub.html
      extends: trainer_base.html
      blocks: trainer_content, title, trainer_js
-     api_calls: /api/hub/list, /api/hub/toggle-learned, /api/hub/delete, /api/hub/add-batch
+     api_calls: /api/hub/list, /api/hub/toggle-learned, /api/hub/add-batch, /api/hub/delete
 
   📄 templates\trainer_locations.html
      extends: trainer_base.html
@@ -491,7 +496,7 @@
   📄 templates\trainer_phrases.html
      extends: trainer_base.html
      blocks: trainer_content, title, trainer_js
-     api_calls: /api/sections/toggle, /api/items/set, {{ url_for(, /api/sections/get, /api/items/get
+     api_calls: /api/items/set, /api/sections/toggle, /api/items/get, /api/sections/get, {{ url_for(
 
   📄 templates\trainer_pictures.html
      extends: trainer_base.html
@@ -506,7 +511,7 @@
   📄 templates\trainer_sentences.html
      extends: trainer_base.html
      blocks: trainer_content, title, trainer_js
-     api_calls: /api/items/get, /api/items/set, /static/data/sentences.json
+     api_calls: /api/items/get, /static/data/sentences.json, /api/items/set
 
   📄 templates\trainer_text.html
      extends: trainer_base.html
@@ -550,6 +555,9 @@
   /api/hub/add-batch  ← static\js\trainer_base.js
   /api/notes/delete  ← templates\history.html
   /api/notes/list  ← templates\history.html
+  /auth/me  ← templates\login.html
+  /auth/create-token  ← templates\login.html
+  /auth/check-token?token=${token}  ← templates\login.html
   /static/data/cards.json  ← templates\trainer_cards.html
   /static/data/grammar.json  ← templates\trainer_grammar.html
   /api/hub/list  ← templates\trainer_hub.html
