@@ -2,76 +2,448 @@
 
 {% block title %}Вход{% endblock %}
 
-{% block content %}
-<div class="auth-container">
-    <div class="auth-box">
-        <h1>Вход</h1>
+{% block body_class %}hide-tab-bar{% endblock %}
 
-        <!-- Переключатель роли -->
-        <div class="role-switcher" id="role-switcher">
-            <button type="button" class="role-btn active" id="btn-teacher" onclick="setRole('teacher')">
-                👨‍🏫 Учитель
-            </button>
-            <button type="button" class="role-btn" id="btn-student" onclick="setRole('student')">
-                🎓 Ученик
-            </button>
-        </div>
+{% block tab_bar %}{% endblock %}
 
-        <form method="POST">
-            <input type="hidden" name="login_as" id="login_as" value="teacher">
-            <div class="form-group">
-                <label for="username">Логин</label>
-                <input type="text" id="username" name="username" required autocomplete="username">
-            </div>
-            <div class="form-group">
-                <label for="password">Пароль</label>
-                <input type="password" id="password" name="password" required autocomplete="current-password">
-            </div>
-            <button type="submit" class="btn-primary">Войти</button>
-        </form>
+{% block extra_head %}
+<script src="{{ url_for('static', filename='js/pixel-loader.js') }}"></script>
+{% endblock %}
 
-        <p class="auth-link" id="register-link">Нет аккаунта учителя? <a href="{{ url_for('register') }}">Зарегистрироваться</a></p>
-    </div>
-</div>
-
-<style>
-.role-switcher {
+{% block extra_css %}
+.login-page {
     display: flex;
-    gap: 8px;
-    margin-bottom: 24px;
-    background: var(--bg-app, #f5f6fa);
-    border-radius: 10px;
-    padding: 4px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: var(--spacing-xl) var(--spacing-lg);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
 }
-.role-btn {
-    flex: 1;
-    padding: 9px 12px;
-    border: none;
-    border-radius: 7px;
-    font-size: 14px;
-    font-weight: 600;
-    font-family: var(--font-main, inherit);
-    cursor: pointer;
-    transition: all 0.15s;
-    background: transparent;
-    color: var(--text-secondary, #666);
-}
-.role-btn.active {
-    background: var(--bg-surface, #fff);
-    color: var(--primary, #4758d6);
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-}
-.role-btn:hover:not(.active) {
-    color: var(--text-primary, #1a1d2e);
-}
-</style>
 
-<script>
-function setRole(role) {
-    document.getElementById('login_as').value = role;
-    document.getElementById('btn-teacher').classList.toggle('active', role === 'teacher');
-    document.getElementById('btn-student').classList.toggle('active', role === 'student');
-    document.getElementById('register-link').style.display = role === 'teacher' ? '' : 'none';
+/* Фоновые декоративные элементы */
+.login-page::before {
+    content: '';
+    position: absolute;
+    top: -120px;
+    right: -80px;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(255, 165, 0, 0.08) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
 }
-</script>
+
+.login-page::after {
+    content: '';
+    position: absolute;
+    bottom: -100px;
+    left: -60px;
+    width: 250px;
+    height: 250px;
+    background: radial-gradient(circle, rgba(255, 165, 0, 0.05) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+/* Логотип */
+.login-logo {
+    font-size: 64px;
+    margin-bottom: var(--spacing-md);
+    animation: login-bounce 2s ease-in-out infinite;
+}
+
+@keyframes login-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+.login-title {
+    font-size: var(--font-size-xl, 24px);
+    font-weight: 800;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: var(--spacing-xs);
+}
+
+.login-subtitle {
+    font-size: var(--font-size-base, 16px);
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-xl, 32px);
+    line-height: 1.5;
+}
+
+/* Основная кнопка */
+.login-btn-telegram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 320px;
+    padding: 16px 24px;
+    background: #2AABEE;
+    color: #fff;
+    font-size: var(--font-size-md, 18px);
+    font-weight: 700;
+    border: none;
+    border-radius: var(--radius-md, 12px);
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+    box-shadow: 0 4px 20px rgba(42, 171, 238, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.login-btn-telegram:active {
+    transform: scale(0.97);
+}
+
+.login-btn-telegram:hover {
+    background: #229ED9;
+    box-shadow: 0 6px 28px rgba(42, 171, 238, 0.4);
+}
+
+.login-btn-telegram svg {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+/* Статус / ожидание */
+.login-status {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-md);
+    width: 100%;
+    max-width: 320px;
+}
+
+.login-status--active {
+    display: flex;
+}
+
+.login-status__text {
+    font-size: var(--font-size-base, 16px);
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.login-status__text strong {
+    color: var(--accent);
+}
+
+.login-status__dots {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+}
+
+.login-status__dots span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: login-dot-pulse 1.4s ease-in-out infinite;
+}
+
+.login-status__dots span:nth-child(2) { animation-delay: 0.2s; }
+.login-status__dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes login-dot-pulse {
+    0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+    40% { opacity: 1; transform: scale(1.2); }
+}
+
+.login-cancel-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 10px 24px;
+    border-radius: var(--radius-md, 8px);
+    font-size: var(--font-size-sm, 14px);
+    cursor: pointer;
+    margin-top: var(--spacing-sm);
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.login-cancel-btn:hover {
+    border-color: var(--text-secondary);
+    color: var(--text-secondary);
+}
+
+/* Успех */
+.login-success {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.login-success--active {
+    display: flex;
+}
+
+.login-success__icon {
+    font-size: 56px;
+    animation: login-success-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes login-success-pop {
+    0% { transform: scale(0); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.login-success__text {
+    font-size: var(--font-size-md, 18px);
+    font-weight: 600;
+    color: var(--success, #4CAF50);
+}
+
+/* Ошибка */
+.login-error {
+    display: none;
+    color: var(--error, #f44336);
+    font-size: var(--font-size-sm, 14px);
+    margin-top: var(--spacing-md);
+    text-align: center;
+}
+
+/* Подвал */
+.login-footer {
+    position: absolute;
+    bottom: calc(24px + var(--safe-bottom, 0px));
+    font-size: var(--font-size-xs, 12px);
+    color: var(--text-muted);
+    opacity: 0.5;
+}
+{% endblock %}
+
+
+
+{% block body %}
+<div class="login-page">
+
+    <!-- Логотип и заголовок -->
+    <div class="login-logo">🌶️</div>
+    <div class="login-title">Кимчи Хангуго</div>
+    <div class="login-subtitle">Учите корейский по дорамам</div>
+
+    <!-- Кнопка входа -->
+    <button class="login-btn-telegram" id="login-btn" onclick="startLogin()">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M11.944 0A12 12 0 1 0 24 12.056A12.013 12.013 0 0 0 11.944 0Zm5.655 8.164c-.148 1.56-.788 5.348-1.113 7.094c-.138.74-.41 .988-.673 1.013c-.57.053-1.003-.376-1.555-.737c-.863-.564-1.35-.916-2.187-1.467c-.968-.637-.34-.988.211-1.56c.144-.15 2.653-2.432 2.702-2.639a.2.2 0 0 0-.047-.177c-.056-.046-.138-.03-.197-.018c-.084.018-1.424.905-4.018 2.656c-.38.261-.724.389-1.032.383c-.34-.007-.993-.192-1.479-.35c-.596-.194-.07-.296-.726-.287c.516-.01 3.053-1.238 3.191-1.296c2.66-1.133 3.213-1.33 3.572-1.336c.079-.001.256.018.371.110c.097.077.124.18.137.252c.013.073.029.239.016.369Z"/>
+        </svg>
+        Войти через Telegram
+    </button>
+
+    <!-- Ожидание подтверждения -->
+    <div class="login-status" id="login-status">
+        <div class="login-status__dots">
+            <span></span><span></span><span></span>
+        </div>
+        <div class="login-status__text">
+            Подтвердите вход в <strong>Telegram</strong><br>
+            и вернитесь сюда
+        </div>
+        <button class="login-cancel-btn" onclick="cancelLogin()">Отмена</button>
+    </div>
+
+    <!-- Успех -->
+    <div class="login-success" id="login-success">
+        <div class="login-success__icon">✅</div>
+        <div class="login-success__text">Вы вошли!</div>
+    </div>
+
+    <!-- Ошибка -->
+    <div class="login-error" id="login-error"></div>
+
+    <div class="login-footer">Нужен аккаунт в Telegram</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+    let pollTimer = null;
+    let currentToken = null;
+    let loginComplete = false;
+
+    /**
+     * Проверяем: может пользователь уже залогинен?
+     */
+    (function checkExistingSession() {
+        const session = localStorage.getItem('session_token');
+        const telegramId = localStorage.getItem('telegram_id');
+        if (session && telegramId) {
+            fetch('/auth/me', {
+                headers: { 'Authorization': 'Bearer ' + session }
+            })
+            .then(r => {
+                if (r.ok) {
+                    window.location.href = '/';
+                }
+            })
+            .catch(() => {});
+        }
+    })();
+
+    /**
+     * Начинаем процесс авторизации
+     */
+    async function startLogin() {
+        const btn = document.getElementById('login-btn');
+        const status = document.getElementById('login-status');
+        const errorDiv = document.getElementById('login-error');
+
+        errorDiv.style.display = 'none';
+
+        try {
+            const resp = await fetch('/auth/create-token', { method: 'POST' });
+
+            if (resp.status === 503) {
+                showError('Сервер перегружен. Подождите 30 секунд и попробуйте снова.');
+                return;
+            }
+
+            if (!resp.ok) throw new Error('Ошибка сервера');
+
+            const data = await resp.json();
+            currentToken = data.token;
+
+            window.open(data.deep_link, '_blank');
+
+            btn.style.display = 'none';
+            status.classList.add('login-status--active');
+
+            startPolling(currentToken);
+
+        } catch (e) {
+            console.error('Login error:', e);
+            errorDiv.textContent = 'Ошибка соединения. Попробуйте ещё раз.';
+            errorDiv.style.display = 'block';
+        }
+    }
+
+    /**
+     * Polling с экспоненциальным backoff.
+     *
+     * Нормальный режим (pending): опрос каждые 2с.
+     * Ошибка сети или 503:       delay удваивается (макс 30с).
+     * Общий таймаут:             5 минут.
+     */
+    function startPolling(token) {
+        const startTime = Date.now();
+        const timeout = 5 * 60 * 1000;   // 5 минут
+        const normalDelay = 2000;         // 2 секунды при pending
+        const maxDelay = 30000;           // макс 30 секунд при ошибках
+        let delay = normalDelay;
+
+        function poll() {
+            if (loginComplete) return;
+
+            // Общий таймаут
+            if (Date.now() - startTime > timeout) {
+                cancelLogin();
+                showError('Время ожидания истекло. Попробуйте ещё раз.');
+                return;
+            }
+
+            fetch(`/auth/check-token?token=${token}`)
+                .then(resp => {
+                    if (loginComplete) return null;
+
+                    // Сервер перегружен — backoff
+                    if (resp.status === 503) {
+                        const retryAfter = resp.headers.get('Retry-After');
+                        delay = Math.min(
+                            retryAfter ? parseInt(retryAfter) * 1000 : delay * 2,
+                            maxDelay
+                        );
+                        pollTimer = setTimeout(poll, delay);
+                        return null;
+                    }
+
+                    if (resp.status === 404) {
+                        cancelLogin();
+                        showError('Токен истёк. Попробуйте ещё раз.');
+                        return null;
+                    }
+
+                    return resp.json();
+                })
+                .then(data => {
+                    if (!data || loginComplete) return;
+
+                    if (data.status === 'confirmed') {
+                        loginComplete = true;
+                        if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
+
+                        localStorage.setItem('session_token', data.session);
+                        localStorage.setItem('telegram_id', data.telegram_id);
+                        if (data.username) localStorage.setItem('username', data.username);
+
+                        showSuccess();
+
+                    } else if (data.status === 'pending') {
+                        // Всё нормально — сбрасываем delay и продолжаем
+                        delay = normalDelay;
+                        pollTimer = setTimeout(poll, delay);
+                    }
+                })
+                .catch(err => {
+                    console.error('Polling error:', err);
+                    // Сетевая ошибка — увеличиваем интервал
+                    delay = Math.min(delay * 2, maxDelay);
+                    pollTimer = setTimeout(poll, delay);
+                });
+        }
+
+        poll();
+    }
+
+    /**
+     * Отмена авторизации
+     */
+    function cancelLogin() {
+        if (pollTimer) {
+            clearTimeout(pollTimer);
+            pollTimer = null;
+        }
+        currentToken = null;
+
+        const btn = document.getElementById('login-btn');
+        const status = document.getElementById('login-status');
+
+        status.classList.remove('login-status--active');
+        btn.style.display = 'flex';
+    }
+
+    /**
+     * Показываем успех и редиректим
+     */
+    function showSuccess() {
+        const status = document.getElementById('login-status');
+        const success = document.getElementById('login-success');
+
+        status.classList.remove('login-status--active');
+        success.classList.add('login-success--active');
+
+        if (typeof SoundFX !== 'undefined') SoundFX.playSuccess();
+
+        setTimeout(() => {
+            window.location.href = '/';
+        }, 1500);
+    }
+
+    /**
+     * Показываем ошибку
+     */
+    function showError(text) {
+        const errorDiv = document.getElementById('login-error');
+        errorDiv.textContent = text;
+        errorDiv.style.display = 'block';
+    }
 {% endblock %}

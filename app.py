@@ -1370,6 +1370,24 @@ def history(student_id):
 
 
 # ══════════════════════════════════════════
+#  ПРОКСИ ВИДЕО С ЯНДЕКСА
+# ══════════════════════════════════════════
+
+@app.route("/content/<path:filepath>")
+def proxy_yandex(filepath):
+    """Проксирует запросы к видео-контенту на Яндексе"""
+    yandex_url = f"https://kimchigo-telegram-miniapp-site.website.yandexcloud.net/{filepath}"
+    try:
+        resp = http_requests.get(yandex_url, timeout=15)
+        return resp.content, resp.status_code, {
+            "Content-Type": resp.headers.get("Content-Type", "application/octet-stream"),
+            "Cache-Control": "public, max-age=3600"
+        }
+    except Exception as e:
+        return str(e), 502
+
+
+# ══════════════════════════════════════════
 #  ИНИЦИАЛИЗАЦИЯ БД
 # ══════════════════════════════════════════
 
