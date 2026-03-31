@@ -39,13 +39,14 @@ TG_MAX_LENGTH = 4000
 # ============================================================
 
 _state = {
-    "interval": 4 * 60 * 60,
+    "interval": int(1.5 * 60 * 60),   # 1.5 часа
     "topics": {"korean": True, "cinema": True, "science": True},
     "news_cache": {},
     "digest_list": [],
     "last_post_text": "",
     "last_post_nid": "",
-    "dzen_posted": set(),          # ID новостей уже опубликованных в Дзен
+    "sent_news_ids": set(),            # ID новостей уже отправленных в сводке (антидубль)
+    "dzen_posted": set(),              # ID новостей уже опубликованных в Дзен
     "dzen_auto_interval": 2.5 * 60 * 60,  # автопостинг в Дзен каждые 2.5 часа
 }
 
@@ -301,8 +302,11 @@ def _news_id(title: str, link: str) -> str:
     return hashlib.md5(f"{title}|{link}".encode()).hexdigest()[:12]
 
 def _interval_text(s: int) -> str:
-    h = s // 3600
-    return "1 час" if h == 1 else f"{h} часа" if h < 5 else f"{h} часов"
+    h = s / 3600
+    if h == int(h):
+        h = int(h)
+        return "1 час" if h == 1 else f"{h} часа" if h < 5 else f"{h} часов"
+    return f"{h} часа"
 
 
 def _find_image_for(nid: str) -> str:
@@ -414,11 +418,21 @@ def gemini_digest(news_items: list, topic_filter: str) -> list:
 ТЕМАТИКА И КРИТЕРИИ ОЦЕНКИ:
 {topic_filter}
 
+ЖЁСТКОЕ ПРАВИЛО ДЕДУПЛИКАЦИИ:
+Если несколько новостей описывают ОДНО И ТО ЖЕ событие (даже если из разных источников, разными словами, с разных углов) — это ДУБЛИ.
+Оставляй ТОЛЬКО ОДНУ — ту, где больше конкретики и деталей. Остальные дубли ВЫКИДЫВАЙ полностью.
+Примеры дублей:
+- «BTS объявили о камбэке» и «BTS возвращаются с новым альбомом» — одно событие
+- «Фильм X собрал $1 млрд» из Variety и то же из Deadline — одно событие
+- «Учёные открыли новую планету» из Nature и «Обнаружена экзопланета» из BBC — одно событие
+НЕ ОСТАВЛЯЙ два материала об одном событии. Ноль терпимости к дублям.
+
 ИНСТРУКЦИЯ:
-1. Оцени КАЖДУЮ новость по шкале 1-10.
-2. ВЫКИНЬ всё что ниже 7.
-3. Оставшиеся отсортируй от высшего балла к низшему.
-4. Оставь максимум 5 новостей.
+1. Сначала найди и удали все дубли (оставь только лучший вариант каждого события).
+2. Оцени КАЖДУЮ оставшуюся новость по шкале 1-10.
+3. ВЫКИНЬ всё что ниже 7.
+4. Оставшиеся отсортируй от высшего балла к низшему.
+5. Оставь максимум 5 новостей.
 
 ВЕРНИ СТРОГО JSON (без markdown, без ```):
 [
@@ -484,20 +498,18 @@ def gemini_post(title: str, description: str, link: str, has_photo: bool = False
 # ============================================================
 
 def send_news_digest(chat_id: str = None):
+    """Автоматически выбирает ОДНУ лучшую новость и присылает готовый пост с кнопками."""
     cid = chat_id or TELEGRAM_CHAT_ID
-    logger.info("🚀 News digest started")
+    logger.info("🚀 Auto best-news started")
 
-    today = datetime.datetime.now().strftime("%d.%m.%Y %H:%M")
     active_topics = {k: v for k, v in FEEDS.items() if _state["topics"].get(k, True)}
 
     if not active_topics:
         tg_send("⚠ Все тематики выключены. /topics", chat_id=cid)
         return
 
-    tg_send(f"📰 <b>Новостная сводка</b>  •  {today}", chat_id=cid)
-
-    digest_list = []
-    counter = 1
+    # Собираем кандидатов из всех активных тематик
+    all_candidates = []
 
     for key, config in active_topics.items():
         logger.info(f"Fetching {key}...")
@@ -506,37 +518,94 @@ def send_news_digest(chat_id: str = None):
             continue
 
         digest_items = gemini_digest(items, config["topic_filter"])
-        if not digest_items:
-            tg_send(f"\n<b>{config['label']}</b>\n\n🤷 Ничего достойного не найдено (все новости ниже 7 баллов).", chat_id=cid)
-            time.sleep(1)
-            continue
-
-        # Формируем сообщение для этого блока
-        lines = [f"<b>{config['label']}</b>\n"]
-
         for item in digest_items:
             nid = item.get("id", "")
-            score = item.get("score", "?")
-            headline = item.get("headline", "—")
-            summary = item.get("summary", "")
+            # Пропускаем уже отправленные ранее
+            if nid in _state["sent_news_ids"]:
+                continue
+            item["_section"] = key
+            item["_label"] = config["label"]
+            all_candidates.append(item)
 
-            lines.append(f"<b>{counter}.</b> [{score}/10] <b>{headline}</b>\n{summary}\n")
-            digest_list.append({"num": counter, "id": nid, "headline": headline, "summary": summary, "score": score})
-            counter += 1
+    if not all_candidates:
+        logger.info("🤷 No new quality news found")
+        # Не спамим в чат, если это автоматический запуск
+        if chat_id:
+            tg_send("🤷 Новых достойных новостей пока нет. Попробуй позже.", chat_id=cid)
+        return
 
-        lines.append(f"{'—' * 25}")
-        lines.append("Пост: <code>/post номер</code>")
+    # Берём лучшую по скору
+    all_candidates.sort(key=lambda x: x.get("score", 0), reverse=True)
+    best = all_candidates[0]
+    nid = best["id"]
+    news_item = _state["news_cache"].get(nid)
 
-        block_text = "\n".join(lines)
-        tg_send(block_text, chat_id=cid)
-        time.sleep(2)
+    if not news_item:
+        logger.warning(f"Best news {nid} not in cache")
+        return
 
-    _state["digest_list"] = digest_list
+    # Помечаем как отправленную
+    _state["sent_news_ids"].add(nid)
 
-    if counter == 1:
-        tg_send("🤷 Ни одна новость не прошла фильтр качества.", chat_id=cid)
+    # Сохраняем в digest_list для /post совместимости
+    _state["digest_list"] = [{"num": 1, "id": nid, "headline": best.get("headline", ""),
+                               "summary": best.get("summary", ""), "score": best.get("score", 0)}]
 
-    logger.info(f"✅ Digest sent! {counter - 1} items (7+ score)")
+    # Генерируем пост
+    has_photo = bool(_find_image_for(nid))
+    post_text = gemini_post(news_item["title"], news_item["description"], news_item["link"], has_photo)
+
+    if post_text == "SKIP":
+        logger.info(f"SKIP (clickbait): {news_item['title'][:50]}")
+        # Пробуем следующую
+        if len(all_candidates) > 1:
+            # Рекурсивно не делаем — просто берём вторую
+            second = all_candidates[1]
+            nid2 = second["id"]
+            news_item2 = _state["news_cache"].get(nid2)
+            if news_item2:
+                _state["sent_news_ids"].add(nid2)
+                has_photo2 = bool(_find_image_for(nid2))
+                post_text2 = gemini_post(news_item2["title"], news_item2["description"], news_item2["link"], has_photo2)
+                if post_text2 != "SKIP":
+                    _state["last_post_text"] = post_text2
+                    _state["last_post_nid"] = nid2
+                    _state["digest_list"] = [{"num": 1, "id": nid2, "headline": second.get("headline", ""),
+                                               "summary": second.get("summary", ""), "score": second.get("score", 0)}]
+                    _send_best_news(nid2, post_text2, second, cid)
+                    return
+        if chat_id:
+            tg_send("🤷 Лучшая новость оказалась кликбейтом. Попробуй позже.", chat_id=cid)
+        return
+
+    _state["last_post_text"] = post_text
+    _state["last_post_nid"] = nid
+
+    _send_best_news(nid, post_text, best, cid)
+    logger.info(f"✅ Best news sent: [{best.get('score')}/10] {best.get('headline', '')[:50]}")
+
+
+def _send_best_news(nid: str, post_text: str, best: dict, chat_id: str):
+    """Отправляет лучшую новость с кнопками публикации."""
+    image_url = _find_image_for(nid)
+    section_label = best.get("_label", "")
+    score = best.get("score", "?")
+    headline = best.get("headline", "")
+
+    header = f"🔥 <b>Лучшая новость</b>  [{score}/10]\n{section_label}\n\n"
+    markup = _post_buttons(nid)
+
+    if image_url:
+        # У фото caption ограничен 1024 символами — если не влезает, шлём текстом
+        full = header + post_text
+        if len(full) <= 1024:
+            tg_send_photo(image_url, full, reply_markup=markup, chat_id=chat_id)
+        else:
+            tg_send_photo(image_url, f"🔥 [{score}/10] <b>{headline}</b>", chat_id=chat_id)
+            tg_send(post_text, reply_markup=markup, chat_id=chat_id)
+    else:
+        tg_send(header + post_text, reply_markup=markup, chat_id=chat_id)
+
 
 
 # ============================================================
@@ -551,7 +620,7 @@ def handle_update(update: dict):
 
         if text == "/start": cmd_start(chat_id)
         elif text == "/news":
-            tg_send("⏳ Собираю новости...", chat_id=chat_id)
+            tg_send("⏳ Ищу лучшую новость...", chat_id=chat_id)
             send_news_digest(chat_id)
         elif text.startswith("/post"): cmd_post(text, chat_id)
         elif text == "/topics": cmd_topics(chat_id)
@@ -602,9 +671,9 @@ def handle_update(update: dict):
                 cmd_topics_update(chat_id, cb["message"]["message_id"])
 
         elif data.startswith("int:"):
-            h = int(data.split(":", 1)[1])
-            _state["interval"] = h * 3600
-            tg_api("answerCallbackQuery", {"callback_query_id": cb_id, "text": f"Интервал: {_interval_text(h*3600)}"})
+            h = float(data.split(":", 1)[1])
+            _state["interval"] = int(h * 3600)
+            tg_api("answerCallbackQuery", {"callback_query_id": cb_id, "text": f"Интервал: {_interval_text(int(h*3600))}"})
             cmd_interval_update(chat_id, cb["message"]["message_id"])
 
         else:
@@ -814,16 +883,17 @@ def cmd_start(chat_id: str):
         st += f"  {'✅' if _state['topics'].get(k) else '❌'} {c['label']}\n"
     tg_send(f"👋 <b>Новостной бот</b>\n\n<b>Тематики:</b>\n{st}\n"
             f"<b>Интервал:</b> {_interval_text(_state['interval'])}\n"
-            f"<b>Фильтр:</b> только новости с оценкой 7+/10\n\n"
-            "<b>Команды:</b>\n/news — сводка\n/post <i>номер</i> — пост\n"
+            f"<b>Режим:</b> одна лучшая новость (автовыбор)\n"
+            f"<b>Фильтр:</b> оценка 7+/10, дедупликация\n\n"
+            "<b>Команды:</b>\n/news — лучшая новость\n"
             "/topics — тематики\n/interval — частота\n/help — справка", chat_id=chat_id)
 
 def cmd_help(chat_id: str):
     tg_send("📖 <b>Как пользоваться:</b>\n\n"
-            "1️⃣ Приходит сводка с оценками [7-10/10]\n"
-            "2️⃣ <code>/post 3</code> — пост по новости №3\n"
-            "3️⃣ <b>📷 С фото</b> / <b>📝 Без фото</b> → публикация в канал\n"
-            "4️⃣ <b>🔄 Переписать</b> — новый вариант", chat_id=chat_id)
+            "1️⃣ Каждые 1.5ч приходит лучшая новость с кнопками\n"
+            "2️⃣ <b>📷 С фото</b> / <b>📝 Без фото</b> → публикация в канал\n"
+            "3️⃣ <b>🔄 Переписать</b> — новый вариант\n"
+            "4️⃣ /news — запросить лучшую новость прямо сейчас", chat_id=chat_id)
 
 def cmd_topics(chat_id: str):
     b = [[{"text": f"{'✅' if _state['topics'].get(k) else '❌'} {c['label']}", "callback_data": f"topic:{k}"}] for k, c in FEEDS.items()]
@@ -835,19 +905,23 @@ def cmd_topics_update(chat_id: str, mid: int):
         "text": "⚙️ <b>Тематики</b>\n\nНажмите:", "parse_mode": "HTML", "reply_markup": {"inline_keyboard": b}})
 
 def cmd_interval(chat_id: str):
-    cur = _state["interval"] // 3600
+    cur = _state["interval"] / 3600
     b, r = [], []
-    for h in [1, 2, 4, 6, 8, 12]:
-        r.append({"text": f"{'✅ ' if h == cur else ''}{h}ч", "callback_data": f"int:{h}"})
+    for h in [1, 1.5, 2, 4, 6, 8, 12]:
+        label = f"{h}ч" if h == int(h) else f"{h}ч"
+        sel = '✅ ' if abs(h - cur) < 0.01 else ''
+        r.append({"text": f"{sel}{label}", "callback_data": f"int:{h}"})
         if len(r) == 3: b.append(r); r = []
     if r: b.append(r)
     tg_send(f"⏰ Сейчас: каждые <b>{_interval_text(_state['interval'])}</b>", reply_markup={"inline_keyboard": b}, chat_id=chat_id)
 
 def cmd_interval_update(chat_id: str, mid: int):
-    cur = _state["interval"] // 3600
+    cur = _state["interval"] / 3600
     b, r = [], []
-    for h in [1, 2, 4, 6, 8, 12]:
-        r.append({"text": f"{'✅ ' if h == cur else ''}{h}ч", "callback_data": f"int:{h}"})
+    for h in [1, 1.5, 2, 4, 6, 8, 12]:
+        label = f"{h}ч" if h == int(h) else f"{h}ч"
+        sel = '✅ ' if abs(h - cur) < 0.01 else ''
+        r.append({"text": f"{sel}{label}", "callback_data": f"int:{h}"})
         if len(r) == 3: b.append(r); r = []
     if r: b.append(r)
     tg_api("editMessageText", {"chat_id": chat_id, "message_id": mid,

@@ -1,4 +1,9 @@
 @echo off
 chcp 65001 >nul
-python "%~dp0analyze_project.py" "%~dp0."
+
+:: Сохраняем путь к папке скрипта
+set "PROJECT_DIR=%~dp0"
+
+python "%PROJECT_DIR%analyze_project.py" "%PROJECT_DIR%."
+
 pause
