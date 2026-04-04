@@ -1,7 +1,7 @@
 ======================================================================
 АНАЛИЗ ПРОЕКТА: TECHERCAB 2.0
 Путь: C:\Users\MakscattSchool\Desktop\techercab 2.0
-Дата анализа: 2026-04-04 08:24
+Дата анализа: 2026-04-04 12:50
 Всего файлов: 52
 ======================================================================
 
@@ -13,8 +13,8 @@
 
 📁 СТРУКТУРА ПРОЕКТА
 ----------------------------------------
-  app.py  (59.1 KB)
-  bot.py  (48.5 KB)
+  app.py  (59.9 KB)
+  bot.py  (31.0 KB)
   get-pip.py  (2142.0 KB)
   korean-roadmap.html  (19.8 KB)
   README.md  (1.7 KB)
@@ -229,6 +229,8 @@
      def history(student_id)
      def proxy_yandex(filepath)
        """Проксирует запросы к видео-контенту на Яндексе"""
+     def api_gemini_chat()
+       """Эндпоинт для чата с Gemini через внешнее приложение."""
 
   📄 bot.py
      def tg_api(method: str, payload: dict)
@@ -242,30 +244,23 @@
      def fetch_news(feeds: list, section: str) -> list
      def gemini_digest(news_items: list, topic_filter: str) -> list
      def gemini_post(title: str, description: str, link: str, has_photo: bool = False) -> str
+     def gemini_chat(message: str, history: list = None, model_name: str = "") -> str
+       """Простой чат с Gemini. history = [{"role":"user","text":"..."}, {"role":"model","text":"..."}]"""
+     def _seconds_since_last_channel_post() -> int
+       """Сколько секунд прошло с последней публикации в канал.
+    Сначала проверяет _state (если бот сам постил в этой сессии).
+    При рестарте — пробует получить время последнего сообщения через Telegram API."""
      def send_news_digest(chat_id: str = None)
-       """Автоматически выбирает ОДНУ лучшую новость и присылает готовый пост с кнопками."""
-     def _send_best_news(nid: str, post_text: str, best: dict, chat_id: str)
-       """Отправляет лучшую новость с кнопками публикации."""
+       """Находит лучшую новость (8+/10, с фото) и автоматически публикует в канал."""
+     def _auto_publish(nid: str, post_text: str, image_url: str, best: dict, chat_id: str)
+       """Автоматически публикует в канал с фото."""
      def handle_update(update: dict)
-     def cmd_post(text: str, chat_id: str)
-     def _post_buttons(nid: str) -> dict
-     def _publish(nid: str, with_photo: bool, chat_id: str)
-     def _publish_dzen(nid: str, with_photo: bool, chat_id: str)
-       """Публикация ТОЛЬКО в Дзен-канал."""
-     def _send_to_dzen(nid: str, post_text: str, with_photo: bool) -> bool
-       """Отправка в Дзен-канал (без уведомлений). Возвращает True если ок."""
-     def auto_dzen_post()
-       """Автопостинг в Дзен: берёт лучшую непопубликованную новость, генерит пост, отправляет."""
      def cmd_start(chat_id: str)
      def cmd_help(chat_id: str)
-     def cmd_topics(chat_id: str)
-     def cmd_topics_update(chat_id: str, mid: int)
      def cmd_interval(chat_id: str)
      def cmd_interval_update(chat_id: str, mid: int)
      def polling_loop()
      def scheduler_loop()
-     def dzen_autopost_loop()
-       """Автопостинг в Дзен каждые 2.5 часа."""
      def start()
 
 
@@ -328,6 +323,7 @@
   [ROUTE] /student/<int:student_id>/trainer/hub  →  trainer_hub()  (app.py)
   [ROUTE] /student/<int:student_id>/history  →  history()  (app.py)
   [ROUTE] /content/<path:filepath>  →  proxy_yandex()  (app.py)
+  [POST] /api/gemini/chat  →  api_gemini_chat()  (app.py)
 
 
 📜 JAVASCRIPT/TYPESCRIPT: СТРУКТУРА
@@ -385,66 +381,66 @@
 
   📄 templates\base.html
      title: {% block title %}한국어{% endblock %}
-     blocks: extra_css, extra_js, title, content
+     blocks: extra_css, extra_js, content, title
      scripts: https://telegram.org/js/telegram-web-app.js
 
   📄 templates\dashboard.html
      extends: base.html
-     blocks: extra_js, title, content
+     blocks: extra_js, content, title
 
   📄 templates\history.html
      extends: base.html
-     blocks: extra_js, title, content
-     api_calls: /api/notes/list, /api/notes/delete
+     blocks: extra_js, content, title
+     api_calls: /api/notes/delete, /api/notes/list
 
   📄 templates\login.html
      extends: base.html
-     blocks: title, content
+     blocks: content, title
 
   📄 templates\register.html
      extends: base.html
-     blocks: title, content
+     blocks: content, title
 
   📄 templates\select_student.html
      extends: base.html
-     blocks: title, content
+     blocks: content, title
      forms: {{ url_for(
 
   📄 templates\trainer_alphabet.html
      extends: trainer_base.html
-     blocks: trainer_js, trainer_content, title
+     blocks: trainer_content, trainer_js, title
 
   📄 templates\trainer_base.html
      extends: base.html
-     blocks: extra_js, trainer_js, trainer_content, content
+     blocks: trainer_content, extra_js, content, trainer_js
      scripts: {{ url_for(, {{ url_for(
 
   📄 templates\trainer_cards.html
      extends: trainer_base.html
-     blocks: trainer_js, trainer_content, title
+     blocks: trainer_content, trainer_js, title
      api_calls: /static/data/cards.json
 
   📄 templates\trainer_colors.html
      extends: trainer_base.html
-     blocks: trainer_js, trainer_content, title
+     blocks: trainer_content, trainer_js, title
 
   📄 templates\trainer_dates.html
      extends: trainer_base.html
-     blocks: trainer_js, trainer_content, title
+     blocks: trainer_content, trainer_js, title
 
   📄 templates\trainer_grammar.html
      extends: trainer_base.html
-     blocks: trainer_js, trainer_content, title
+     blocks: trainer_content, trainer_js, title
      api_calls: /static/data/grammar.json
 
   📄 templates\trainer_hub.html
      extends: trainer_base.html
-     blocks: trainer_js, trainer_content, title
-     api_calls: /api/hub/toggle-learned, /api/hub/delete, /api/hub/list, /api/hub/add-batch
+     blocks: trainer_content, trainer_js, title
+     api_calls: /api/hub/delete, /api/hub/list, /api/hub/add-batch, /api/hub/toggle-learned
 
   📄 templates\trainer_locations.html
      extends: trainer_base.html
-     blocks: trainer_js, trainer_content, title
+     blocks: trainer_content, trainer_js, title
 
   📄 templates\trainer_menu.html
      extends: trainer_base.html
@@ -452,61 +448,61 @@
 
   📄 templates\trainer_money.html
      extends: trainer_base.html
-     blocks: trainer_js, trainer_content, title
+     blocks: trainer_content, trainer_js, title
 
   📄 templates\trainer_numbers.html
      extends: trainer_base.html
-     blocks: trainer_js, trainer_content, title
+     blocks: trainer_content, trainer_js, title
 
   📄 templates\trainer_phrases.html
      extends: trainer_base.html
-     blocks: trainer_js, trainer_content, title
-     api_calls: /api/sections/toggle, {{ url_for(, /api/sections/get, /api/items/set, /api/items/get
+     blocks: trainer_content, trainer_js, title
+     api_calls: /api/sections/get, /api/sections/toggle, /api/items/set, {{ url_for(, /api/items/get
 
   📄 templates\trainer_pictures.html
      extends: trainer_base.html
-     blocks: trainer_js, trainer_content, title
+     blocks: trainer_content, trainer_js, title
      api_calls: /static/data/pictures.json
 
   📄 templates\trainer_quiz.html
      extends: trainer_base.html
-     blocks: trainer_js, trainer_content, title
+     blocks: trainer_content, trainer_js, title
      api_calls: /static/data/grammar.json
 
   📄 templates\trainer_sentences.html
      extends: trainer_base.html
-     blocks: trainer_js, trainer_content, title
+     blocks: trainer_content, trainer_js, title
      api_calls: /api/items/set, /static/data/sentences.json, /api/items/get
 
   📄 templates\trainer_text.html
      extends: trainer_base.html
-     blocks: trainer_js, trainer_content, title
-     api_calls: /api/highlights/save, /static/data/texts.json, /api/items/set, /api/items/get
+     blocks: trainer_content, trainer_js, title
+     api_calls: /api/items/set, /static/data/texts.json, /api/items/get, /api/highlights/save
 
   📄 templates\trainer_time.html
      extends: trainer_base.html
-     blocks: trainer_js, trainer_content, title
+     blocks: trainer_content, trainer_js, title
 
   📄 templates\trainer_verbs.html
      extends: trainer_base.html
-     blocks: trainer_js, trainer_content, title
+     blocks: trainer_content, trainer_js, title
      api_calls: {{ url_for(
 
   📄 templates\trainer_video.html
      extends: trainer_base.html
-     blocks: trainer_js, trainer_content, title
+     blocks: trainer_content, trainer_js, title
 
   📄 templates\trainer_weather.html
      extends: trainer_base.html
-     blocks: trainer_js, trainer_content, title
+     blocks: trainer_content, trainer_js, title
 
   📄 templates\trainer_weekdays.html
      extends: trainer_base.html
-     blocks: trainer_js, trainer_content, title
+     blocks: trainer_content, trainer_js, title
 
   📄 templates\trainer_words.html
      extends: trainer_base.html
-     blocks: trainer_js, trainer_content, title
+     blocks: trainer_content, trainer_js, title
      api_calls: /static/data/words-data.json
 
 

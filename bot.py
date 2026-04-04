@@ -14,6 +14,7 @@ import hashlib
 import logging
 import threading
 import time
+import datetime
 
 import feedparser
 import requests
@@ -32,6 +33,8 @@ CHANNEL_LINK = "https://t.me/KoreanMaks"
 GEMINI_MODEL = "gemini-3.1-pro-preview"
 NEWS_PER_FEED = 10
 TG_MAX_LENGTH = 4000
+TOPICS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "published_topics.json")
+MAX_SAVED_TOPICS = 50
 
 # ============================================================
 # СОСТОЯНИЕ
@@ -260,6 +263,138 @@ def _extract_image(entry) -> str:
 
 
 # ============================================================
+# ИСТОРИЯ ОПУБЛИКОВАННЫХ ТЕМ (Слой 2 — защита между циклами)
+# ============================================================
+
+def _load_published_topics() -> list:
+    """Загружает список опубликованных тем из файла."""
+    try:
+        if os.path.exists(TOPICS_FILE):
+            with open(TOPICS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                # Оставляем только последние MAX_SAVED_TOPICS
+                return data[-MAX_SAVED_TOPICS:]
+    except Exception as e:
+        logger.error(f"Load topics error: {e}")
+    return []
+
+
+def _save_published_topic(headline: str, summary: str = ""):
+    """Сохраняет тему в файл после успешной публикации."""
+    topics = _load_published_topics()
+    topics.append({
+        "headline": headline,
+        "summary": summary,
+        "ts": datetime.datetime.now().isoformat(),
+    })
+    # Оставляем только последние MAX_SAVED_TOPICS
+    topics = topics[-MAX_SAVED_TOPICS:]
+    try:
+        with open(TOPICS_FILE, "w", encoding="utf-8") as f:
+            json.dump(topics, f, ensure_ascii=False, indent=2)
+        logger.info(f"📝 Тема сохранена: {headline[:50]}")
+    except Exception as e:
+        logger.error(f"Save topic error: {e}")
+
+
+# ============================================================
+# GEMINI — ДЕДУПЛИКАЦИЯ ЗАГОЛОВКОВ (Слой 1 — на этапе парсинга)
+# ============================================================
+
+def gemini_dedup_titles(items: list) -> list:
+    """Группирует новости по темам через Gemini (только заголовки — дёшево).
+    Из каждой группы оставляет одну лучшую новость (с фото и длинным описанием).
+    Возвращает дедуплицированный список items."""
+
+    if len(items) <= 3:
+        return items
+
+    # Формируем список заголовков с ID
+    titles_text = ""
+    for item in items:
+        titles_text += f"[{item['id']}] {item['title']}\n"
+
+    prompt = f"""Ты — редактор. Перед тобой список заголовков новостей из РАЗНЫХ источников.
+Многие описывают ОДНО И ТО ЖЕ событие разными словами.
+
+ЗАДАЧА: сгруппируй заголовки по ТЕМАМ (одно событие = одна группа).
+Заголовки об одном и том же событии, человеке, релизе, скандале — это одна группа, даже если сформулированы по-разному.
+
+ВЕРНИ СТРОГО JSON (без markdown, без ```):
+[
+  {{
+    "topic": "Краткое описание темы (5-10 слов)",
+    "ids": ["id1", "id2", "id3"]
+  }}
+]
+
+Если заголовок уникальный (нет дублей) — он тоже должен быть в списке как группа с одним id.
+
+ЗАГОЛОВКИ:
+{titles_text}"""
+
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+        model = genai.GenerativeModel(GEMINI_MODEL)
+        response = model.generate_content(prompt)
+        text = response.text.strip()
+        text = re.sub(r"^```json\s*", "", text)
+        text = re.sub(r"\s*```$", "", text)
+        groups = json.loads(text) if text.startswith("[") else []
+    except Exception as e:
+        logger.error(f"Gemini dedup error: {e}")
+        return items  # При ошибке — возвращаем как есть
+
+    if not groups:
+        return items
+
+    # Строим индекс items по id
+    items_by_id = {item["id"]: item for item in items}
+
+    # Из каждой группы выбираем лучшую новость
+    deduped = []
+    seen_ids = set()
+
+    for group in groups:
+        group_ids = group.get("ids", [])
+        topic = group.get("topic", "")
+
+        # Собираем реальные items этой группы
+        group_items = [items_by_id[gid] for gid in group_ids if gid in items_by_id]
+        if not group_items:
+            continue
+
+        if len(group_items) > 1:
+            logger.info(f"🔗 Дубли объединены ({len(group_items)} шт): {topic}")
+
+        # Выбираем лучшую: приоритет — есть фото + длинное описание
+        best = max(group_items, key=lambda x: (
+            bool(x.get("image")),          # с фото лучше
+            len(x.get("description", "")), # длинное описание лучше
+        ))
+
+        # Если у лучшей нет фото, но у другой в группе есть — забираем фото
+        if not best.get("image"):
+            for gi in group_items:
+                if gi.get("image"):
+                    best["image"] = gi["image"]
+                    break
+
+        if best["id"] not in seen_ids:
+            deduped.append(best)
+            seen_ids.add(best["id"])
+
+    # Добавляем items, которые Gemini не упомянул (на всякий случай)
+    for item in items:
+        if item["id"] not in seen_ids:
+            deduped.append(item)
+            seen_ids.add(item["id"])
+
+    logger.info(f"📊 Дедупликация: {len(items)} → {len(deduped)} новостей")
+    return deduped
+
+
+# ============================================================
 # ПАРСИНГ RSS
 # ============================================================
 
@@ -307,6 +442,15 @@ def gemini_digest(news_items: list, topic_filter: str) -> list:
             f"Ссылка: {item['link']}\n\n"
         )
 
+    # Слой 2: загружаем историю опубликованных тем
+    published_topics = _load_published_topics()
+    already_published_text = ""
+    if published_topics:
+        already_published_text = "\n\nУЖЕ ОПУБЛИКОВАННЫЕ ТЕМЫ (НЕ ПРЕДЛАГАЙ ПОХОЖИЕ):\n"
+        for t in published_topics[-30:]:  # последние 30 тем
+            already_published_text += f"- {t['headline']}\n"
+        already_published_text += "\nЕсли новость описывает ТО ЖЕ событие/тему что уже опубликована — ВЫКИДЫВАЙ, даже если есть новые детали.\n"
+
     prompt = f"""
 Ты — строгий редактор новостного канала. Твоя задача — отобрать ТОЛЬКО по-настоящему важные и резонансные новости.
 
@@ -316,7 +460,7 @@ def gemini_digest(news_items: list, topic_filter: str) -> list:
 ЖЁСТКОЕ ПРАВИЛО ДЕДУПЛИКАЦИИ:
 Если несколько новостей описывают ОДНО И ТО ЖЕ событие (даже если из разных источников, разными словами, с разных углов) — это ДУБЛИ.
 Оставляй ТОЛЬКО ОДНУ — ту, где больше конкретики и деталей. Остальные дубли ВЫКИДЫВАЙ полностью.
-
+{already_published_text}
 ИНСТРУКЦИЯ:
 1. Сначала найди и удали все дубли (оставь только лучший вариант каждого события).
 2. Оцени КАЖДУЮ оставшуюся новость по шкале 1-10.
@@ -415,7 +559,6 @@ def _seconds_since_last_channel_post() -> int:
     """Сколько секунд прошло с последней публикации в канал.
     Сначала проверяет _state (если бот сам постил в этой сессии).
     При рестарте — пробует получить время последнего сообщения через Telegram API."""
-    import datetime
 
     # Если бот уже постил в этой сессии — знаем точно
     last_pub = _state.get("last_publish_time", 0)
@@ -478,6 +621,9 @@ def send_news_digest(chat_id: str = None):
         if chat_id:
             tg_send("🤷 Не удалось получить новости.", chat_id=cid)
         return
+
+    # Слой 1: дедупликация по темам через Gemini (объединяем похожие новости)
+    items = gemini_dedup_titles(items)
 
     digest_items = gemini_digest(items, config["topic_filter"])
 
@@ -567,10 +713,12 @@ def _auto_publish(nid: str, post_text: str, image_url: str, best: dict, chat_id:
         })
 
     if result and result.get("ok"):
-        import datetime
         _state["last_publish_time"] = datetime.datetime.now().timestamp()
         logger.info(f"✅ Auto-published: [{score}/10] {headline[:50]}")
         tg_send(f"🤖 <b>Автопост опубликован:</b>\n\n{headline}\n\n<i>(оценка: {score}/10)</i>", chat_id=chat_id)
+        # Слой 2: сохраняем тему чтобы не дублировать в будущих циклах
+        summary = best.get("summary", "")
+        _save_published_topic(headline, summary)
     else:
         logger.error(f"❌ Auto-publish failed: {headline[:50]}")
         tg_send(f"❌ Не удалось опубликовать. Бот — админ {CHANNEL_USERNAME}?", chat_id=chat_id)
