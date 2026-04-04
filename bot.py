@@ -4,6 +4,10 @@ Gemini News Bot — Корейский шоубиз
 Автопостинг лучших новостей (8+/10) с фото в @KoreanMaks каждые 4 часа.
 Работает ВНУТРИ Flask-приложения на Render.
 
+Логика: бот проверяет время последнего поста в канале TG,
+отсчитывает от него интервал (по умолчанию 4 часа),
+и только когда время пришло — парсит RSS и публикует.
+
 Подключение: в app.py добавить:  import bot
 """
 
@@ -14,6 +18,7 @@ import hashlib
 import logging
 import threading
 import time
+from datetime import datetime, timezone
 
 import feedparser
 import requests
@@ -32,6 +37,7 @@ CHANNEL_LINK = "https://t.me/KoreanMaks"
 GEMINI_MODEL = "gemini-2.5-flash"
 NEWS_PER_FEED = 10
 TG_MAX_LENGTH = 4000
+CHECK_INTERVAL = 60  # проверяем каждые 60 секунд, пора ли постить
 
 # ============================================================
 # СОСТОЯНИЕ
@@ -39,8 +45,6 @@ TG_MAX_LENGTH = 4000
 
 _state = {
     "interval": int(4 * 60 * 60),   # 4 часа
-    "news_cache": {},
-    "digest_list": [],
     "last_post_text": "",
     "last_post_nid": "",
     "sent_news_ids": set(),
@@ -194,6 +198,53 @@ def tg_send_photo(photo_url: str, caption: str, reply_markup: dict = None, chat_
 
 
 # ============================================================
+# ПОЛУЧЕНИЕ ВРЕМЕНИ ПОСЛЕДНЕГО ПОСТА В КАНАЛЕ
+# ============================================================
+
+def get_last_channel_post_time() -> float | None:
+    """
+    Получает время последнего поста в канале через Telegram Bot API.
+    Возвращает Unix timestamp или None если не удалось получить.
+    """
+    # Способ 1: getChat — у каналов есть поле message с последним постом
+    # Но оно не всегда доступно. Используем forwardMessage-подход не подходит.
+    # Лучший способ: getUpdates по channel_post или getChatMemberCount не даёт время.
+    #
+    # Самый надёжный: отправить невидимое сообщение и удалить — слишком грязно.
+    # Реальный рабочий способ: использовать getChat, у каждого канала
+    # Bot API не даёт прямо "последний пост". Но мы можем использовать
+    # channel_post из getUpdates, либо хранить время нашего последнего поста.
+    #
+    # Используем комбинацию:
+    # 1. Пробуем получить channel_post из getUpdates (если бот — админ канала)
+    # 2. Если нет — берём сохранённое время последней публикации
+
+    # Попробуем через getUpdates с allowed_updates=["channel_post"]
+    # Но это конфликтует с polling. Поэтому используем отдельный подход:
+    # Храним _state["last_publish_ts"] и обновляем при каждой публикации.
+    # А при первом запуске — пробуем получить через getChat.
+
+    # Если у нас уже есть сохранённое время — возвращаем его
+    if _state.get("last_publish_ts"):
+        return _state["last_publish_ts"]
+
+    # При первом запуске пытаемся узнать время через getChatHistory
+    # К сожалению Bot API не даёт getChatHistory.
+    # Используем workaround: отправляем getChat и проверяем pinned_message
+    result = tg_api("getChat", {"chat_id": CHANNEL_USERNAME})
+    if result and result.get("ok"):
+        chat_data = result.get("result", {})
+        # Если есть закреплённое сообщение — берём его дату как ориентир
+        pinned = chat_data.get("pinned_message")
+        if pinned and pinned.get("date"):
+            logger.info(f"📌 Found pinned message date: {pinned['date']}")
+            return float(pinned["date"])
+
+    # Если ничего не нашли — возвращаем None (нужно постить сразу)
+    return None
+
+
+# ============================================================
 # УТИЛИТЫ
 # ============================================================
 
@@ -208,33 +259,39 @@ def _interval_text(s: int) -> str:
     return f"{h} часа"
 
 
-def _find_image_for(nid: str) -> str:
-    """Ищет фото для новости. Сначала в самой записи, потом по похожим заголовкам в кэше."""
-    item = _state["news_cache"].get(nid, {})
-    if item.get("image"):
-        return item["image"]
+def _find_image(news_items: list, nid: str) -> str:
+    """Ищет фото для новости по списку спарсенных элементов."""
+    # Сначала ищем в самой новости
+    for item in news_items:
+        if item["id"] == nid and item.get("image"):
+            return item["image"]
 
-    title = item.get("title", "").lower()
-    if not title:
+    # Потом ищем по похожим заголовкам
+    target_title = ""
+    for item in news_items:
+        if item["id"] == nid:
+            target_title = item.get("title", "").lower()
+            break
+    if not target_title:
         return ""
 
-    keywords = [w for w in re.split(r'\W+', title) if len(w) > 4]
+    keywords = [w for w in re.split(r'\W+', target_title) if len(w) > 4]
     if not keywords:
         return ""
 
     best_match = ""
     best_score = 0
-
-    for other_id, other in _state["news_cache"].items():
-        if other_id == nid or not other.get("image"):
+    for item in news_items:
+        if item["id"] == nid or not item.get("image"):
             continue
-        other_title = other.get("title", "").lower()
+        other_title = item.get("title", "").lower()
         score = sum(1 for kw in keywords if kw in other_title)
         if score > best_score and score >= 2:
             best_score = score
-            best_match = other["image"]
+            best_match = item["image"]
 
     return best_match
+
 
 def _extract_image(entry) -> str:
     media = entry.get("media_content", [])
@@ -264,6 +321,7 @@ def _extract_image(entry) -> str:
 # ============================================================
 
 def fetch_news(feeds: list, section: str) -> list:
+    """Парсит RSS-ленты и возвращает список новостей. Не кеширует."""
     items = []
     for url in feeds:
         try:
@@ -281,10 +339,6 @@ def fetch_news(feeds: list, section: str) -> list:
                 nid = _news_id(title, link)
                 item = {"id": nid, "title": title, "description": desc_clean,
                         "link": link, "source": source, "section": section, "image": image}
-                existing = _state["news_cache"].get(nid)
-                if existing and not existing.get("image") and image:
-                    existing["image"] = image
-                _state["news_cache"][nid] = item
                 items.append(item)
         except Exception as e:
             logger.error(f"RSS error {url}: {e}")
@@ -406,12 +460,17 @@ def gemini_chat(message: str, history: list = None) -> str:
 # ============================================================
 
 def send_news_digest(chat_id: str = None):
-    """Находит лучшую новость (8+/10, с фото) и автоматически публикует в канал."""
+    """
+    Парсит RSS, находит лучшую новость (8+/10, с фото)
+    и автоматически публикует в канал.
+    Без кеша — всё парсится в момент вызова.
+    """
     cid = chat_id or TELEGRAM_CHAT_ID
     logger.info("🚀 Auto best-news started")
 
     config = FEEDS["korean"]
 
+    # Парсим RSS прямо сейчас (без кеша)
     logger.info("Fetching korean...")
     items = fetch_news(config["feeds"], "korean")
     if not items:
@@ -420,6 +479,7 @@ def send_news_digest(chat_id: str = None):
             tg_send("🤷 Не удалось получить новости.", chat_id=cid)
         return
 
+    # Фильтруем через Gemini
     digest_items = gemini_digest(items, config["topic_filter"])
 
     # Фильтруем: только не отправленные ранее
@@ -441,10 +501,11 @@ def send_news_digest(chat_id: str = None):
 
     for candidate in candidates:
         nid = candidate["id"]
-        ni = _state["news_cache"].get(nid)
+        # Ищем новость в свежеспарсенном списке
+        ni = next((it for it in items if it["id"] == nid), None)
         if not ni:
             continue
-        img = _find_image_for(nid)
+        img = _find_image(items, nid)
         if img:
             best = candidate
             news_item = ni
@@ -472,10 +533,10 @@ def send_news_digest(chat_id: str = None):
             if candidate["id"] == nid:
                 continue
             nid2 = candidate["id"]
-            ni2 = _state["news_cache"].get(nid2)
+            ni2 = next((it for it in items if it["id"] == nid2), None)
             if not ni2:
                 continue
-            img2 = _find_image_for(nid2)
+            img2 = _find_image(items, nid2)
             if not img2:
                 continue
             _state["sent_news_ids"].add(nid2)
@@ -491,7 +552,7 @@ def send_news_digest(chat_id: str = None):
 
 
 def _auto_publish(nid: str, post_text: str, image_url: str, best: dict, chat_id: str):
-    """Автоматически публикует в канал с фото."""
+    """Автоматически публикует в канал с фото и обновляет время последнего поста."""
     score = best.get("score", "?")
     headline = best.get("headline", "")
 
@@ -508,6 +569,8 @@ def _auto_publish(nid: str, post_text: str, image_url: str, best: dict, chat_id:
         })
 
     if result and result.get("ok"):
+        # Обновляем время последней публикации
+        _state["last_publish_ts"] = time.time()
         logger.info(f"✅ Auto-published: [{score}/10] {headline[:50]}")
         tg_send(f"🤖 <b>Автопост опубликован:</b>\n\n{headline}\n\n<i>(оценка: {score}/10)</i>", chat_id=chat_id)
     else:
@@ -523,6 +586,17 @@ def _auto_publish(nid: str, post_text: str, image_url: str, best: dict, chat_id:
 # ============================================================
 
 def handle_update(update: dict):
+    # Отслеживаем посты в канале для определения времени последнего поста
+    if "channel_post" in update:
+        cp = update["channel_post"]
+        chat = cp.get("chat", {})
+        username = chat.get("username", "")
+        if f"@{username}" == CHANNEL_USERNAME or str(chat.get("id", "")) == CHANNEL_USERNAME:
+            post_date = cp.get("date", 0)
+            if post_date:
+                _state["last_publish_ts"] = float(post_date)
+                logger.info(f"📡 Channel post detected, updated last_publish_ts: {post_date}")
+
     if "message" in update:
         msg = update["message"]
         text = (msg.get("text") or "").strip()
@@ -533,6 +607,7 @@ def handle_update(update: dict):
             tg_send("⏳ Ищу лучшую новость...", chat_id=chat_id)
             send_news_digest(chat_id)
         elif text == "/interval": cmd_interval(chat_id)
+        elif text == "/status": cmd_status(chat_id)
         elif text == "/help": cmd_help(chat_id)
 
     elif "callback_query" in update:
@@ -560,17 +635,44 @@ def cmd_start(chat_id: str):
             f"<b>Режим:</b> автопост лучшей новости с фото (8+/10)\n"
             f"<b>Канал:</b> {CHANNEL_USERNAME}\n\n"
             "<b>Команды:</b>\n/news — лучшая новость сейчас\n"
-            "/interval — частота\n/help — справка", chat_id=chat_id)
+            "/interval — частота\n/status — статус таймера\n/help — справка", chat_id=chat_id)
 
 def cmd_help(chat_id: str):
     tg_send("📖 <b>Как работает:</b>\n\n"
-            f"Каждые {_interval_text(_state['interval'])} бот:\n"
-            "1️⃣ Парсит RSS-ленты корейского шоубиза\n"
-            "2️⃣ Gemini оценивает новости (8+/10)\n"
-            "3️⃣ Лучшая новость С ФОТО публикуется в канал\n"
-            "4️⃣ Тебе приходит уведомление\n\n"
+            f"Бот отслеживает время последнего поста в канале.\n"
+            f"Когда прошло {_interval_text(_state['interval'])} — парсит RSS, "
+            "находит лучшую новость (8+/10) с фото и публикует.\n\n"
+            "Новости НЕ кешируются — парсинг только в момент публикации.\n\n"
             "/news — запросить сейчас\n"
-            "/interval — изменить частоту", chat_id=chat_id)
+            "/interval — изменить частоту\n"
+            "/status — когда следующий пост", chat_id=chat_id)
+
+def cmd_status(chat_id: str):
+    """Показывает когда был последний пост и сколько до следующего."""
+    last_ts = _state.get("last_publish_ts")
+    if not last_ts:
+        tg_send("📊 <b>Статус:</b>\n\n"
+                "Последний пост: неизвестно\n"
+                "Следующий пост: скоро (при первой проверке)", chat_id=chat_id)
+        return
+
+    now = time.time()
+    elapsed = now - last_ts
+    remaining = max(0, _state["interval"] - elapsed)
+
+    last_dt = datetime.fromtimestamp(last_ts, tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+    if remaining == 0:
+        next_text = "сейчас (ожидает следующей проверки)"
+    else:
+        rem_h = int(remaining // 3600)
+        rem_m = int((remaining % 3600) // 60)
+        next_text = f"через {rem_h}ч {rem_m}мин"
+
+    tg_send(f"📊 <b>Статус:</b>\n\n"
+            f"Последний пост: {last_dt}\n"
+            f"Интервал: {_interval_text(_state['interval'])}\n"
+            f"Следующий пост: {next_text}", chat_id=chat_id)
 
 def cmd_interval(chat_id: str):
     cur = _state["interval"] / 3600
@@ -598,16 +700,21 @@ def cmd_interval_update(chat_id: str, mid: int):
 
 
 # ============================================================
-# ПОТОКИ (2 вместо 3)
+# ПОТОКИ
 # ============================================================
 
 def polling_loop():
+    """Polling с allowed_updates включающим channel_post для отслеживания постов."""
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates"
     offset = 0
-    logger.info("🎧 Polling started")
+    logger.info("🎧 Polling started (tracking channel_post + message + callback_query)")
     while True:
         try:
-            resp = requests.get(url, params={"offset": offset, "timeout": 30}, timeout=35)
+            resp = requests.get(url, params={
+                "offset": offset,
+                "timeout": 30,
+                "allowed_updates": json.dumps(["message", "callback_query", "channel_post"]),
+            }, timeout=35)
             if resp.status_code != 200:
                 logger.error(f"Polling error {resp.status_code}"); time.sleep(5); continue
             for u in resp.json().get("result", []):
@@ -617,21 +724,65 @@ def polling_loop():
         except requests.exceptions.Timeout: continue
         except Exception as e: logger.error(f"Polling error: {e}"); time.sleep(5)
 
+
 def scheduler_loop():
-    logger.info("⏰ Scheduler started")
-    time.sleep(60)
-    try: send_news_digest()
-    except Exception as e: logger.error(f"First digest error: {e}")
+    """
+    Каждые CHECK_INTERVAL секунд проверяет:
+    прошло ли достаточно времени с последнего поста в канале.
+    Если да — парсит новости и публикует.
+    """
+    logger.info("⏰ Scheduler started (checks channel post time)")
+    time.sleep(30)  # даём polling стартовать первым
+
     while True:
-        time.sleep(_state["interval"])
-        try: send_news_digest()
-        except Exception as e: logger.error(f"Scheduled digest error: {e}")
+        try:
+            now = time.time()
+            last_ts = _state.get("last_publish_ts")
+
+            if last_ts is None:
+                # Первый запуск — пробуем узнать время последнего поста
+                last_ts = get_last_channel_post_time()
+                if last_ts:
+                    _state["last_publish_ts"] = last_ts
+                    logger.info(f"📌 Initial last post time: {datetime.fromtimestamp(last_ts, tz=timezone.utc)}")
+                else:
+                    # Не удалось узнать — постим сразу
+                    logger.info("📌 No last post time found, posting now")
+                    send_news_digest()
+                    time.sleep(CHECK_INTERVAL)
+                    continue
+
+            elapsed = now - last_ts
+            remaining = _state["interval"] - elapsed
+
+            if remaining <= 0:
+                # Время пришло! Парсим и публикуем
+                logger.info(f"⏰ Time to post! {elapsed/3600:.1f}h since last post "
+                           f"(interval: {_state['interval']/3600:.1f}h)")
+                send_news_digest()
+
+                # Если публикация не обновила last_publish_ts
+                # (например, нет новостей), ставим текущее время
+                # чтобы не спамить попытками каждые CHECK_INTERVAL
+                if _state.get("last_publish_ts") == last_ts:
+                    _state["last_publish_ts"] = now
+                    logger.info("⏰ No news published, resetting timer to now")
+            else:
+                rem_h = int(remaining // 3600)
+                rem_m = int((remaining % 3600) // 60)
+                logger.debug(f"⏳ Next post in {rem_h}h {rem_m}m")
+
+        except Exception as e:
+            logger.error(f"Scheduler error: {e}")
+
+        time.sleep(CHECK_INTERVAL)
+
 
 def start():
     if not all([GEMINI_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID]):
         logger.warning("⚠ Bot env vars not set — bot disabled"); return
     threading.Thread(target=polling_loop, daemon=True).start()
     threading.Thread(target=scheduler_loop, daemon=True).start()
-    logger.info("🤖 News bot started (2 threads: polling, digest)")
+    logger.info("🤖 News bot started (2 threads: polling, scheduler)")
 
 start()
