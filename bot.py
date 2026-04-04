@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Gemini News Bot — Корейский шоубиз + Мировое кино
+Gemini News Bot — Корейский шоубиз
+Автопостинг лучших новостей (8+/10) с фото в @KoreanMaks каждые 4 часа.
 Работает ВНУТРИ Flask-приложения на Render.
 
 Подключение: в app.py добавить:  import bot
@@ -11,7 +12,6 @@ import re
 import json
 import hashlib
 import logging
-import datetime
 import threading
 import time
 
@@ -28,9 +28,8 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
 CHANNEL_USERNAME = "@KoreanMaks"
-CHANNEL_DZEN = "@KoreanMakscatt_news"
 CHANNEL_LINK = "https://t.me/KoreanMaks"
-GEMINI_MODEL = "gemini-3.1-pro-preview"
+GEMINI_MODEL = "gemini-2.5-flash"
 NEWS_PER_FEED = 10
 TG_MAX_LENGTH = 4000
 
@@ -39,19 +38,16 @@ TG_MAX_LENGTH = 4000
 # ============================================================
 
 _state = {
-    "interval": int(1.5 * 60 * 60),   # 1.5 часа
-    "topics": {"korean": True, "cinema": True, "science": True},
+    "interval": int(4 * 60 * 60),   # 4 часа
     "news_cache": {},
     "digest_list": [],
     "last_post_text": "",
     "last_post_nid": "",
-    "sent_news_ids": set(),            # ID новостей уже отправленных в сводке (антидубль)
-    "dzen_posted": set(),              # ID новостей уже опубликованных в Дзен
-    "dzen_auto_interval": 2.5 * 60 * 60,  # автопостинг в Дзен каждые 2.5 часа
+    "sent_news_ids": set(),
 }
 
 # ============================================================
-# RSS-ИСТОЧНИКИ
+# RSS-ИСТОЧНИКИ (только корейский шоубиз)
 # ============================================================
 
 FEEDS = {
@@ -70,9 +66,9 @@ FEEDS = {
         "topic_filter": """
 Корейская индустрия развлечений.
 
-ОЦЕНИВАЙ ПО ШКАЛЕ 1-10. Оставляй ТОЛЬКО 7-10 баллов.
+ОЦЕНИВАЙ ПО ШКАЛЕ 1-10. Оставляй ТОЛЬКО 8-10 баллов.
 
-ЧТО ЦЕННО (7-10 баллов):
+ЧТО ЦЕННО (8-10 баллов):
 - Новости про BTS, BLACKPINK, Stray Kids, SEVENTEEN, aespa, NewJeans и другие топовые группы (камбэки, рекорды, скандалы, мировые туры)
 - Топовые актёры: Чжи Чан Ук, Ви Ха Джун, Ли Джун Ги, Сон Джун Ки, Пак Со Джун, Чон Джи Хён, Хан Со Хи, Ким Су Хён — любые новости про них
 - Крупные премьеры дорам и корейских фильмов с известным кастом
@@ -80,7 +76,7 @@ FEEDS = {
 - Рекорды на Billboard, Grammy, мировые чарты
 - Корейское кино на международных фестивалях (Канны, Оскар, Венеция)
 
-ЧТО МУСОР (1-6 баллов, ВЫКИДЫВАЙ):
+ЧТО МУСОР (1-7 баллов, ВЫКИДЫВАЙ):
 - Малоизвестные айдолы без широкой аудитории
 - Рутинные фанмитинги и мелкие ивенты
 - Фандомные склоки без реального инфоповода
@@ -91,85 +87,6 @@ FEEDS = {
 - Если суть новости сводится к «кто-то намекнул на что-то в соцсетях» без деталей — ставь 1-3 балла.
 - Новость ДОЛЖНА содержать конкретный факт: что произошло, кто, когда, какой результат.
 """,
-        "topic_summary": "Корейский шоубиз (K-pop, K-drama, корейское кино)",
-    },
-    "cinema": {
-        "label": "🎬 МИРОВОЕ КИНО",
-        "feeds": [
-            "https://variety.com/feed",
-            "https://deadline.com/feed",
-            "https://www.hollywoodreporter.com/c/movies/feed",
-            "https://www.hollywoodreporter.com/c/tv/k-pop/feed",
-            "https://feeds.feedburner.com/slashfilm",
-            "https://www.indiewire.com/feed",
-        ],
-        "topic_filter": """
-Мировая киноиндустрия.
-
-ОЦЕНИВАЙ ПО ШКАЛЕ 1-10. Оставляй ТОЛЬКО 7-10 баллов.
-
-ЧТО ЦЕННО (7-10 баллов):
-- Оскар, Золотой глобус, Канны, Венеция — результаты, скандалы, сюрпризы
-- Крупные кастинги (A-list актёры в новых проектах)
-- Бокс-офис рекорды (фильм собрал $1 млрд и т.п.)
-- Скандалы в Голливуде с известными именами
-- Netflix/Disney+/HBO — крупные анонсы, отмены популярных шоу
-- Смена руководства крупных студий (Disney, Warner, Universal)
-- Сиквелы/ребуты культовых франшиз (Marvel, DC, Star Wars, Dune и т.д.)
-- Аниме: крупные анонсы, рекорды, новые сезоны культовых тайтлов
-
-ЧТО МУСОР (1-6 баллов, ВЫКИДЫВАЙ):
-- Мелкие инди-фильмы без известных имён
-- Рутинные кастинги в незначительных проектах
-- Бизнес-новости без общественного резонанса
-- Телешоу и реалити без широкого интереса
-
-АНТИКЛИКБЕЙТ-ФИЛЬТР:
-- Если новость обещает «шокирующие детали» / «неожиданный поворот», но конкретики нет — ставь 1 балл.
-- Новость ДОЛЖНА содержать конкретный факт: что произошло, кто, когда, какой результат.
-""",
-        "topic_summary": "Мировое кино (Голливуд, кинопремии, стриминги)",
-    },
-    "science": {
-        "label": "🔬 НАУКА И ТЕХНОЛОГИИ",
-        "feeds": [
-            "https://www.nature.com/nature.rss",
-            "https://www.science.org/rss/news_current.xml",
-            "https://newatlas.com/feed/",
-            "https://arstechnica.com/feed/",
-            "https://phys.org/rss-feed/",
-            "https://www.sciencedaily.com/rss/all.xml",
-            "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml",
-            "https://rss.nytimes.com/services/xml/rss/nyt/Science.xml",
-        ],
-        "topic_filter": """
-Наука, технологии, необычные открытия и изобретения.
-
-ОЦЕНИВАЙ ПО ШКАЛЕ 1-10. Оставляй ТОЛЬКО 7-10 баллов.
-
-ЧТО ЦЕННО (7-10 баллов):
-- Прорывные научные открытия (новое лекарство, новый вид, квантовые компьютеры, космос)
-- Необычные истории из мира науки (человек сам создал лекарство для своей собаки, кто-то собрал устройство из подручных средств)
-- Технологические прорывы (новые процессоры, достижения в ИИ, роботы, энергетика)
-- Космос: запуски, открытия, миссии
-- Крупные медицинские новости (вакцины, методы лечения, эпидемии)
-- Самодельные проекты и изобретения обычных людей
-- Экология и климат — только если есть конкретный повод
-
-ЧТО МУСОР (1-6 баллов, ВЫКИДЫВАЙ):
-- Рутинные публикации без открытия («учёные изучили» без результата)
-- Переписывание пресс-релизов компаний без новизны
-- Общие рассуждения о будущем технологий без конкретики
-- Мелкие обновления программ и устройств
-
-АНТИКЛИКБЕЙТ-ФИЛЬТР:
-- «Учёные обнаружили удивительное свойство» — БЕЗ описания свойства = 1 балл.
-- «Новое исследование может изменить всё» — БЕЗ деталей = 1 балл.
-- Новость ДОЛЖНА содержать конкретный факт: что открыли/изобрели, как работает, какой результат.
-
-БОНУС: истории типа «инженер собрал мессенджер, который работает без интернета» или «ветеринар сам разработал лекарство от рака для собаки» — это 9-10 баллов. Необычные, конкретные, с человеческой историей.
-""",
-        "topic_summary": "Наука, технологии, необычные открытия",
     },
 }
 
@@ -189,7 +106,6 @@ POST_PROMPT = """
 СТИЛЬ И ТОН:
 - Простая, живая речь. Как будто рассказываешь другу за чаем — без сленга, без умных слов, без канцелярита.
 - ЗАПРЕЩЁН сленг и жаргон: «пофиксить», «баг», «фичи», «морока», «жёстко», «чувак», «безумный», «мощный», «краш», «вайб», «кринж», «имба». Пиши так, чтобы понял и подросток, и бабушка.
-- Научные и технические термины ВСЕГДА объясняй через простые аналогии. Не «ротоскопирование», а «художники рисовали поверх живых кадров». Не «рекуррентная нейросеть», а «программа, которая запоминает предыдущие шаги».
 - Юмор — да, но мягкий и понятный. Не натужный.
 - Последняя строка может быть коротким остроумным послесловием (1-5 слов) — но ТОЛЬКО если получилось действительно удачно. Лучше без неё, чем плохая.
 
@@ -204,23 +120,6 @@ POST_PROMPT = """
 - Если новость — чистый кликбейт без содержания, напиши «SKIP» и ничего больше.
 
 ВАЖНО: если к посту НЕТ фото — НЕ пиши про «кадры», «фото», «скриншоты», «первые изображения». Фокус на фактах.
-
-ПРИМЕРЫ ХОРОШЕГО СТИЛЯ:
-
-🌾 Генетики учат рис расти годами без пересадки
-Обычный рис живёт один сезон — каждый год его сажают заново. Учёные взяли гены у диких родственников риса, которые растут сами по себе десятилетиями, и перенесли их в обычные сорта. Идея простая: посадил один раз — собираешь урожай много лет подряд, как с яблони.
-
-👁️ Элайджа Вуд только сейчас начал читать «Властелина колец»
-Спустя 23 года после съёмок актёр, сыгравший Фродо, наконец добрался до книги — рассказал об этом на The Late Show. Назвал её «восхитительной». Возможно, готовится к возвращению в «Охоте на Голлума».
-
-🕷 Трейлер «Человека-паука» побил мировой рекорд
-Ролик Spider-Man: Brand New Day набрал 718,6 млн просмотров за первые сутки — почти вдвое больше «Дэдпула и Росомахи» (365 млн).
-
-🦠 Новый фильм от создателя «Поезда в Пусан»
-Ён Сан-хо снимает «Колонию» — по сюжету вирус запирает людей в здании, а заражённые начинают меняться. В главных ролях Чон Джи-хён и Ку Гё-хван.
-
-💿 Пластинка по «Паддингтону» с мармеладом внутри
-На виниле записан саундтрек лондонского мюзикла. Внутри пластинки залита оранжевая жидкость — как любимый мармелад Паддингтона. Выпускает Blood Records, они делают такие необычные издания.
 
 ПРАВИЛА:
 1. На русском языке. 200-500 символов.
@@ -315,12 +214,10 @@ def _find_image_for(nid: str) -> str:
     if item.get("image"):
         return item["image"]
 
-    # Ищем среди всех записей в кэше по похожему заголовку
     title = item.get("title", "").lower()
     if not title:
         return ""
 
-    # Берём ключевые слова из заголовка (слова длиннее 4 символов)
     keywords = [w for w in re.split(r'\W+', title) if len(w) > 4]
     if not keywords:
         return ""
@@ -332,9 +229,8 @@ def _find_image_for(nid: str) -> str:
         if other_id == nid or not other.get("image"):
             continue
         other_title = other.get("title", "").lower()
-        # Считаем совпадения ключевых слов
         score = sum(1 for kw in keywords if kw in other_title)
-        if score > best_score and score >= 2:  # минимум 2 совпадения
+        if score > best_score and score >= 2:
             best_score = score
             best_match = other["image"]
 
@@ -385,7 +281,6 @@ def fetch_news(feeds: list, section: str) -> list:
                 nid = _news_id(title, link)
                 item = {"id": nid, "title": title, "description": desc_clean,
                         "link": link, "source": source, "section": section, "image": image}
-                # Если такой ID уже в кэше без фото, а сейчас фото есть — обновить
                 existing = _state["news_cache"].get(nid)
                 if existing and not existing.get("image") and image:
                     existing["image"] = image
@@ -421,16 +316,11 @@ def gemini_digest(news_items: list, topic_filter: str) -> list:
 ЖЁСТКОЕ ПРАВИЛО ДЕДУПЛИКАЦИИ:
 Если несколько новостей описывают ОДНО И ТО ЖЕ событие (даже если из разных источников, разными словами, с разных углов) — это ДУБЛИ.
 Оставляй ТОЛЬКО ОДНУ — ту, где больше конкретики и деталей. Остальные дубли ВЫКИДЫВАЙ полностью.
-Примеры дублей:
-- «BTS объявили о камбэке» и «BTS возвращаются с новым альбомом» — одно событие
-- «Фильм X собрал $1 млрд» из Variety и то же из Deadline — одно событие
-- «Учёные открыли новую планету» из Nature и «Обнаружена экзопланета» из BBC — одно событие
-НЕ ОСТАВЛЯЙ два материала об одном событии. Ноль терпимости к дублям.
 
 ИНСТРУКЦИЯ:
 1. Сначала найди и удали все дубли (оставь только лучший вариант каждого события).
 2. Оцени КАЖДУЮ оставшуюся новость по шкале 1-10.
-3. ВЫКИНЬ всё что ниже 7.
+3. ВЫКИНЬ всё что ниже 8.
 4. Оставшиеся отсортируй от высшего балла к низшему.
 5. Оставь максимум 5 новостей.
 
@@ -444,7 +334,7 @@ def gemini_digest(news_items: list, topic_filter: str) -> list:
   }}
 ]
 
-Если ни одна новость не набрала 7+, верни: []
+Если ни одна новость не набрала 8+, верни: []
 
 НОВОСТИ ДЛЯ ОЦЕНКИ:
 {news_text}
@@ -457,8 +347,7 @@ def gemini_digest(news_items: list, topic_filter: str) -> list:
         text = re.sub(r"^```json\s*", "", text)
         text = re.sub(r"\s*```$", "", text)
         result = json.loads(text) if text.startswith("[") else []
-        # Доп. фильтр на случай если Gemini проигнорировала порог
-        return [r for r in result if r.get("score", 0) >= 7]
+        return [r for r in result if r.get("score", 0) >= 8]
     except Exception as e:
         logger.error(f"Gemini digest error: {e}")
         return []
@@ -473,19 +362,15 @@ def gemini_post(title: str, description: str, link: str, has_photo: bool = False
         response = model.generate_content(prompt)
         text = response.text.strip()
 
-        # Если Gemini определил кликбейт
         if text.upper().startswith("SKIP"):
             return "SKIP"
 
-        # Убираем ссылки если Gemini их вставила
         text = re.sub(r'Оригинал\s*\(?\s*https?://[^\s\)]+\)?\s*', '', text).strip()
         text = re.sub(r'https?://\S+', '', text).strip()
 
-        # Пустая строка между каждым абзацем (заголовок, абзац1, абзац2...)
         lines = [line.strip() for line in text.split('\n') if line.strip()]
         text = '\n\n'.join(lines)
 
-        # Ссылка на канал
         text += f'\n\n<a href="{CHANNEL_LINK}">Подписаться на KoreanMaks 🔥🚀🇰🇷</a>'
         return text
     except Exception as e:
@@ -494,122 +379,147 @@ def gemini_post(title: str, description: str, link: str, has_photo: bool = False
 
 
 # ============================================================
-# СВОДКА — ОТДЕЛЬНОЕ СООБЩЕНИЕ НА КАЖДЫЙ БЛОК
+# GEMINI CHAT (для внешнего приложения)
+# ============================================================
+
+def gemini_chat(message: str, history: list = None) -> str:
+    """Простой чат с Gemini. history = [{"role":"user","text":"..."}, {"role":"model","text":"..."}]"""
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+        model = genai.GenerativeModel(GEMINI_MODEL)
+
+        contents = []
+        if history:
+            for h in history:
+                contents.append({"role": h["role"], "parts": [h["text"]]})
+        contents.append({"role": "user", "parts": [message]})
+
+        response = model.generate_content(contents)
+        return response.text.strip()
+    except Exception as e:
+        logger.error(f"Gemini chat error: {e}")
+        return f"❌ Ошибка: {e}"
+
+
+# ============================================================
+# АВТОПОСТИНГ — ЛУЧШАЯ НОВОСТЬ С ФОТО
 # ============================================================
 
 def send_news_digest(chat_id: str = None):
-    """Автоматически выбирает ОДНУ лучшую новость и присылает готовый пост с кнопками."""
+    """Находит лучшую новость (8+/10, с фото) и автоматически публикует в канал."""
     cid = chat_id or TELEGRAM_CHAT_ID
     logger.info("🚀 Auto best-news started")
 
-    active_topics = {k: v for k, v in FEEDS.items() if _state["topics"].get(k, True)}
+    config = FEEDS["korean"]
 
-    if not active_topics:
-        tg_send("⚠ Все тематики выключены. /topics", chat_id=cid)
-        return
-
-    # Собираем кандидатов из всех активных тематик
-    all_candidates = []
-
-    for key, config in active_topics.items():
-        logger.info(f"Fetching {key}...")
-        items = fetch_news(config["feeds"], key)
-        if not items:
-            continue
-
-        digest_items = gemini_digest(items, config["topic_filter"])
-        for item in digest_items:
-            nid = item.get("id", "")
-            # Пропускаем уже отправленные ранее
-            if nid in _state["sent_news_ids"]:
-                continue
-            item["_section"] = key
-            item["_label"] = config["label"]
-            all_candidates.append(item)
-
-    if not all_candidates:
-        logger.info("🤷 No new quality news found")
-        # Не спамим в чат, если это автоматический запуск
+    logger.info("Fetching korean...")
+    items = fetch_news(config["feeds"], "korean")
+    if not items:
+        logger.info("🤷 No news fetched")
         if chat_id:
-            tg_send("🤷 Новых достойных новостей пока нет. Попробуй позже.", chat_id=cid)
+            tg_send("🤷 Не удалось получить новости.", chat_id=cid)
         return
 
-    # Берём лучшую по скору
-    all_candidates.sort(key=lambda x: x.get("score", 0), reverse=True)
-    best = all_candidates[0]
+    digest_items = gemini_digest(items, config["topic_filter"])
+
+    # Фильтруем: только не отправленные ранее
+    candidates = [d for d in digest_items if d.get("id") not in _state["sent_news_ids"]]
+
+    if not candidates:
+        logger.info("🤷 No new quality news found")
+        if chat_id:
+            tg_send("🤷 Новых достойных новостей пока нет.", chat_id=cid)
+        return
+
+    # Сортируем по скору
+    candidates.sort(key=lambda x: x.get("score", 0), reverse=True)
+
+    # Ищем лучшую НОВОСТЬ С ФОТО
+    best = None
+    news_item = None
+    image_url = ""
+
+    for candidate in candidates:
+        nid = candidate["id"]
+        ni = _state["news_cache"].get(nid)
+        if not ni:
+            continue
+        img = _find_image_for(nid)
+        if img:
+            best = candidate
+            news_item = ni
+            image_url = img
+            break
+        else:
+            logger.info(f"⏭ Пропуск (нет фото): {ni['title'][:50]}")
+
+    if not best or not news_item:
+        logger.info("🤷 No news with photo found")
+        if chat_id:
+            tg_send("🤷 Нет новостей с фото. Попробуй позже.", chat_id=cid)
+        return
+
     nid = best["id"]
-    news_item = _state["news_cache"].get(nid)
-
-    if not news_item:
-        logger.warning(f"Best news {nid} not in cache")
-        return
-
-    # Помечаем как отправленную
     _state["sent_news_ids"].add(nid)
 
-    # Сохраняем в digest_list для /post совместимости
-    _state["digest_list"] = [{"num": 1, "id": nid, "headline": best.get("headline", ""),
-                               "summary": best.get("summary", ""), "score": best.get("score", 0)}]
-
     # Генерируем пост
-    has_photo = bool(_find_image_for(nid))
-    post_text = gemini_post(news_item["title"], news_item["description"], news_item["link"], has_photo)
+    post_text = gemini_post(news_item["title"], news_item["description"], news_item["link"], True)
 
     if post_text == "SKIP":
         logger.info(f"SKIP (clickbait): {news_item['title'][:50]}")
-        # Пробуем следующую
-        if len(all_candidates) > 1:
-            # Рекурсивно не делаем — просто берём вторую
-            second = all_candidates[1]
-            nid2 = second["id"]
-            news_item2 = _state["news_cache"].get(nid2)
-            if news_item2:
-                _state["sent_news_ids"].add(nid2)
-                has_photo2 = bool(_find_image_for(nid2))
-                post_text2 = gemini_post(news_item2["title"], news_item2["description"], news_item2["link"], has_photo2)
-                if post_text2 != "SKIP":
-                    _state["last_post_text"] = post_text2
-                    _state["last_post_nid"] = nid2
-                    _state["digest_list"] = [{"num": 1, "id": nid2, "headline": second.get("headline", ""),
-                                               "summary": second.get("summary", ""), "score": second.get("score", 0)}]
-                    _send_best_news(nid2, post_text2, second, cid)
-                    return
+        # Пробуем следующего кандидата с фото
+        for candidate in candidates:
+            if candidate["id"] == nid:
+                continue
+            nid2 = candidate["id"]
+            ni2 = _state["news_cache"].get(nid2)
+            if not ni2:
+                continue
+            img2 = _find_image_for(nid2)
+            if not img2:
+                continue
+            _state["sent_news_ids"].add(nid2)
+            post_text2 = gemini_post(ni2["title"], ni2["description"], ni2["link"], True)
+            if post_text2 != "SKIP":
+                _auto_publish(nid2, post_text2, img2, candidate, cid)
+                return
         if chat_id:
-            tg_send("🤷 Лучшая новость оказалась кликбейтом. Попробуй позже.", chat_id=cid)
+            tg_send("🤷 Все кандидаты оказались кликбейтом.", chat_id=cid)
         return
+
+    _auto_publish(nid, post_text, image_url, best, cid)
+
+
+def _auto_publish(nid: str, post_text: str, image_url: str, best: dict, chat_id: str):
+    """Автоматически публикует в канал с фото."""
+    score = best.get("score", "?")
+    headline = best.get("headline", "")
+
+    # Публикация в канал
+    if len(post_text) <= 1024:
+        result = tg_send_photo(image_url, post_text, chat_id=CHANNEL_USERNAME)
+    else:
+        tg_send_photo(image_url, f"🔥 {headline}", chat_id=CHANNEL_USERNAME)
+        result = tg_api("sendMessage", {
+            "chat_id": CHANNEL_USERNAME,
+            "text": post_text,
+            "parse_mode": "HTML",
+            "disable_web_page_preview": True,
+        })
+
+    if result and result.get("ok"):
+        logger.info(f"✅ Auto-published: [{score}/10] {headline[:50]}")
+        tg_send(f"🤖 <b>Автопост опубликован:</b>\n\n{headline}\n\n<i>(оценка: {score}/10)</i>", chat_id=chat_id)
+    else:
+        logger.error(f"❌ Auto-publish failed: {headline[:50]}")
+        tg_send(f"❌ Не удалось опубликовать. Бот — админ {CHANNEL_USERNAME}?", chat_id=chat_id)
 
     _state["last_post_text"] = post_text
     _state["last_post_nid"] = nid
 
-    _send_best_news(nid, post_text, best, cid)
-    logger.info(f"✅ Best news sent: [{best.get('score')}/10] {best.get('headline', '')[:50]}")
-
-
-def _send_best_news(nid: str, post_text: str, best: dict, chat_id: str):
-    """Отправляет лучшую новость с кнопками публикации."""
-    image_url = _find_image_for(nid)
-    section_label = best.get("_label", "")
-    score = best.get("score", "?")
-    headline = best.get("headline", "")
-
-    header = f"🔥 <b>Лучшая новость</b>  [{score}/10]\n{section_label}\n\n"
-    markup = _post_buttons(nid)
-
-    if image_url:
-        # У фото caption ограничен 1024 символами — если не влезает, шлём текстом
-        full = header + post_text
-        if len(full) <= 1024:
-            tg_send_photo(image_url, full, reply_markup=markup, chat_id=chat_id)
-        else:
-            tg_send_photo(image_url, f"🔥 [{score}/10] <b>{headline}</b>", chat_id=chat_id)
-            tg_send(post_text, reply_markup=markup, chat_id=chat_id)
-    else:
-        tg_send(header + post_text, reply_markup=markup, chat_id=chat_id)
-
-
 
 # ============================================================
-# ОБРАБОТКА
+# ОБРАБОТКА КОМАНД
 # ============================================================
 
 def handle_update(update: dict):
@@ -622,8 +532,6 @@ def handle_update(update: dict):
         elif text == "/news":
             tg_send("⏳ Ищу лучшую новость...", chat_id=chat_id)
             send_news_digest(chat_id)
-        elif text.startswith("/post"): cmd_post(text, chat_id)
-        elif text == "/topics": cmd_topics(chat_id)
         elif text == "/interval": cmd_interval(chat_id)
         elif text == "/help": cmd_help(chat_id)
 
@@ -633,244 +541,13 @@ def handle_update(update: dict):
         data = cb.get("data", "")
         chat_id = str(cb["message"]["chat"]["id"])
 
-        if data.startswith("rewrite:"):
-            tg_api("answerCallbackQuery", {"callback_query_id": cb_id, "text": "⏳ Переписываю..."})
-            nid = data.split(":", 1)[1]
-            news_item = _state["news_cache"].get(nid)
-            if news_item:
-                post_text = gemini_post(news_item["title"], news_item["description"], news_item["link"], bool(_find_image_for(nid)))
-                if post_text == "SKIP":
-                    tg_send("🚫 Кликбейт — нечего переписывать.", chat_id=chat_id)
-                else:
-                    _state["last_post_text"] = post_text
-                    _state["last_post_nid"] = nid
-                    tg_send(f"✅ <b>Новый вариант:</b>\n\n{post_text}", reply_markup=_post_buttons(nid), chat_id=chat_id)
-
-        elif data.startswith("pub_photo:"):
-            tg_api("answerCallbackQuery", {"callback_query_id": cb_id, "text": "📤 Публикую..."})
-            _publish(data.split(":", 1)[1], True, chat_id)
-
-        elif data.startswith("pub_text:"):
-            tg_api("answerCallbackQuery", {"callback_query_id": cb_id, "text": "📤 Публикую..."})
-            _publish(data.split(":", 1)[1], False, chat_id)
-
-        elif data.startswith("dzen_photo:"):
-            tg_api("answerCallbackQuery", {"callback_query_id": cb_id, "text": "📤 В Дзен..."})
-            _publish_dzen(data.split(":", 1)[1], True, chat_id)
-
-        elif data.startswith("dzen_text:"):
-            tg_api("answerCallbackQuery", {"callback_query_id": cb_id, "text": "📤 В Дзен..."})
-            _publish_dzen(data.split(":", 1)[1], False, chat_id)
-
-        elif data.startswith("topic:"):
-            key = data.split(":", 1)[1]
-            if key in _state["topics"]:
-                _state["topics"][key] = not _state["topics"][key]
-                tg_api("answerCallbackQuery", {"callback_query_id": cb_id,
-                    "text": f"{'✅ вкл' if _state['topics'][key] else '❌ выкл'}"})
-                cmd_topics_update(chat_id, cb["message"]["message_id"])
-
-        elif data.startswith("int:"):
+        if data.startswith("int:"):
             h = float(data.split(":", 1)[1])
             _state["interval"] = int(h * 3600)
             tg_api("answerCallbackQuery", {"callback_query_id": cb_id, "text": f"Интервал: {_interval_text(int(h*3600))}"})
             cmd_interval_update(chat_id, cb["message"]["message_id"])
-
         else:
             tg_api("answerCallbackQuery", {"callback_query_id": cb_id})
-
-
-# ============================================================
-# /post ID
-# ============================================================
-
-def cmd_post(text: str, chat_id: str):
-    parts = text.split()
-    if len(parts) < 2 or not parts[1].isdigit():
-        tg_send("Использование: <code>/post номер</code>\nПример: <code>/post 3</code>", chat_id=chat_id)
-        return
-
-    num = int(parts[1])
-    item = next((d for d in _state.get("digest_list", []) if d["num"] == num), None)
-
-    if not item:
-        total = len(_state.get("digest_list", []))
-        tg_send(f"❌ #{num} не найден. Доступно: 1-{total}" if total else "Сводка пуста. /news", chat_id=chat_id)
-        return
-
-    nid = item["id"]
-    news_item = _state["news_cache"].get(nid)
-    if not news_item:
-        tg_send("❌ Кэш устарел. /news", chat_id=chat_id)
-        return
-
-    tg_send(f"⏳ Генерирую пост #{num}...", chat_id=chat_id)
-
-    image_url = _find_image_for(nid)
-    post_text = gemini_post(news_item["title"], news_item["description"], news_item["link"], bool(image_url))
-
-    if post_text == "SKIP":
-        tg_send(f"🚫 Пост #{num} отклонён — кликбейт без содержания. Попробуй другую новость.", chat_id=chat_id)
-        return
-
-    _state["last_post_text"] = post_text
-    _state["last_post_nid"] = nid
-
-    markup = _post_buttons(nid)
-
-    if image_url:
-        tg_send_photo(image_url, f"✅ Пост #{num}:\n\n{post_text}", reply_markup=markup, chat_id=chat_id)
-    else:
-        tg_send(f"✅ <b>Пост #{num}:</b>\n\n{post_text}", reply_markup=markup, chat_id=chat_id)
-
-
-def _post_buttons(nid: str) -> dict:
-    has_img = bool(_find_image_for(nid))
-    buttons = []
-    if has_img:
-        buttons.append([{"text": "📷 Опубликовать с фото", "callback_data": f"pub_photo:{nid}"}])
-    buttons.append([{"text": "📝 Опубликовать без фото", "callback_data": f"pub_text:{nid}"}])
-    if has_img:
-        buttons.append([{"text": "📤 Только в Дзен с фото", "callback_data": f"dzen_photo:{nid}"}])
-    buttons.append([{"text": "📤 Только в Дзен без фото", "callback_data": f"dzen_text:{nid}"}])
-    buttons.append([{"text": "🔄 Переписать", "callback_data": f"rewrite:{nid}"}])
-    return {"inline_keyboard": buttons}
-
-
-def _publish(nid: str, with_photo: bool, chat_id: str):
-    post_text = _state.get("last_post_text", "")
-    news_item = _state["news_cache"].get(nid, {})
-    if not post_text:
-        tg_send("❌ Нет поста. Сначала /post номер", chat_id=chat_id); return
-
-    image_url = _find_image_for(nid)
-
-    # Текст для Дзена — без ссылки на канал
-    dzen_text = re.sub(r'\n\n<a href="[^"]*">Подписаться на KoreanMaks[^<]*</a>', '', post_text).strip()
-
-    # --- Публикация в основной канал (с ссылкой на подписку) ---
-    if with_photo and image_url:
-        result = tg_send_photo(image_url, post_text, chat_id=CHANNEL_USERNAME)
-    else:
-        result = tg_api("sendMessage", {"chat_id": CHANNEL_USERNAME, "text": post_text, "parse_mode": "HTML", "disable_web_page_preview": False})
-
-    # --- Публикация в Дзен-канал (без ссылки на подписку) ---
-    if with_photo and image_url:
-        tg_send_photo(image_url, dzen_text, chat_id=CHANNEL_DZEN)
-    else:
-        tg_api("sendMessage", {"chat_id": CHANNEL_DZEN, "text": dzen_text, "parse_mode": "HTML", "disable_web_page_preview": False})
-
-    if result and result.get("ok"):
-        _state["dzen_posted"].add(nid)
-        tg_send(f"✅ Опубликовано в {CHANNEL_USERNAME} + Дзен!", chat_id=chat_id)
-    else:
-        tg_send(f"❌ Ошибка. Бот должен быть админом обоих каналов.", chat_id=chat_id)
-
-
-def _publish_dzen(nid: str, with_photo: bool, chat_id: str):
-    """Публикация ТОЛЬКО в Дзен-канал."""
-    post_text = _state.get("last_post_text", "")
-    if not post_text:
-        tg_send("❌ Нет поста. Сначала /post номер", chat_id=chat_id); return
-
-    image_url = _find_image_for(nid)
-
-    # Текст без ссылки на канал
-    dzen_text = re.sub(r'\n\n<a href="[^"]*">Подписаться на KoreanMaks[^<]*</a>', '', post_text).strip()
-
-    if with_photo and image_url:
-        result = tg_send_photo(image_url, dzen_text, chat_id=CHANNEL_DZEN)
-    else:
-        result = tg_api("sendMessage", {"chat_id": CHANNEL_DZEN, "text": dzen_text, "parse_mode": "HTML", "disable_web_page_preview": False})
-
-    if result and result.get("ok"):
-        _state["dzen_posted"].add(nid)
-        tg_send(f"✅ Опубликовано только в Дзен!", chat_id=chat_id)
-    else:
-        tg_send(f"❌ Ошибка. Бот должен быть админом {CHANNEL_DZEN}.", chat_id=chat_id)
-
-
-def _send_to_dzen(nid: str, post_text: str, with_photo: bool) -> bool:
-    """Отправка в Дзен-канал (без уведомлений). Возвращает True если ок."""
-    image_url = _find_image_for(nid)
-    dzen_text = re.sub(r'\n\n<a href="[^"]*">Подписаться на KoreanMaks[^<]*</a>', '', post_text).strip()
-
-    if with_photo and image_url:
-        result = tg_send_photo(image_url, dzen_text, chat_id=CHANNEL_DZEN)
-    else:
-        result = tg_api("sendMessage", {"chat_id": CHANNEL_DZEN, "text": dzen_text, "parse_mode": "HTML", "disable_web_page_preview": False})
-
-    if result and result.get("ok"):
-        _state["dzen_posted"].add(nid)
-        return True
-    return False
-
-
-def auto_dzen_post():
-    """Автопостинг в Дзен: берёт лучшую непопубликованную новость, генерит пост, отправляет."""
-    logger.info("📤 Dzen auto-post started")
-
-    # Собираем свежие новости если кэш пустой
-    if not _state["news_cache"]:
-        for key, config in FEEDS.items():
-            if _state["topics"].get(key, True):
-                fetch_news(config["feeds"], key)
-
-    # Проходим по всем активным тематикам, собираем кандидатов
-    candidates = []
-    for key, config in FEEDS.items():
-        if not _state["topics"].get(key, True):
-            continue
-
-        items = [item for item in _state["news_cache"].values()
-                 if item.get("section") == key and item["id"] not in _state["dzen_posted"]]
-
-        if not items:
-            # Подтянем свежие
-            items = fetch_news(config["feeds"], key)
-            items = [i for i in items if i["id"] not in _state["dzen_posted"]]
-
-        if not items:
-            continue
-
-        # Прогоняем через Gemini фильтр
-        digest = gemini_digest(items, config["topic_filter"])
-        for d in digest:
-            if d.get("id") not in _state["dzen_posted"]:
-                candidates.append(d)
-
-    if not candidates:
-        logger.info("📤 Dzen auto-post: нет новых новостей для публикации")
-        return
-
-    # Берём топ-1 по скору
-    candidates.sort(key=lambda x: x.get("score", 0), reverse=True)
-    best = candidates[0]
-    nid = best["id"]
-    news_item = _state["news_cache"].get(nid)
-
-    if not news_item:
-        logger.warning(f"📤 Dzen auto-post: news {nid} not in cache")
-        return
-
-    # Генерируем пост
-    has_photo = bool(_find_image_for(nid))
-    post_text = gemini_post(news_item["title"], news_item["description"], news_item["link"], has_photo)
-
-    if post_text == "SKIP":
-        logger.info(f"📤 Dzen auto-post: SKIP (clickbait) — {news_item['title'][:50]}")
-        _state["dzen_posted"].add(nid)  # чтобы не пытаться снова
-        return
-
-    # Отправляем
-    success = _send_to_dzen(nid, post_text, has_photo)
-
-    if success:
-        logger.info(f"📤 Dzen auto-post OK: {news_item['title'][:50]}")
-        # Уведомляем владельца
-        tg_send(f"🤖 <b>Автопост в Дзен:</b>\n\n{best.get('headline', '')}\n\n<i>(оценка: {best.get('score', '?')}/10)</i>")
-    else:
-        logger.error("📤 Dzen auto-post FAILED")
 
 
 # ============================================================
@@ -878,37 +555,28 @@ def auto_dzen_post():
 # ============================================================
 
 def cmd_start(chat_id: str):
-    st = ""
-    for k, c in FEEDS.items():
-        st += f"  {'✅' if _state['topics'].get(k) else '❌'} {c['label']}\n"
-    tg_send(f"👋 <b>Новостной бот</b>\n\n<b>Тематики:</b>\n{st}\n"
+    tg_send(f"👋 <b>Новостной бот — Корейский шоубиз</b>\n\n"
             f"<b>Интервал:</b> {_interval_text(_state['interval'])}\n"
-            f"<b>Режим:</b> одна лучшая новость (автовыбор)\n"
-            f"<b>Фильтр:</b> оценка 7+/10, дедупликация\n\n"
-            "<b>Команды:</b>\n/news — лучшая новость\n"
-            "/topics — тематики\n/interval — частота\n/help — справка", chat_id=chat_id)
+            f"<b>Режим:</b> автопост лучшей новости с фото (8+/10)\n"
+            f"<b>Канал:</b> {CHANNEL_USERNAME}\n\n"
+            "<b>Команды:</b>\n/news — лучшая новость сейчас\n"
+            "/interval — частота\n/help — справка", chat_id=chat_id)
 
 def cmd_help(chat_id: str):
-    tg_send("📖 <b>Как пользоваться:</b>\n\n"
-            "1️⃣ Каждые 1.5ч приходит лучшая новость с кнопками\n"
-            "2️⃣ <b>📷 С фото</b> / <b>📝 Без фото</b> → публикация в канал\n"
-            "3️⃣ <b>🔄 Переписать</b> — новый вариант\n"
-            "4️⃣ /news — запросить лучшую новость прямо сейчас", chat_id=chat_id)
-
-def cmd_topics(chat_id: str):
-    b = [[{"text": f"{'✅' if _state['topics'].get(k) else '❌'} {c['label']}", "callback_data": f"topic:{k}"}] for k, c in FEEDS.items()]
-    tg_send("⚙️ <b>Тематики</b>\n\nНажмите:", reply_markup={"inline_keyboard": b}, chat_id=chat_id)
-
-def cmd_topics_update(chat_id: str, mid: int):
-    b = [[{"text": f"{'✅' if _state['topics'].get(k) else '❌'} {c['label']}", "callback_data": f"topic:{k}"}] for k, c in FEEDS.items()]
-    tg_api("editMessageText", {"chat_id": chat_id, "message_id": mid,
-        "text": "⚙️ <b>Тематики</b>\n\nНажмите:", "parse_mode": "HTML", "reply_markup": {"inline_keyboard": b}})
+    tg_send("📖 <b>Как работает:</b>\n\n"
+            f"Каждые {_interval_text(_state['interval'])} бот:\n"
+            "1️⃣ Парсит RSS-ленты корейского шоубиза\n"
+            "2️⃣ Gemini оценивает новости (8+/10)\n"
+            "3️⃣ Лучшая новость С ФОТО публикуется в канал\n"
+            "4️⃣ Тебе приходит уведомление\n\n"
+            "/news — запросить сейчас\n"
+            "/interval — изменить частоту", chat_id=chat_id)
 
 def cmd_interval(chat_id: str):
     cur = _state["interval"] / 3600
     b, r = [], []
-    for h in [1, 1.5, 2, 4, 6, 8, 12]:
-        label = f"{h}ч" if h == int(h) else f"{h}ч"
+    for h in [2, 4, 6, 8, 12]:
+        label = f"{h}ч"
         sel = '✅ ' if abs(h - cur) < 0.01 else ''
         r.append({"text": f"{sel}{label}", "callback_data": f"int:{h}"})
         if len(r) == 3: b.append(r); r = []
@@ -918,8 +586,8 @@ def cmd_interval(chat_id: str):
 def cmd_interval_update(chat_id: str, mid: int):
     cur = _state["interval"] / 3600
     b, r = [], []
-    for h in [1, 1.5, 2, 4, 6, 8, 12]:
-        label = f"{h}ч" if h == int(h) else f"{h}ч"
+    for h in [2, 4, 6, 8, 12]:
+        label = f"{h}ч"
         sel = '✅ ' if abs(h - cur) < 0.01 else ''
         r.append({"text": f"{sel}{label}", "callback_data": f"int:{h}"})
         if len(r) == 3: b.append(r); r = []
@@ -930,7 +598,7 @@ def cmd_interval_update(chat_id: str, mid: int):
 
 
 # ============================================================
-# ПОТОКИ
+# ПОТОКИ (2 вместо 3)
 # ============================================================
 
 def polling_loop():
@@ -951,7 +619,7 @@ def polling_loop():
 
 def scheduler_loop():
     logger.info("⏰ Scheduler started")
-    time.sleep(30)
+    time.sleep(60)
     try: send_news_digest()
     except Exception as e: logger.error(f"First digest error: {e}")
     while True:
@@ -959,24 +627,11 @@ def scheduler_loop():
         try: send_news_digest()
         except Exception as e: logger.error(f"Scheduled digest error: {e}")
 
-def dzen_autopost_loop():
-    """Автопостинг в Дзен каждые 2.5 часа."""
-    logger.info("📤 Dzen autopost loop started")
-    # Первый автопост через 1 час (дать время собрать кэш)
-    time.sleep(60 * 60)
-    while True:
-        try:
-            auto_dzen_post()
-        except Exception as e:
-            logger.error(f"Dzen autopost error: {e}")
-        time.sleep(_state["dzen_auto_interval"])
-
 def start():
     if not all([GEMINI_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID]):
         logger.warning("⚠ Bot env vars not set — bot disabled"); return
     threading.Thread(target=polling_loop, daemon=True).start()
     threading.Thread(target=scheduler_loop, daemon=True).start()
-    threading.Thread(target=dzen_autopost_loop, daemon=True).start()
-    logger.info("🤖 News bot started (3 threads: polling, digest, dzen autopost)")
+    logger.info("🤖 News bot started (2 threads: polling, digest)")
 
 start()

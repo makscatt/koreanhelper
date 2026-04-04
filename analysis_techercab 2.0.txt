@@ -1,0 +1,556 @@
+======================================================================
+АНАЛИЗ ПРОЕКТА: TECHERCAB 2.0
+Путь: C:\Users\MakscattSchool\Desktop\techercab 2.0
+Дата анализа: 2026-04-04 08:24
+Всего файлов: 52
+======================================================================
+
+
+🔧 ТЕХНОЛОГИЧЕСКИЙ СТЕК
+----------------------------------------
+  Flask, PostgreSQL
+
+
+📁 СТРУКТУРА ПРОЕКТА
+----------------------------------------
+  app.py  (59.1 KB)
+  bot.py  (48.5 KB)
+  get-pip.py  (2142.0 KB)
+  korean-roadmap.html  (19.8 KB)
+  README.md  (1.7 KB)
+  requirements.txt  (166 B)
+  static\css\pictures_retell.css  (10.2 KB)
+  static\css\style.css  (100.1 KB)
+  static\css\trainer_base.css  (13.4 KB)
+  static\data\cards.json  (20.8 KB)
+  static\data\grammar.json  (423.0 KB)
+  static\data\images\coffee_shop.png  (863.6 KB)
+  static\data\images\room.png  (2480.3 KB)
+  static\data\images\shop.png  (3248.2 KB)
+  static\data\lesson_1.json  (9.8 KB)
+  static\data\phrases.json  (30.1 KB)
+  static\data\pictures.json  (8.4 KB)
+  static\data\sentences.json  (137.8 KB)
+  static\data\texts.json  (75.5 KB)
+  static\data\verbs.json  (21.5 KB)
+  static\data\words-data.json  (20.6 KB)
+  static\js\grammar_highlight.js  (344 B)
+  static\js\trainer_base.js  (32.9 KB)
+  templates\base.html  (14.0 KB)
+  templates\dashboard.html  (1.4 KB)
+  templates\history.html  (4.0 KB)
+  templates\login.html  (2.5 KB)
+  templates\register.html  (871 B)
+  templates\select_student.html  (11.0 KB)
+  templates\trainer_alphabet.html  (6.4 KB)
+  templates\trainer_base.html  (5.4 KB)
+  templates\trainer_cards.html  (13.4 KB)
+  templates\trainer_colors.html  (1.9 KB)
+  templates\trainer_dates.html  (917 B)
+  templates\trainer_grammar.html  (32.5 KB)
+  templates\trainer_hub.html  (27.3 KB)
+  templates\trainer_locations.html  (3.8 KB)
+  templates\trainer_menu.html  (4.1 KB)
+  templates\trainer_money.html  (1.8 KB)
+  templates\trainer_numbers.html  (2.0 KB)
+  templates\trainer_phrases.html  (22.5 KB)
+  templates\trainer_pictures.html  (20.4 KB)
+  templates\trainer_quiz.html  (20.5 KB)
+  templates\trainer_sentences.html  (16.8 KB)
+  templates\trainer_text.html  (22.4 KB)
+  templates\trainer_time.html  (1.1 KB)
+  templates\trainer_verbs.html  (3.7 KB)
+  templates\trainer_video.html  (6.1 KB)
+  templates\trainer_weather.html  (3.0 KB)
+  templates\trainer_weekdays.html  (1.7 KB)
+  templates\trainer_words.html  (8.4 KB)
+  На доработку\gemini_news_bot_setup.md  (8.6 KB)
+
+  --- Статистика ---
+  html: 29 файл(ов)
+  json: 9 файл(ов)
+  python: 3 файл(ов)
+  css: 3 файл(ов)
+  image: 3 файл(ов)
+  markdown: 2 файл(ов)
+  javascript: 2 файл(ов)
+  other: 1 файл(ов)
+
+
+📦 ЗАВИСИМОСТИ
+----------------------------------------
+
+  📄 requirements.txt
+     packages:
+       - Flask==3.0.0
+       - Flask-SQLAlchemy==3.1.1
+       - Werkzeug==3.0.1
+       - gunicorn
+       - psycopg2-binary
+       - requests
+       - feedparser
+       - google-generativeai
+       - python-telegram-bot[job-scheduler]
+       - python-dotenv
+
+
+⚙️  КОНФИГУРАЦИЯ
+----------------------------------------
+  Конфигурационные файлы не найдены
+
+
+🐍 PYTHON: КЛАССЫ И ФУНКЦИИ
+----------------------------------------
+
+  📄 app.py
+     class Teacher(db.Model)
+     class Student(db.Model)
+     class StudentAccount(db.Model)
+       """Логин/пароль для ученика — создаётся учителем"""
+     class Note(db.Model)
+       """Заметки учителя по ученику (архив)"""
+     class ModuleProgress(db.Model)
+       """Прогресс ученика по каждому модулю-тренажёру"""
+     class SessionLog(db.Model)
+       """Лог каждого посещения тренажёра"""
+     class SectionCheck(db.Model)
+       """Чекбоксы секций тренажёров (например 'phrases:start' = пройдено)"""
+     class TrainerItemProgress(db.Model)
+       """Прогресс по отдельным элементам тренажёра (знаю/не знаю фразу и т.д.)"""
+     class WordHub(db.Model)
+       """Персональный словарь ученика — слова добавляются через ИИ-анализ"""
+     class _GroupStudent
+       """Фейковый student-заглушка — на случай если сессия без student_id."""
+     def teacher_required(f)
+       """Маршрут доступен только учителю"""
+     def student_required(f)
+       """Маршрут доступен только ученику"""
+     def login_required(f)
+       """Маршрут доступен любому авторизованному пользователю"""
+     def group_required(f)
+       """Маршрут доступен только участнику закрытой группы"""
+     def _owns_student(student_id)
+       """Проверяет, что текущий учитель владеет этим учеником"""
+     def index()
+     def login()
+     def register()
+       """Регистрация учителей — только учителя регистрируются сами"""
+     def logout()
+     def _verify_telegram_webapp(init_data)
+       """Проверяет подпись initData от Telegram Web App."""
+     def group_webapp()
+       """Открывается как Telegram Web App. Проверяет initData и редиректит."""
+     def group_webapp_verify()
+       """Проверяет initData и создаёт сессию group_member с реальным Student."""
+     def _get_group_student()
+       """Возвращает реального Student для group_member или заглушку."""
+     def group_trainers()
+       """Меню тренажёров для участника группы."""
+     def group_trainer(module)
+       """Любой тренажёр для участника группы."""
+     def select_student()
+     def add_student()
+     def delete_student(student_id)
+     def create_student_account(student_id)
+       """Учитель создаёт логин/пароль для ученика"""
+     def toggle_student_account(student_id)
+       """Блокировка/разблокировка аккаунта ученика"""
+     def delete_student_account(student_id)
+       """Удалить аккаунт ученика (ученик останется, просто без логина)"""
+     def dashboard(student_id)
+     def student_trainers()
+       """Главная страница ученика — меню тренажёров"""
+     def student_trainer(module)
+       """Универсальный маршрут для ученика — любой тренажёр по имени"""
+     def student_history()
+       """Ученик смотрит свои заметки (только чтение)"""
+     def _get_student_id_from_request(data)
+       """Определяет student_id в зависимости от роли"""
+     def progress_ping()
+       """Вызывается при входе в тренажёр — логирует начало сессии"""
+     def progress_update()
+       """Вызывается при каждом выполненном упражнении"""
+     def notes_list()
+       """Получить все заметки ученика"""
+     def notes_save()
+       """Сохранить заметку в архив (только учитель)"""
+     def notes_delete()
+       """Удалить заметку (только учитель)"""
+     def sections_get()
+       """Получить состояние чекбоксов секций для тренажёра"""
+     def sections_toggle()
+       """Переключить чекбокс секции (только учитель)"""
+     def items_get()
+       """Получить прогресс по элементам тренажёра"""
+     def items_set()
+       """Установить статус элемента (только учитель)"""
+     def highlights_save()
+       """Сохранить выделения (маркеры) — доступно и учителю и ученику"""
+     def _analyze_korean_word(text)
+       """Отправляет слово в OpenAI для анализа: словарная форма + перевод + часть речи.
+    Принимает как корейские, так и русские слова."""
+     def _analyze_korean_batch(words_list)
+       """Отправляет список слов (корейских и/или русских) в OpenAI одним запросом.
+    Возвращает список dict: [{"base":"...", "rus":"...", "pos":"..."}, ...]"""
+     def hub_add_batch()
+       """Добавить список слов в хаб через ИИ-анализ (пакетно)"""
+     def hub_add()
+       """Добавить слово в хаб через ИИ-анализ"""
+     def hub_list()
+       """Получить все слова хаба ученика"""
+     def hub_toggle_learned()
+       """Переключить статус выученного слова"""
+     def hub_delete()
+       """Удалить слово из хаба"""
+     def api_tts()
+       """Озвучка корейского текста через Google Cloud TTS REST API"""
+     def _teacher_trainer(student_id, template)
+     def trainer_menu(student_id)
+     def trainer_alphabet(student_id)
+     def trainer_numbers(student_id)
+     def trainer_time(student_id)
+     def trainer_money(student_id)
+     def trainer_dates(student_id)
+     def trainer_colors(student_id)
+     def trainer_weekdays(student_id)
+     def trainer_weather(student_id)
+     def trainer_locations(student_id)
+     def trainer_verbs(student_id)
+     def trainer_sentences(student_id)
+     def trainer_grammar(student_id)
+     def trainer_text(student_id)
+     def trainer_cards(student_id)
+     def trainer_words(student_id)
+     def trainer_quiz(student_id)
+     def trainer_video(student_id)
+     def trainer_pictures(student_id)
+     def trainer_phrases(student_id)
+     def trainer_hub(student_id)
+     def history(student_id)
+     def proxy_yandex(filepath)
+       """Проксирует запросы к видео-контенту на Яндексе"""
+
+  📄 bot.py
+     def tg_api(method: str, payload: dict)
+     def tg_send(text: str, reply_markup: dict = None, chat_id: str = None)
+     def tg_send_photo(photo_url: str, caption: str, reply_markup: dict = None, chat_id: str = None)
+     def _news_id(title: str, link: str) -> str
+     def _interval_text(s: int) -> str
+     def _find_image_for(nid: str) -> str
+       """Ищет фото для новости. Сначала в самой записи, потом по похожим заголовкам в кэше."""
+     def _extract_image(entry) -> str
+     def fetch_news(feeds: list, section: str) -> list
+     def gemini_digest(news_items: list, topic_filter: str) -> list
+     def gemini_post(title: str, description: str, link: str, has_photo: bool = False) -> str
+     def send_news_digest(chat_id: str = None)
+       """Автоматически выбирает ОДНУ лучшую новость и присылает готовый пост с кнопками."""
+     def _send_best_news(nid: str, post_text: str, best: dict, chat_id: str)
+       """Отправляет лучшую новость с кнопками публикации."""
+     def handle_update(update: dict)
+     def cmd_post(text: str, chat_id: str)
+     def _post_buttons(nid: str) -> dict
+     def _publish(nid: str, with_photo: bool, chat_id: str)
+     def _publish_dzen(nid: str, with_photo: bool, chat_id: str)
+       """Публикация ТОЛЬКО в Дзен-канал."""
+     def _send_to_dzen(nid: str, post_text: str, with_photo: bool) -> bool
+       """Отправка в Дзен-канал (без уведомлений). Возвращает True если ок."""
+     def auto_dzen_post()
+       """Автопостинг в Дзен: берёт лучшую непопубликованную новость, генерит пост, отправляет."""
+     def cmd_start(chat_id: str)
+     def cmd_help(chat_id: str)
+     def cmd_topics(chat_id: str)
+     def cmd_topics_update(chat_id: str, mid: int)
+     def cmd_interval(chat_id: str)
+     def cmd_interval_update(chat_id: str, mid: int)
+     def polling_loop()
+     def scheduler_loop()
+     def dzen_autopost_loop()
+       """Автопостинг в Дзен каждые 2.5 часа."""
+     def start()
+
+
+🌐 РОУТЫ / ЭНДПОИНТЫ (Python)
+----------------------------------------
+  [ROUTE] /  →  index()  (app.py)
+  [GET, POST] /login  →  login()  (app.py)
+  [GET, POST] /register  →  register()  (app.py)
+  [ROUTE] /logout  →  logout()  (app.py)
+  [ROUTE] /group/webapp  →  group_webapp()  (app.py)
+  [POST] /group/webapp/verify  →  group_webapp_verify()  (app.py)
+  [ROUTE] /group/trainers  →  group_trainers()  (app.py)
+  [ROUTE] /group/trainer/<module>  →  group_trainer()  (app.py)
+  [ROUTE] /students  →  select_student()  (app.py)
+  [POST] /students/add  →  add_student()  (app.py)
+  [POST] /students/<int:student_id>/delete  →  delete_student()  (app.py)
+  [POST] /students/<int:student_id>/create-account  →  create_student_account()  (app.py)
+  [POST] /students/<int:student_id>/toggle-account  →  toggle_student_account()  (app.py)
+  [POST] /students/<int:student_id>/delete-account  →  delete_student_account()  (app.py)
+  [ROUTE] /dashboard/<int:student_id>  →  dashboard()  (app.py)
+  [ROUTE] /my/trainers  →  student_trainers()  (app.py)
+  [ROUTE] /my/trainer/<module>  →  student_trainer()  (app.py)
+  [ROUTE] /my/history  →  student_history()  (app.py)
+  [POST] /api/progress/ping  →  progress_ping()  (app.py)
+  [POST] /api/progress/update  →  progress_update()  (app.py)
+  [POST] /api/notes/list  →  notes_list()  (app.py)
+  [POST] /api/notes/save  →  notes_save()  (app.py)
+  [POST] /api/notes/delete  →  notes_delete()  (app.py)
+  [POST] /api/sections/get  →  sections_get()  (app.py)
+  [POST] /api/sections/toggle  →  sections_toggle()  (app.py)
+  [POST] /api/items/get  →  items_get()  (app.py)
+  [POST] /api/items/set  →  items_set()  (app.py)
+  [POST] /api/highlights/save  →  highlights_save()  (app.py)
+  [POST] /api/hub/add-batch  →  hub_add_batch()  (app.py)
+  [POST] /api/hub/add  →  hub_add()  (app.py)
+  [POST] /api/hub/list  →  hub_list()  (app.py)
+  [POST] /api/hub/toggle-learned  →  hub_toggle_learned()  (app.py)
+  [POST] /api/hub/delete  →  hub_delete()  (app.py)
+  [ROUTE] /api/tts  →  api_tts()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainers  →  trainer_menu()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/alphabet  →  trainer_alphabet()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/numbers  →  trainer_numbers()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/time  →  trainer_time()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/money  →  trainer_money()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/dates  →  trainer_dates()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/colors  →  trainer_colors()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/weekdays  →  trainer_weekdays()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/weather  →  trainer_weather()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/locations  →  trainer_locations()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/verbs  →  trainer_verbs()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/sentences  →  trainer_sentences()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/grammar  →  trainer_grammar()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/text  →  trainer_text()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/cards  →  trainer_cards()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/words  →  trainer_words()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/quiz  →  trainer_quiz()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/video  →  trainer_video()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/pictures  →  trainer_pictures()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/phrases  →  trainer_phrases()  (app.py)
+  [ROUTE] /student/<int:student_id>/trainer/hub  →  trainer_hub()  (app.py)
+  [ROUTE] /student/<int:student_id>/history  →  history()  (app.py)
+  [ROUTE] /content/<path:filepath>  →  proxy_yandex()  (app.py)
+
+
+📜 JAVASCRIPT/TYPESCRIPT: СТРУКТУРА
+----------------------------------------
+
+  📄 static\js\grammar_highlight.js
+     function buildHighlighter(items, hlClass)
+
+  📄 static\js\trainer_base.js
+     function speakText(text)
+     function randExcept(len, cur)
+     function trackPing()
+     function trackExercise()
+     function norm(str)
+     function exSlash(str)
+     function score(item, q)
+     function hl(text, q)
+     function runSearch(q)
+     function closeDropdown()
+     function renderExCards(items, label)
+     function renderGlobalBlocks(blocks)
+     function flush()
+     function openGrammarModal(item)
+     function updateGCar(cid, s)
+     function closeGrammarModal()
+     function save()
+     function render()
+     function positionPicker()
+     function openPicker()
+     function closePicker()
+     function initPosition()
+     function savePosition()
+     function clamp()
+     function onDragStart(x, y)
+     function onDragMove(x, y)
+     function onDragEnd()
+     function spawnFountain(emoji, originEl)
+     function tick()
+     function getSelectedText()
+     function showPopup()
+     function hidePopup()
+     function getHubQueue()
+     function saveHubQueue(q)
+     function processHubQueue()
+     function addToHub(word)
+     function openVocab()
+     function closeVocab()
+
+
+📄 HTML-ШАБЛОНЫ
+----------------------------------------
+
+  📄 korean-roadmap.html
+     title: Приложение для изучения корейского — План разработки
+
+  📄 templates\base.html
+     title: {% block title %}한국어{% endblock %}
+     blocks: extra_css, extra_js, title, content
+     scripts: https://telegram.org/js/telegram-web-app.js
+
+  📄 templates\dashboard.html
+     extends: base.html
+     blocks: extra_js, title, content
+
+  📄 templates\history.html
+     extends: base.html
+     blocks: extra_js, title, content
+     api_calls: /api/notes/list, /api/notes/delete
+
+  📄 templates\login.html
+     extends: base.html
+     blocks: title, content
+
+  📄 templates\register.html
+     extends: base.html
+     blocks: title, content
+
+  📄 templates\select_student.html
+     extends: base.html
+     blocks: title, content
+     forms: {{ url_for(
+
+  📄 templates\trainer_alphabet.html
+     extends: trainer_base.html
+     blocks: trainer_js, trainer_content, title
+
+  📄 templates\trainer_base.html
+     extends: base.html
+     blocks: extra_js, trainer_js, trainer_content, content
+     scripts: {{ url_for(, {{ url_for(
+
+  📄 templates\trainer_cards.html
+     extends: trainer_base.html
+     blocks: trainer_js, trainer_content, title
+     api_calls: /static/data/cards.json
+
+  📄 templates\trainer_colors.html
+     extends: trainer_base.html
+     blocks: trainer_js, trainer_content, title
+
+  📄 templates\trainer_dates.html
+     extends: trainer_base.html
+     blocks: trainer_js, trainer_content, title
+
+  📄 templates\trainer_grammar.html
+     extends: trainer_base.html
+     blocks: trainer_js, trainer_content, title
+     api_calls: /static/data/grammar.json
+
+  📄 templates\trainer_hub.html
+     extends: trainer_base.html
+     blocks: trainer_js, trainer_content, title
+     api_calls: /api/hub/toggle-learned, /api/hub/delete, /api/hub/list, /api/hub/add-batch
+
+  📄 templates\trainer_locations.html
+     extends: trainer_base.html
+     blocks: trainer_js, trainer_content, title
+
+  📄 templates\trainer_menu.html
+     extends: trainer_base.html
+     blocks: trainer_content, title
+
+  📄 templates\trainer_money.html
+     extends: trainer_base.html
+     blocks: trainer_js, trainer_content, title
+
+  📄 templates\trainer_numbers.html
+     extends: trainer_base.html
+     blocks: trainer_js, trainer_content, title
+
+  📄 templates\trainer_phrases.html
+     extends: trainer_base.html
+     blocks: trainer_js, trainer_content, title
+     api_calls: /api/sections/toggle, {{ url_for(, /api/sections/get, /api/items/set, /api/items/get
+
+  📄 templates\trainer_pictures.html
+     extends: trainer_base.html
+     blocks: trainer_js, trainer_content, title
+     api_calls: /static/data/pictures.json
+
+  📄 templates\trainer_quiz.html
+     extends: trainer_base.html
+     blocks: trainer_js, trainer_content, title
+     api_calls: /static/data/grammar.json
+
+  📄 templates\trainer_sentences.html
+     extends: trainer_base.html
+     blocks: trainer_js, trainer_content, title
+     api_calls: /api/items/set, /static/data/sentences.json, /api/items/get
+
+  📄 templates\trainer_text.html
+     extends: trainer_base.html
+     blocks: trainer_js, trainer_content, title
+     api_calls: /api/highlights/save, /static/data/texts.json, /api/items/set, /api/items/get
+
+  📄 templates\trainer_time.html
+     extends: trainer_base.html
+     blocks: trainer_js, trainer_content, title
+
+  📄 templates\trainer_verbs.html
+     extends: trainer_base.html
+     blocks: trainer_js, trainer_content, title
+     api_calls: {{ url_for(
+
+  📄 templates\trainer_video.html
+     extends: trainer_base.html
+     blocks: trainer_js, trainer_content, title
+
+  📄 templates\trainer_weather.html
+     extends: trainer_base.html
+     blocks: trainer_js, trainer_content, title
+
+  📄 templates\trainer_weekdays.html
+     extends: trainer_base.html
+     blocks: trainer_js, trainer_content, title
+
+  📄 templates\trainer_words.html
+     extends: trainer_base.html
+     blocks: trainer_js, trainer_content, title
+     api_calls: /static/data/words-data.json
+
+
+🔗 API-ВЫЗОВЫ ИЗ ФРОНТЕНДА
+----------------------------------------
+  /api/progress/ping  ← static\js\trainer_base.js
+  /api/progress/update  ← static\js\trainer_base.js
+  /static/data/grammar.json  ← static\js\trainer_base.js
+  /api/notes/save  ← static\js\trainer_base.js
+  /api/hub/add  ← static\js\trainer_base.js
+  /api/hub/add-batch  ← static\js\trainer_base.js
+  /api/notes/delete  ← templates\history.html
+  /api/notes/list  ← templates\history.html
+  /static/data/cards.json  ← templates\trainer_cards.html
+  /static/data/grammar.json  ← templates\trainer_grammar.html
+  /api/hub/list  ← templates\trainer_hub.html
+  /api/hub/toggle-learned  ← templates\trainer_hub.html
+  /api/hub/delete  ← templates\trainer_hub.html
+  /api/hub/add-batch  ← templates\trainer_hub.html
+  /api/sections/get  ← templates\trainer_phrases.html
+  /api/items/get  ← templates\trainer_phrases.html
+  {{ url_for(  ← templates\trainer_phrases.html
+  /api/sections/toggle  ← templates\trainer_phrases.html
+  /api/items/set  ← templates\trainer_phrases.html
+  /static/data/pictures.json  ← templates\trainer_pictures.html
+  /static/data/grammar.json  ← templates\trainer_quiz.html
+  /static/data/sentences.json  ← templates\trainer_sentences.html
+  /api/items/set  ← templates\trainer_sentences.html
+  /api/items/get  ← templates\trainer_sentences.html
+  /api/items/get  ← templates\trainer_text.html
+  /static/data/texts.json  ← templates\trainer_text.html
+  /api/items/set  ← templates\trainer_text.html
+  /api/highlights/save  ← templates\trainer_text.html
+  {{ url_for(  ← templates\trainer_verbs.html
+  /static/data/words-data.json  ← templates\trainer_words.html
+
+
+==================================================
+ПРОМТ ДЛЯ ИИ:
+==================================================
+Проанализируй проект, ознакомься с задачей, которую тебе написал пользователь. Далее запроси файлы необходимые для более детального анализа и решения проблемы. Если не хватает каких-то файлов, всегда сначала запрашивай их. Код пиши только после одобрения пользователя. После проделанной работы всегда описывай кратко ожидаемый результат, чтобы пользователь всегда мог проверить и сравнить ожидание и реальный результат. Если пользователь говорит что что-то работает, а что-то нет — сначала сравни реализацию работающего и неработающего элемента, найди разницу и сделай так же. Не спорь с наблюдениями пользователя. Не пытайся подтянуть наблюдения пользователя под свою теорию — строй теории на основе фактов, а не факты на основе теорий.
+==================================================
+
+
+======================================================================
+КОНЕЦ АНАЛИЗА
+======================================================================

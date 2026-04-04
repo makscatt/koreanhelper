@@ -1461,5 +1461,25 @@ with app.app_context():
 # ── Gemini News Bot (работает в фоновых потоках) ──
 import bot
 
+# ── Gemini Chat API (для внешнего приложения) ──
+GEMINI_CHAT_SECRET = os.environ.get("GEMINI_CHAT_SECRET", "jarvis2026")
+
+@app.route('/api/gemini/chat', methods=['POST'])
+def api_gemini_chat():
+    """Эндпоинт для чата с Gemini через внешнее приложение."""
+    data = request.get_json(silent=True) or {}
+
+    # Простая авторизация по секрету
+    if data.get("secret") != GEMINI_CHAT_SECRET:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    message = data.get("message", "").strip()
+    if not message:
+        return jsonify({"error": "Empty message"}), 400
+
+    history = data.get("history", [])
+    reply = bot.gemini_chat(message, history)
+    return jsonify({"reply": reply})
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
