@@ -1478,7 +1478,8 @@ def api_gemini_chat():
         return jsonify({"error": "Empty message"}), 400
 
     history = data.get("history", [])
-    reply = bot.gemini_chat(message, history)
+    model = data.get("model", "")
+    reply = bot.gemini_chat(message, history, model)
     return jsonify({"reply": reply})
 
 if __name__ == '__main__':
