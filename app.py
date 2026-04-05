@@ -576,11 +576,16 @@ def dashboard(student_id):
         .order_by(SessionLog.started_at.desc()).first()
     last_active = last_session.started_at.strftime('%d.%m %H:%M') if last_session else '—'
 
+    homework_items = TrainerItemProgress.query.filter_by(
+        student_id=student_id, status='homework'
+    ).all()
+
     return render_template('dashboard.html',
         student=student,
         total_exercises=total_exercises,
         active_modules=active_modules,
-        last_active=last_active
+        last_active=last_active,
+        homework_items=homework_items
     )
 
 

@@ -19,10 +19,92 @@
     <div class="sticky-note">
       <textarea id="sticky-note-area" class="sticky-note-area" placeholder="Заметка..." maxlength="300"></textarea>
     </div>
+
+    <!-- HOMEWORK -->
+    {% if homework_items %}
+    {% set trainer_meta = {
+      'sentences': {'icon': '📝', 'name': 'Предложения'},
+      'texts':     {'icon': '📖', 'name': 'Тексты'},
+      'phrases':   {'icon': '💬', 'name': 'Фразы'},
+      'words':     {'icon': '🔤', 'name': 'Слова'},
+      'grammar':   {'icon': '📚', 'name': 'Грамматика'},
+      'cards':     {'icon': '🃏', 'name': 'Карточки'},
+      'quiz':      {'icon': '🧩', 'name': 'Тест'},
+    } %}
+    <div class="hw-block">
+      <div class="hw-block-label">📝 Домашние задания</div>
+      <div class="hw-list">
+        {% for hw in homework_items %}
+        {% set meta = trainer_meta.get(hw.trainer, {'icon': '📌', 'name': hw.trainer}) %}
+        <a class="hw-card" href="/student/{{ student.id }}/trainer/{{ hw.trainer }}#{{ hw.item_id }}">
+          <span class="hw-card-icon">{{ meta.icon }}</span>
+          <div class="hw-card-info">
+            <div class="hw-card-trainer">{{ meta.name }}</div>
+            <div class="hw-card-id">{{ hw.item_id }}</div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
 
 {% block extra_js %}
+<style>
+.hw-block {
+  margin-top: 16px;
+}
+.hw-block-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-tertiary);
+  margin-bottom: 10px;
+}
+.hw-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.hw-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: all 0.15s;
+  min-width: 180px;
+}
+.hw-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(71,88,214,0.12);
+}
+.hw-card-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.hw-card-trainer {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.hw-card-id {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+</style>
+<script src="{{ url_for('static', filename='js/grammar_highlight.js') }}"></script>
+<script src="{{ url_for('static', filename='js/trainer_base.js') }}"></script>
 <script>
 // ── STICKY NOTE ──
 const STICKY_KEY = 'sticky_{{ student.id }}';
