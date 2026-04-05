@@ -275,7 +275,7 @@ trackPing();
     if (hasBlocks) {
       detailsHTML = renderGlobalBlocks(item.details.blocks);
     } else if (item.details && item.details.content) {
-      detailsHTML = '<div class="g-modal-desc">' + item.details.content + '</div>';
+      detailsHTML = '<div class="g-modal-desc">' + item.details.content.replace(/\n/g, '<br>') + '</div>';
     }
 
     var bottomExamples = '';
