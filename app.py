@@ -194,7 +194,7 @@ def index():
     if session.get('role') == 'teacher':
         return redirect(url_for('select_student'))
     if session.get('role') == 'student':
-        return redirect(url_for('student_trainers'))
+        return redirect(url_for('student_dashboard'))
     # ── ДОБАВЛЕНО: редирект для участника группы ──
     if session.get('role') == 'group_member':
         return redirect(url_for('group_trainers'))
@@ -229,7 +229,7 @@ def login():
                     session['student_account_id'] = account.id
                     session['student_id'] = account.student_id
                     session['student_name'] = account.student.name
-                    return redirect(url_for('student_trainers'))
+                    return redirect(url_for('student_dashboard'))
             else:
                 flash('Неверный логин или пароль', 'error')
 
@@ -599,6 +599,33 @@ def student_trainers():
     """Главная страница ученика — меню тренажёров"""
     student = Student.query.get(session['student_id'])
     return render_template('trainer_menu.html', student=student, student_mode=True)
+
+@app.route('/my/dashboard')
+@student_required
+def student_dashboard():
+    """Дашборд ученика"""
+    student = Student.query.get(session['student_id'])
+
+    progress_rows = ModuleProgress.query.filter_by(student_id=student.id).all()
+    total_exercises = sum(p.exercises_done for p in progress_rows)
+    active_modules = len(progress_rows)
+
+    last_session = SessionLog.query.filter_by(student_id=student.id)\
+        .order_by(SessionLog.started_at.desc()).first()
+    last_active = last_session.started_at.strftime('%d.%m %H:%M') if last_session else '—'
+
+    homework_items = TrainerItemProgress.query.filter_by(
+        student_id=student.id, status='homework'
+    ).all()
+
+    return render_template('dashboard.html',
+        student=student,
+        total_exercises=total_exercises,
+        active_modules=active_modules,
+        last_active=last_active,
+        homework_items=homework_items,
+        student_mode=True
+    )
 
 @app.route('/my/trainer/<module>')
 @student_required
