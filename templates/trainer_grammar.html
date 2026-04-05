@@ -953,7 +953,7 @@
     if (hasBlocks) {
       detailsHTML = renderDetailBlocks(item.details.blocks);
     } else if (item.details && item.details.content) {
-      detailsHTML = `<div class="gr-modal-desc">${item.details.content}</div>`;
+      detailsHTML = `<div class="gr-modal-desc">${item.details.content.replace(/\n/g, '<br>')}</div>`;
     }
 
     // Если примеры уже внутри blocks — не дублируем снизу
