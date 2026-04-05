@@ -435,6 +435,8 @@
       if (!allData.some(d => d.topik === Number(t))) b.style.display = 'none';
     });
     setupSentSearch();
+    const hash = decodeURIComponent(location.hash.slice(1));
+    if (hash) setTopic(hash);
   });
 </script>
 {% endblock %}

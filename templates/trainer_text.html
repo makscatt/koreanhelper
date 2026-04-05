@@ -598,6 +598,12 @@
   });
 
   // ── INIT ──
-  loadData();
+  loadData().then(() => {
+    const hash = decodeURIComponent(location.hash.slice(1));
+    if (hash) {
+      const idx = allTextsData.findIndex(t => slugify(t.title) === hash);
+      if (idx !== -1) openTextModal(idx);
+    }
+  });
 </script>
 {% endblock %}
