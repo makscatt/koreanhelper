@@ -1,7 +1,7 @@
 ======================================================================
 АНАЛИЗ ПРОЕКТА: TECHERCAB 2.0
 Путь: C:\Users\MakscattSchool\Desktop\techercab 2.0
-Дата анализа: 2026-04-04 12:50
+Дата анализа: 2026-04-05 09:44
 Всего файлов: 52
 ======================================================================
 
@@ -14,7 +14,7 @@
 📁 СТРУКТУРА ПРОЕКТА
 ----------------------------------------
   app.py  (59.9 KB)
-  bot.py  (31.0 KB)
+  bot.py  (37.7 KB)
   get-pip.py  (2142.0 KB)
   korean-roadmap.html  (19.8 KB)
   README.md  (1.7 KB)
@@ -241,6 +241,14 @@
      def _find_image_for(nid: str) -> str
        """Ищет фото для новости. Сначала в самой записи, потом по похожим заголовкам в кэше."""
      def _extract_image(entry) -> str
+     def _load_published_topics() -> list
+       """Загружает список опубликованных тем из файла."""
+     def _save_published_topic(headline: str, summary: str = "")
+       """Сохраняет тему в файл после успешной публикации."""
+     def gemini_dedup_titles(items: list) -> list
+       """Группирует новости по темам через Gemini (только заголовки — дёшево).
+    Из каждой группы оставляет одну лучшую новость (с фото и длинным описанием).
+    Возвращает дедуплицированный список items."""
      def fetch_news(feeds: list, section: str) -> list
      def gemini_digest(news_items: list, topic_filter: str) -> list
      def gemini_post(title: str, description: str, link: str, has_photo: bool = False) -> str
@@ -381,7 +389,7 @@
 
   📄 templates\base.html
      title: {% block title %}한국어{% endblock %}
-     blocks: extra_css, extra_js, content, title
+     blocks: extra_js, content, extra_css, title
      scripts: https://telegram.org/js/telegram-web-app.js
 
   📄 templates\dashboard.html
@@ -391,7 +399,7 @@
   📄 templates\history.html
      extends: base.html
      blocks: extra_js, content, title
-     api_calls: /api/notes/delete, /api/notes/list
+     api_calls: /api/notes/list, /api/notes/delete
 
   📄 templates\login.html
      extends: base.html
@@ -412,7 +420,7 @@
 
   📄 templates\trainer_base.html
      extends: base.html
-     blocks: trainer_content, extra_js, content, trainer_js
+     blocks: extra_js, content, trainer_js, trainer_content
      scripts: {{ url_for(, {{ url_for(
 
   📄 templates\trainer_cards.html
@@ -436,7 +444,7 @@
   📄 templates\trainer_hub.html
      extends: trainer_base.html
      blocks: trainer_content, trainer_js, title
-     api_calls: /api/hub/delete, /api/hub/list, /api/hub/add-batch, /api/hub/toggle-learned
+     api_calls: /api/hub/list, /api/hub/add-batch, /api/hub/delete, /api/hub/toggle-learned
 
   📄 templates\trainer_locations.html
      extends: trainer_base.html
@@ -457,7 +465,7 @@
   📄 templates\trainer_phrases.html
      extends: trainer_base.html
      blocks: trainer_content, trainer_js, title
-     api_calls: /api/sections/get, /api/sections/toggle, /api/items/set, {{ url_for(, /api/items/get
+     api_calls: /api/items/set, {{ url_for(, /api/items/get, /api/sections/toggle, /api/sections/get
 
   📄 templates\trainer_pictures.html
      extends: trainer_base.html
