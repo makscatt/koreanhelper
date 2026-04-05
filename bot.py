@@ -531,12 +531,15 @@ CHAT_MODELS = {
     "gemini-3.1-pro-preview",
 }
 
-def gemini_chat(message: str, history: list = None, model_name: str = "") -> str:
+def gemini_chat(message: str, history: list = None, model_name: str = "", system_prompt: str = "") -> str:
     """Простой чат с Gemini. history = [{"role":"user","text":"..."}, {"role":"model","text":"..."}]"""
     try:
         genai.configure(api_key=GEMINI_API_KEY)
         use_model = model_name if model_name in CHAT_MODELS else GEMINI_MODEL
-        model = genai.GenerativeModel(use_model)
+        model_kwargs = {}
+        if system_prompt:
+            model_kwargs["system_instruction"] = system_prompt
+        model = genai.GenerativeModel(use_model, **model_kwargs)
 
         contents = []
         if history:

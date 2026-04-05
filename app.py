@@ -1479,7 +1479,8 @@ def api_gemini_chat():
 
     history = data.get("history", [])
     model = data.get("model", "")
-    reply = bot.gemini_chat(message, history, model)
+    system_prompt = data.get("system_prompt", "")
+    reply = bot.gemini_chat(message, history, model, system_prompt=system_prompt)
     return jsonify({"reply": reply})
 
 if __name__ == '__main__':
