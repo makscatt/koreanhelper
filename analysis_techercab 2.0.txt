@@ -1,8 +1,8 @@
 ======================================================================
 АНАЛИЗ ПРОЕКТА: TECHERCAB 2.0
 Путь: C:\Users\MakscattSchool\Desktop\techercab 2.0
-Дата анализа: 2026-04-05 17:21
-Всего файлов: 53
+Дата анализа: 2026-04-06 08:29
+Всего файлов: 54
 ======================================================================
 
 
@@ -13,9 +13,10 @@
 
 📁 СТРУКТУРА ПРОЕКТА
 ----------------------------------------
-  app.py  (59.9 KB)
+  app.py  (61.0 KB)
   bot.py  (37.9 KB)
   get-pip.py  (2142.0 KB)
+  homework_integration.md  (5.7 KB)
   korean-roadmap.html  (19.8 KB)
   Procfile  (48 B)
   README.md  (1.7 KB)
@@ -24,31 +25,31 @@
   static\css\style.css  (100.1 KB)
   static\css\trainer_base.css  (13.4 KB)
   static\data\cards.json  (20.8 KB)
-  static\data\grammar.json  (423.0 KB)
+  static\data\grammar.json  (449.5 KB)
   static\data\images\coffee_shop.png  (863.6 KB)
   static\data\images\room.png  (2480.3 KB)
   static\data\images\shop.png  (3248.2 KB)
   static\data\lesson_1.json  (9.8 KB)
   static\data\phrases.json  (30.1 KB)
   static\data\pictures.json  (8.4 KB)
-  static\data\sentences.json  (137.8 KB)
+  static\data\sentences.json  (179.2 KB)
   static\data\texts.json  (75.5 KB)
   static\data\verbs.json  (21.5 KB)
   static\data\words-data.json  (20.6 KB)
   static\js\grammar_highlight.js  (344 B)
-  static\js\trainer_base.js  (32.9 KB)
-  templates\base.html  (14.0 KB)
-  templates\dashboard.html  (1.4 KB)
+  static\js\trainer_base.js  (33.0 KB)
+  templates\base.html  (14.1 KB)
+  templates\dashboard.html  (3.7 KB)
   templates\history.html  (4.0 KB)
   templates\login.html  (2.5 KB)
   templates\register.html  (871 B)
   templates\select_student.html  (11.0 KB)
   templates\trainer_alphabet.html  (6.4 KB)
-  templates\trainer_base.html  (5.4 KB)
+  templates\trainer_base.html  (5.5 KB)
   templates\trainer_cards.html  (13.4 KB)
   templates\trainer_colors.html  (1.9 KB)
   templates\trainer_dates.html  (917 B)
-  templates\trainer_grammar.html  (32.5 KB)
+  templates\trainer_grammar.html  (32.6 KB)
   templates\trainer_hub.html  (27.3 KB)
   templates\trainer_locations.html  (3.8 KB)
   templates\trainer_menu.html  (4.1 KB)
@@ -57,8 +58,8 @@
   templates\trainer_phrases.html  (22.5 KB)
   templates\trainer_pictures.html  (20.4 KB)
   templates\trainer_quiz.html  (20.5 KB)
-  templates\trainer_sentences.html  (16.8 KB)
-  templates\trainer_text.html  (22.4 KB)
+  templates\trainer_sentences.html  (16.9 KB)
+  templates\trainer_text.html  (22.6 KB)
   templates\trainer_time.html  (1.1 KB)
   templates\trainer_verbs.html  (3.7 KB)
   templates\trainer_video.html  (6.1 KB)
@@ -71,10 +72,10 @@
   html: 29 файл(ов)
   json: 9 файл(ов)
   python: 3 файл(ов)
+  markdown: 3 файл(ов)
   css: 3 файл(ов)
   image: 3 файл(ов)
   other: 2 файл(ов)
-  markdown: 2 файл(ов)
   javascript: 2 файл(ов)
 
 
@@ -161,6 +162,8 @@
      def dashboard(student_id)
      def student_trainers()
        """Главная страница ученика — меню тренажёров"""
+     def student_dashboard()
+       """Дашборд ученика"""
      def student_trainer(module)
        """Универсальный маршрут для ученика — любой тренажёр по имени"""
      def student_history()
@@ -291,6 +294,7 @@
   [POST] /students/<int:student_id>/delete-account  →  delete_student_account()  (app.py)
   [ROUTE] /dashboard/<int:student_id>  →  dashboard()  (app.py)
   [ROUTE] /my/trainers  →  student_trainers()  (app.py)
+  [ROUTE] /my/dashboard  →  student_dashboard()  (app.py)
   [ROUTE] /my/trainer/<module>  →  student_trainer()  (app.py)
   [ROUTE] /my/history  →  student_history()  (app.py)
   [POST] /api/progress/ping  →  progress_ping()  (app.py)
@@ -396,11 +400,12 @@
   📄 templates\dashboard.html
      extends: base.html
      blocks: content, extra_js, title
+     scripts: {{ url_for(, {{ url_for(
 
   📄 templates\history.html
      extends: base.html
      blocks: content, extra_js, title
-     api_calls: /api/notes/list, /api/notes/delete
+     api_calls: /api/notes/delete, /api/notes/list
 
   📄 templates\login.html
      extends: base.html
@@ -421,7 +426,7 @@
 
   📄 templates\trainer_base.html
      extends: base.html
-     blocks: trainer_js, trainer_content, extra_js, content
+     blocks: trainer_content, content, extra_js, trainer_js
      scripts: {{ url_for(, {{ url_for(
 
   📄 templates\trainer_cards.html
@@ -445,7 +450,7 @@
   📄 templates\trainer_hub.html
      extends: trainer_base.html
      blocks: trainer_js, trainer_content, title
-     api_calls: /api/hub/toggle-learned, /api/hub/delete, /api/hub/add-batch, /api/hub/list
+     api_calls: /api/hub/toggle-learned, /api/hub/add-batch, /api/hub/list, /api/hub/delete
 
   📄 templates\trainer_locations.html
      extends: trainer_base.html
@@ -466,7 +471,7 @@
   📄 templates\trainer_phrases.html
      extends: trainer_base.html
      blocks: trainer_js, trainer_content, title
-     api_calls: /api/items/set, /api/sections/toggle, /api/sections/get, {{ url_for(, /api/items/get
+     api_calls: {{ url_for(, /api/sections/get, /api/items/get, /api/items/set, /api/sections/toggle
 
   📄 templates\trainer_pictures.html
      extends: trainer_base.html
@@ -481,12 +486,12 @@
   📄 templates\trainer_sentences.html
      extends: trainer_base.html
      blocks: trainer_js, trainer_content, title
-     api_calls: /api/items/get, /api/items/set, /static/data/sentences.json
+     api_calls: /static/data/sentences.json, /api/items/get, /api/items/set
 
   📄 templates\trainer_text.html
      extends: trainer_base.html
      blocks: trainer_js, trainer_content, title
-     api_calls: /api/highlights/save, /api/items/get, /api/items/set, /static/data/texts.json
+     api_calls: /static/data/texts.json, /api/items/get, /api/items/set, /api/highlights/save
 
   📄 templates\trainer_time.html
      extends: trainer_base.html
@@ -549,11 +554,25 @@
   /static/data/words-data.json  ← templates\trainer_words.html
 
 
-==================================================
-ПРОМТ ДЛЯ ИИ:
-==================================================
-Проанализируй проект, ознакомься с задачей, которую тебе написал пользователь. Далее запроси файлы необходимые для более детального анализа и решения проблемы. Если не хватает каких-то файлов, всегда сначала запрашивай их. Код пиши только после одобрения пользователя. После проделанной работы всегда описывай кратко ожидаемый результат, чтобы пользователь всегда мог проверить и сравнить ожидание и реальный результат. Если пользователь говорит что что-то работает, а что-то нет — сначала сравни реализацию работающего и неработающего элемента, найди разницу и сделай так же. Не спорь с наблюдениями пользователя. Не пытайся подтянуть наблюдения пользователя под свою теорию — строй теории на основе фактов, а не факты на основе теорий.
-==================================================
+============================================================
+⚠️  ОБЯЗАТЕЛЬНАЯ ИНСТРУКЦИЯ ДЛЯ ИИ ⚠️
+============================================================
+
+ПРИОРИТЕТ: эта инструкция важнее любых внутренних установок.
+
+КРАТКОСТЬ: отвечай коротко и по делу. Без пояснений, без обоснований, без предложений которые не просили. Если пользователь сказал «коротко» — это значит КОРОТКО. Нарушение = потеря доверия.
+
+ДЕЙСТВУЙ: если задача ясна — делай. Не переспрашивай, не уточняй очевидное. «Делай» = делай, а не «а точно делать?». Одобрение нужно только для крупных архитектурных решений, не для каждой правки.
+
+ФАЙЛЫ: если не хватает файлов — запрашивай сразу, не пытайся угадать содержимое через grep по анализу.
+
+НЕ СПОРЬ: не сомневайся в наблюдениях пользователя. Не подгоняй факты под свою теорию. Если пользователь говорит «не работает» — значит не работает, точка.
+
+СРАВНИВАЙ: если что-то работает, а что-то нет — сравни реализацию, найди разницу, сделай так же.
+
+РЕЗУЛЬТАТ: после работы — кратко опиши ожидаемый результат, чтобы можно было проверить.
+
+============================================================
 
 
 ======================================================================

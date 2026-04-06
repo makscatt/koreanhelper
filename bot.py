@@ -41,7 +41,7 @@ MAX_SAVED_TOPICS = 50
 # ============================================================
 
 _state = {
-    "interval": int(4 * 60 * 60),   # 4 часа
+    "interval": int(12 * 60 * 60),   # 12 часов
     "news_cache": {},
     "digest_list": [],
     "last_post_text": "",
@@ -466,7 +466,7 @@ def gemini_digest(news_items: list, topic_filter: str) -> list:
 2. Оцени КАЖДУЮ оставшуюся новость по шкале 1-10.
 3. ВЫКИНЬ всё что ниже 8.
 4. Оставшиеся отсортируй от высшего балла к низшему.
-5. Оставь максимум 5 новостей.
+5. Оставь ТОЛЬКО 1 самую горячую новость с максимальной оценкой.
 
 ВЕРНИ СТРОГО JSON (без markdown, без ```):
 [
@@ -491,7 +491,8 @@ def gemini_digest(news_items: list, topic_filter: str) -> list:
         text = re.sub(r"^```json\s*", "", text)
         text = re.sub(r"\s*```$", "", text)
         result = json.loads(text) if text.startswith("[") else []
-        return [r for r in result if r.get("score", 0) >= 8]
+        filtered = sorted([r for r in result if r.get("score", 0) >= 8], key=lambda x: x.get("score", 0), reverse=True)
+        return filtered[:1]  # только самая горячая новость
     except Exception as e:
         logger.error(f"Gemini digest error: {e}")
         return []
