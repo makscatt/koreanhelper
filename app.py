@@ -442,6 +442,7 @@ def group_trainer(module):
         'sentences': 'trainer_sentences.html',
         'grammar':   'trainer_grammar.html',
         'text':      'trainer_text.html',
+        'texts':     'trainer_text.html',
         'cards':     'trainer_cards.html',
         'words':     'trainer_words.html',
         'quiz':      'trainer_quiz.html',
@@ -449,6 +450,7 @@ def group_trainer(module):
         'pictures':  'trainer_pictures.html',
         'phrases':   'trainer_phrases.html',
         'hub':       'trainer_hub.html',
+        'mini':      'trainer_mini.html',
     }
     template = template_map.get(module)
     if not template:
@@ -646,6 +648,7 @@ def student_trainer(module):
         'sentences': 'trainer_sentences.html',
         'grammar':   'trainer_grammar.html',
         'text':      'trainer_text.html',
+        'texts':     'trainer_text.html',
         'cards':     'trainer_cards.html',
         'words':     'trainer_words.html',
         'quiz':      'trainer_quiz.html',
@@ -653,6 +656,7 @@ def student_trainer(module):
         'pictures':  'trainer_pictures.html',
         'phrases':   'trainer_phrases.html',
         'hub':       'trainer_hub.html',
+        'mini':      'trainer_mini.html',
     }
     template = template_map.get(module)
     if not template:
@@ -1357,6 +1361,11 @@ def trainer_grammar(student_id):
 def trainer_text(student_id):
     return _teacher_trainer(student_id, 'trainer_text.html')
 
+@app.route('/student/<int:student_id>/trainer/texts')
+@teacher_required
+def trainer_texts(student_id):
+    return _teacher_trainer(student_id, 'trainer_text.html')
+
 @app.route('/student/<int:student_id>/trainer/cards')
 @teacher_required
 def trainer_cards(student_id):
@@ -1391,6 +1400,11 @@ def trainer_phrases(student_id):
 @teacher_required
 def trainer_hub(student_id):
     return _teacher_trainer(student_id, 'trainer_hub.html')
+
+@app.route('/student/<int:student_id>/trainer/mini')
+@teacher_required
+def trainer_mini(student_id):
+    return _teacher_trainer(student_id, 'trainer_mini.html')
 
 @app.route('/student/<int:student_id>/history')
 @teacher_required

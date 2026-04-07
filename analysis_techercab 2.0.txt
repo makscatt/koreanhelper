@@ -1,7 +1,7 @@
 ======================================================================
 АНАЛИЗ ПРОЕКТА: TECHERCAB 2.0
 Путь: C:\Users\MakscattSchool\Desktop\techercab 2.0
-Дата анализа: 2026-04-06 08:29
+Дата анализа: 2026-04-07 07:22
 Всего файлов: 54
 ======================================================================
 
@@ -14,7 +14,7 @@
 📁 СТРУКТУРА ПРОЕКТА
 ----------------------------------------
   app.py  (61.0 KB)
-  bot.py  (37.9 KB)
+  bot.py  (38.1 KB)
   get-pip.py  (2142.0 KB)
   homework_integration.md  (5.7 KB)
   korean-roadmap.html  (19.8 KB)
@@ -394,18 +394,18 @@
 
   📄 templates\base.html
      title: {% block title %}한국어{% endblock %}
-     blocks: extra_css, content, extra_js, title
+     blocks: extra_js, extra_css, content, title
      scripts: https://telegram.org/js/telegram-web-app.js
 
   📄 templates\dashboard.html
      extends: base.html
-     blocks: content, extra_js, title
+     blocks: extra_js, content, title
      scripts: {{ url_for(, {{ url_for(
 
   📄 templates\history.html
      extends: base.html
-     blocks: content, extra_js, title
-     api_calls: /api/notes/delete, /api/notes/list
+     blocks: extra_js, content, title
+     api_calls: /api/notes/list, /api/notes/delete
 
   📄 templates\login.html
      extends: base.html
@@ -426,7 +426,7 @@
 
   📄 templates\trainer_base.html
      extends: base.html
-     blocks: trainer_content, content, extra_js, trainer_js
+     blocks: trainer_js, extra_js, trainer_content, content
      scripts: {{ url_for(, {{ url_for(
 
   📄 templates\trainer_cards.html
@@ -450,7 +450,7 @@
   📄 templates\trainer_hub.html
      extends: trainer_base.html
      blocks: trainer_js, trainer_content, title
-     api_calls: /api/hub/toggle-learned, /api/hub/add-batch, /api/hub/list, /api/hub/delete
+     api_calls: /api/hub/list, /api/hub/delete, /api/hub/add-batch, /api/hub/toggle-learned
 
   📄 templates\trainer_locations.html
      extends: trainer_base.html
@@ -471,7 +471,7 @@
   📄 templates\trainer_phrases.html
      extends: trainer_base.html
      blocks: trainer_js, trainer_content, title
-     api_calls: {{ url_for(, /api/sections/get, /api/items/get, /api/items/set, /api/sections/toggle
+     api_calls: {{ url_for(, /api/sections/get, /api/items/get, /api/sections/toggle, /api/items/set
 
   📄 templates\trainer_pictures.html
      extends: trainer_base.html
@@ -491,7 +491,7 @@
   📄 templates\trainer_text.html
      extends: trainer_base.html
      blocks: trainer_js, trainer_content, title
-     api_calls: /static/data/texts.json, /api/items/get, /api/items/set, /api/highlights/save
+     api_calls: /static/data/texts.json, /api/highlights/save, /api/items/get, /api/items/set
 
   📄 templates\trainer_time.html
      extends: trainer_base.html

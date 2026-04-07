@@ -1,0 +1,423 @@
+{% extends "trainer_base.html" %}
+{% block title %}Мини-тренажёры — {{ student.name }}{% endblock %}
+
+{% block trainer_content %}
+<div class="trainer-header">
+  <h1 class="trainer-title">🎯 Мини-тренажёры</h1>
+</div>
+
+<div class="mini-layout">
+
+  <!-- LEFT SIDEBAR -->
+  <div class="mini-sidebar">
+    <div class="mini-sidebar-block">
+      <div class="mini-sidebar-label">Тренажёр</div>
+      <button class="mini-sidebar-btn active" data-t="colors" onclick="switchTrainer('colors',this)">🎨 Цвета</button>
+      <button class="mini-sidebar-btn" data-t="weekdays" onclick="switchTrainer('weekdays',this)">📅 Дни недели</button>
+      <button class="mini-sidebar-btn" data-t="weather" onclick="switchTrainer('weather',this)">🌤️ Погода</button>
+      <button class="mini-sidebar-btn" data-t="locations" onclick="switchTrainer('locations',this)">📍 Место</button>
+      <button class="mini-sidebar-btn" data-t="character" onclick="switchTrainer('character',this)">😊 Характер</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="mini-main">
+
+    <!-- ═══ COLORS ═══ -->
+    <div class="mini-panel active" id="panel-colors">
+      <div class="display-container">
+        <div class="color-box" id="color-box"></div>
+        <div class="answer-slot" id="color-name" style="font-size:1.4rem;font-weight:700;color:var(--text-primary);">빨간색</div>
+        <div class="controls">
+          <button class="action-btn warning" onclick="toggleVis('color-name')">👁️</button>
+          <button class="action-btn secondary" onclick="speakText(colors[ci].name)">🔊</button>
+          <button class="action-btn" onclick="prevColor()">⬅️</button>
+          <button class="action-btn" onclick="nextColor()">➡️</button>
+          <button class="action-btn" onclick="genColor()">🎲</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ WEEKDAYS ═══ -->
+    <div class="mini-panel" id="panel-weekdays">
+      <div class="display-container">
+        <div class="big-text" id="wd-rus">Понедельник</div>
+        <div class="answer-slot" id="wd-kor">월요일</div>
+        <div class="controls">
+          <button class="action-btn warning" onclick="toggleVis('wd-kor')">👁️</button>
+          <button class="action-btn secondary" onclick="speakText(wds[wi].kor)">🔊</button>
+          <button class="action-btn" onclick="prevWd()">⬅️</button>
+          <button class="action-btn" onclick="nextWd()">➡️</button>
+          <button class="action-btn" onclick="genWd()">🎲</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ WEATHER ═══ -->
+    <div class="mini-panel" id="panel-weather">
+      <div class="tabs-wrapper" id="weather-tabs"></div>
+      <div class="display-container">
+        <div class="big-text" id="weather-icon" style="font-size:7rem;">☀️</div>
+        <div class="answer-slot" id="weather-kor">맑아요</div>
+        <div class="controls">
+          <button class="action-btn warning" onclick="toggleVis('weather-kor')">👁️</button>
+          <button class="action-btn secondary" onclick="speakText(wList[wxi].kor)">🔊</button>
+          <button class="action-btn" onclick="prevW()">⬅️</button>
+          <button class="action-btn" onclick="nextW()">➡️</button>
+          <button class="action-btn" onclick="genW()">🎲</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ LOCATIONS ═══ -->
+    <div class="mini-panel" id="panel-locations" data-module="locations">
+      <div class="display-container">
+        <div class="scene-container">
+          <div class="pixel-obj box-part-back">
+            <svg viewBox="0 0 100 100" width="100%" height="100%">
+              <rect x="5" y="5" width="90" height="20" fill="#6d4c41" stroke="#5d4037" stroke-width="3" rx="2"/>
+            </svg>
+          </div>
+          <div class="pixel-obj pixel-cat" id="cat-obj">
+            <svg viewBox="0 0 100 100" width="100%" height="100%">
+              <path d="M75 65 Q92 52 84 42" fill="none" stroke="#ffa726" stroke-width="8" stroke-linecap="round"/>
+              <rect x="22" y="45" width="56" height="40" fill="#ffa726" rx="5"/>
+              <circle cx="50" cy="38" r="24" fill="#ffa726"/>
+              <path d="M30 22 L25 5 L44 17 Z" fill="#ffa726"/>
+              <path d="M70 22 L75 5 L56 17 Z" fill="#ffa726"/>
+              <circle cx="40" cy="33" r="3" fill="#333"/>
+              <circle cx="60" cy="33" r="3" fill="#333"/>
+              <circle cx="50" cy="41" r="2" fill="pink"/>
+            </svg>
+          </div>
+          <div class="pixel-obj box-part-front">
+            <svg viewBox="0 0 100 100" width="100%" height="100%">
+              <rect x="5" y="5" width="90" height="90" fill="#c19a6b" stroke="#5d4037" stroke-width="3" rx="2"/>
+              <line x1="12" y1="10" x2="12" y2="90" stroke="#a1887f" stroke-width="2"/>
+            </svg>
+          </div>
+        </div>
+        <div class="big-text" id="loc-sentence" style="font-size:1.4rem;">고양이가 상자</div>
+        <div class="answer-slot" id="loc-answer" style="color:#007bff;font-weight:700;">앞에 있어요</div>
+        <div class="controls">
+          <button class="action-btn warning" onclick="toggleVis('loc-answer')">👁️</button>
+          <button class="action-btn secondary" onclick="speakText(locs[li].sentence)">🔊</button>
+          <button class="action-btn" onclick="prevLoc()">⬅️</button>
+          <button class="action-btn" onclick="nextLoc()">➡️</button>
+          <button class="action-btn" onclick="genLoc()">🎲</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ CHARACTER 어때요 ═══ -->
+    <div class="mini-panel" id="panel-character">
+      <div class="char-tabs" id="char-tabs"></div>
+      <div class="display-container">
+        <div class="big-text" id="char-emoji" style="font-size:5rem;">😊</div>
+        <div class="big-text" id="char-rus" style="font-size:1.6rem;">Добрый</div>
+        <div class="answer-slot" id="char-kor" style="font-size:1.4rem;font-weight:700;color:var(--primary);">착해요</div>
+        <div class="controls">
+          <button class="action-btn warning" onclick="toggleVis('char-kor')">👁️</button>
+          <button class="action-btn secondary" onclick="speakText(charList[chari].kor)">🔊</button>
+          <button class="action-btn" onclick="prevChar()">⬅️</button>
+          <button class="action-btn" onclick="nextChar()">➡️</button>
+          <button class="action-btn" onclick="genChar()">🎲</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+/* ── Combined layout ── */
+.mini-layout {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 12px 20px 20px;
+  box-sizing: border-box;
+}
+.mini-sidebar {
+  width: 180px;
+  flex-shrink: 0;
+}
+.mini-sidebar-block {
+  background: var(--bg-surface, #fff);
+  border: 1.5px solid var(--border-color, #e4e8ef);
+  border-radius: 12px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mini-sidebar-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-tertiary, #8b92a0);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 2px;
+}
+.mini-sidebar-btn {
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border-color, #e4e8ef);
+  background: transparent;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: 0.15s;
+  color: var(--text-secondary, #8b92a0);
+}
+.mini-sidebar-btn:hover:not(.active) {
+  border-color: #c0c8d8;
+  color: var(--text-primary, #1a1d23);
+}
+.mini-sidebar-btn.active {
+  background: var(--primary, #4758d6);
+  color: #fff;
+  border-color: var(--primary, #4758d6);
+}
+
+.mini-main {
+  flex: 1;
+  min-width: 0;
+}
+.mini-panel {
+  display: none;
+}
+.mini-panel.active {
+  display: block;
+}
+
+/* Character tabs */
+.char-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  justify-content: center;
+}
+
+@media (max-width: 600px) {
+  .mini-layout { flex-direction: column; }
+  .mini-sidebar { width: 100%; }
+  .mini-sidebar-block { flex-direction: row; flex-wrap: wrap; }
+  .mini-sidebar-btn { width: auto; flex: 1; text-align: center; min-width: 0; padding: 6px 8px; font-size: 0.72rem; }
+}
+</style>
+{% endblock %}
+
+{% block trainer_js %}
+<script>
+document.body.dataset.module = 'mini';
+
+/* ── Shared helpers ── */
+function toggleVis(id) {
+  const el = document.getElementById(id);
+  el.style.visibility = el.style.visibility === 'hidden' ? 'visible' : 'hidden';
+}
+function switchTrainer(name, btn) {
+  document.querySelectorAll('.mini-sidebar-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.mini-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+}
+
+/* ═══════════ COLORS ═══════════ */
+const colors = [
+  { code:'#FF0000', name:'빨간색' }, { code:'#0000FF', name:'파란색' },
+  { code:'#008000', name:'초록색' }, { code:'#FFFF00', name:'노란색' },
+  { code:'#000000', name:'검은색' }, { code:'#FFFFFF', name:'하얀색' },
+  { code:'#800080', name:'보라색' }, { code:'#FFA500', name:'주황색' },
+  { code:'#FFC0CB', name:'분홍색' }, { code:'#808080', name:'회색'   },
+  { code:'#804030', name:'갈색'   }
+];
+let ci = 0;
+function setColorCard(i) {
+  ci = i;
+  document.getElementById('color-box').style.backgroundColor = colors[i].code;
+  const el = document.getElementById('color-name');
+  el.textContent = colors[i].name;
+  el.style.visibility = 'hidden';
+}
+function prevColor() { setColorCard((ci - 1 + colors.length) % colors.length); }
+function nextColor() { setColorCard((ci + 1) % colors.length); }
+function genColor() { trackExercise(); setColorCard(randExcept(colors.length, ci)); }
+setColorCard(0);
+
+/* ═══════════ WEEKDAYS ═══════════ */
+const wds = [
+  { rus:'Понедельник', kor:'월요일' }, { rus:'Вторник', kor:'화요일' },
+  { rus:'Среда', kor:'수요일' },       { rus:'Четверг', kor:'목요일' },
+  { rus:'Пятница', kor:'금요일' },     { rus:'Суббота', kor:'토요일' },
+  { rus:'Воскресенье', kor:'일요일' }
+];
+let wi = 0;
+function setWdCard(i) {
+  wi = i;
+  document.getElementById('wd-rus').textContent = wds[i].rus;
+  const el = document.getElementById('wd-kor');
+  el.textContent = wds[i].kor;
+  el.style.visibility = 'hidden';
+}
+function prevWd() { setWdCard((wi - 1 + wds.length) % wds.length); }
+function nextWd() { setWdCard((wi + 1) % wds.length); }
+function genWd() { trackExercise(); setWdCard(randExcept(wds.length, wi)); }
+setWdCard(0);
+
+/* ═══════════ WEATHER ═══════════ */
+const wLevels = [
+  { name:'База', data:[
+    { icon:'☀️', kor:'맑아요' }, { icon:'☁️', kor:'흐려요' },
+    { icon:'🌧️', kor:'비가 와요' }, { icon:'❄️', kor:'눈이 와요' },
+    { icon:'🥶', kor:'추워요' }, { icon:'🌡️', kor:'더워요' }
+  ]},
+  { name:'Продвинутый', data:[
+    { icon:'😊', kor:'따뜻해요' }, { icon:'🌬️', kor:'시원해요' },
+    { icon:'🧣', kor:'쌀쌀해요' }, { icon:'🌫️', kor:'안개가 꼈어요' },
+    { icon:'💧', kor:'습해요' }, { icon:'💨', kor:'바람이 불어요' },
+    { icon:'🌦️', kor:'소나기가 와요' }, { icon:'⛈️', kor:'천둥번개가 쳐요' }
+  ]},
+  { name:'Времена года', data:[
+    { icon:'🌸', kor:'봄' }, { icon:'☀️', kor:'여름' },
+    { icon:'🍂', kor:'가을' }, { icon:'⛄', kor:'겨울' },
+    { icon:'🌸', kor:'봄이에요' }, { icon:'☀️', kor:'여름이에요' },
+    { icon:'🍂', kor:'가을이에요' }, { icon:'⛄', kor:'겨울이에요' },
+    { icon:'🌷', kor:'봄에는 따뜻해요' }, { icon:'🏖️', kor:'여름에는 더워요' },
+    { icon:'🍁', kor:'가을에는 시원해요' }, { icon:'❄️', kor:'겨울에는 추워요' }
+  ]}
+];
+let wList = wLevels[0].data, wxi = 0;
+(function buildWeatherTabs() {
+  const tabsEl = document.getElementById('weather-tabs');
+  wLevels.forEach((l, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn' + (i === 0 ? ' active' : '');
+    btn.textContent = l.name;
+    btn.onclick = () => {
+      tabsEl.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      wList = l.data; setWCard(0);
+    };
+    tabsEl.appendChild(btn);
+  });
+})();
+function setWCard(i) {
+  wxi = i;
+  document.getElementById('weather-icon').textContent = wList[i].icon;
+  const el = document.getElementById('weather-kor');
+  el.textContent = wList[i].kor;
+  el.style.visibility = 'hidden';
+}
+function prevW() { setWCard((wxi - 1 + wList.length) % wList.length); }
+function nextW() { setWCard((wxi + 1) % wList.length); }
+function genW() { trackExercise(); setWCard(randExcept(wList.length, wxi)); }
+setWCard(0);
+
+/* ═══════════ LOCATIONS ═══════════ */
+const locs = [
+  { word:'위',         sentence:'고양이가 상자 위에 있어요',       style:{ top:'5px',   left:'100px', zIndex:40 }},
+  { word:'아래 (밑)',  sentence:'고양이가 상자 아래에 있어요',     style:{ top:'200px', left:'100px', zIndex:40 }},
+  { word:'앞',        sentence:'고양이가 상자 앞에 있어요',       style:{ top:'155px', left:'100px', zIndex:40 }},
+  { word:'뒤',        sentence:'고양이가 상자 뒤에 있어요',       style:{ top:'60px',  left:'100px', zIndex:5  }},
+  { word:'왼쪽 (옆)', sentence:'고양이가 상자 왼쪽에 있어요',     style:{ top:'100px', left:'5px',   zIndex:40 }},
+  { word:'오른쪽 (옆)',sentence:'고양이가 상자 오른쪽에 있어요',   style:{ top:'100px', left:'195px', zIndex:40 }},
+  { word:'안',        sentence:'고양이가 상자 안에 있어요',       style:{ top:'110px', left:'100px', zIndex:20 }},
+];
+let li = 0;
+function setLocCard(i) {
+  li = i;
+  const cat = document.getElementById('cat-obj');
+  cat.style.top = locs[i].style.top;
+  cat.style.left = locs[i].style.left;
+  cat.style.zIndex = locs[i].style.zIndex;
+  const el = document.getElementById('loc-answer');
+  el.textContent = locs[i].word + '에 있어요';
+  el.style.visibility = 'hidden';
+}
+function prevLoc() { setLocCard((li - 1 + locs.length) % locs.length); }
+function nextLoc() { setLocCard((li + 1) % locs.length); }
+function genLoc() { trackExercise(); setLocCard(randExcept(locs.length, li)); }
+setLocCard(2);
+
+/* ═══════════ CHARACTER 어때요 ═══════════ */
+const charGroups = [
+  { name:'Характер', data:[
+    { emoji:'😊', rus:'Добрый',        kor:'착해요' },
+    { emoji:'😈', rus:'Злой',          kor:'나빠요 / 못돼요' },
+    { emoji:'😄', rus:'Весёлый',       kor:'밝아요 / 명랑해요' },
+    { emoji:'😢', rus:'Грустный',      kor:'우울해요' },
+    { emoji:'🤫', rus:'Тихий',         kor:'조용해요' },
+    { emoji:'📢', rus:'Шумный',        kor:'시끄러워요' },
+    { emoji:'💪', rus:'Сильный',       kor:'강해요' },
+    { emoji:'🧸', rus:'Нежный',        kor:'다정해요' },
+    { emoji:'🧠', rus:'Умный',         kor:'똑똑해요' },
+    { emoji:'🤪', rus:'Глупый',        kor:'바보 같아요' },
+    { emoji:'😎', rus:'Крутой',        kor:'멋있어요' },
+    { emoji:'🥰', rus:'Милый',         kor:'귀여워요' },
+    { emoji:'🫣', rus:'Застенчивый',   kor:'수줍어해요' },
+    { emoji:'🗣️', rus:'Общительный',   kor:'외향적이에요' },
+    { emoji:'🤝', rus:'Дружелюбный',   kor:'친절해요' },
+    { emoji:'😤', rus:'Упрямый',       kor:'고집이 세요' },
+  ]},
+  { name:'Внешность', data:[
+    { emoji:'👤', rus:'Красивый (м)',   kor:'잘생겼어요' },
+    { emoji:'👩', rus:'Красивая (ж)',   kor:'예뻐요' },
+    { emoji:'🧑', rus:'Симпатичный',    kor:'귀여워요 / 멋있어요' },
+    { emoji:'📏', rus:'Высокий',       kor:'키가 커요' },
+    { emoji:'📐', rus:'Низкий',        kor:'키가 작아요' },
+    { emoji:'🏋️', rus:'Худой',         kor:'날씬해요' },
+    { emoji:'🐻', rus:'Полный',        kor:'통통해요' },
+    { emoji:'💇', rus:'Длинные волосы', kor:'머리가 길어요' },
+    { emoji:'💈', rus:'Короткие волосы',kor:'머리가 짧아요' },
+  ]},
+  { name:'Настроение', data:[
+    { emoji:'😀', rus:'Счастливый',    kor:'행복해요' },
+    { emoji:'😠', rus:'Сердитый',      kor:'화났어요' },
+    { emoji:'😰', rus:'Волнуется',     kor:'걱정돼요' },
+    { emoji:'😴', rus:'Сонный',        kor:'졸려요' },
+    { emoji:'😩', rus:'Устал',         kor:'피곤해요' },
+    { emoji:'🤩', rus:'В восторге',    kor:'신나요' },
+    { emoji:'😐', rus:'Так себе',      kor:'그냥 그래요' },
+    { emoji:'🥱', rus:'Скучно',        kor:'심심해요' },
+    { emoji:'😳', rus:'Смущён',        kor:'당황했어요' },
+    { emoji:'🫠', rus:'Расслаблен',    kor:'편해요' },
+  ]}
+];
+let charList = charGroups[0].data, chari = 0;
+(function buildCharTabs() {
+  const tabsEl = document.getElementById('char-tabs');
+  charGroups.forEach((g, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn' + (i === 0 ? ' active' : '');
+    btn.textContent = g.name;
+    btn.onclick = () => {
+      tabsEl.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      charList = g.data; setCharCard(0);
+    };
+    tabsEl.appendChild(btn);
+  });
+})();
+function setCharCard(i) {
+  chari = i;
+  document.getElementById('char-emoji').textContent = charList[i].emoji;
+  document.getElementById('char-rus').textContent = charList[i].rus;
+  const el = document.getElementById('char-kor');
+  el.textContent = charList[i].kor;
+  el.style.visibility = 'hidden';
+}
+function prevChar() { setCharCard((chari - 1 + charList.length) % charList.length); }
+function nextChar() { setCharCard((chari + 1) % charList.length); }
+function genChar() { trackExercise(); setCharCard(randExcept(charList.length, chari)); }
+setCharCard(0);
+
+</script>
+{% endblock %}

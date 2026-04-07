@@ -91,6 +91,58 @@
 
   </div>
 </div>
+
+<style>
+/* ── List checkbox row ── */
+.ph-list-check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.ph-list-cb {
+  width: 22px; height: 22px;
+  border: 2px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px; font-weight: 700;
+  color: transparent;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: all 0.15s;
+}
+.ph-list-cb:hover { border-color: #22c55e; }
+.ph-list-cb.checked {
+  background: #22c55e; border-color: #22c55e; color: #fff;
+}
+.ph-list-phrase-wrap { flex: 1; min-width: 0; }
+.ph-list-kor-student { color: #16a34a; }
+.ph-list-pair.mastered {
+  background: #f0fdf4;
+}
+.ph-list-pair.mastered .ph-list-kor { opacity: 0.7; }
+.ph-list-pair.mastered .ph-list-rus { opacity: 0.5; }
+
+/* ── Section tab auto-done (all phrases mastered) ── */
+.ph-section-btn.auto-done {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+.ph-section-btn.auto-done.active {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: #fff;
+}
+.ph-section-cb.auto-checked {
+  background: #86efac !important;
+  border-color: #22c55e !important;
+  color: #16a34a !important;
+}
+.ph-section-cb.auto-checked::after {
+  content: '✓';
+}
+</style>
 {% endblock %}
 
 {% block trainer_js %}
@@ -152,6 +204,7 @@
     }
     buildSectionTabs();
     applyFilters();
+    updateSectionDoneState();
   }
 
   function setMode(mode, btn) {
@@ -191,6 +244,7 @@
       if (data.ok) {
         sectionsDone[section] = data.checked;
         buildSectionTabs();
+        updateSectionDoneState();
         // restore active section highlight
         document.querySelectorAll('.ph-section-btn').forEach(b => {
           if (b.dataset.section === activeSection) b.classList.add('active');
@@ -286,6 +340,7 @@
     document.getElementById('tag-template').style.display = pair.type === 'template' ? '' : 'none';
     document.getElementById('mastered-star').classList.toggle('visible', isMastered);
     document.getElementById('card').style.borderColor = isMastered ? '#bbf7d0' : '#e4e8ef';
+    document.getElementById('card').style.background = isMastered ? '#f0fdf4' : '';
 
     buildDialog(pair);
   }
@@ -380,37 +435,82 @@
       sectionMap[pair.section].pairs.push(pair);
     });
     sections.forEach(sec => {
+      const masteredInSec = sec.pairs.filter(p => progress[p.id] === 'know').length;
+      const allDone = masteredInSec === sec.pairs.length;
       const block = document.createElement('div'); block.className = 'ph-list-section-block';
       const header = document.createElement('div'); header.className = 'ph-list-section-header';
-      header.innerHTML = `${getSectionIcon(sec.section)} ${sec.label} <span class="ph-list-section-count">${sec.pairs.length}</span>`;
+      header.innerHTML = `${getSectionIcon(sec.section)} ${sec.label} <span class="ph-list-section-count">${masteredInSec}/${sec.pairs.length}</span>${allDone ? ' <span style="color:#22c55e;">✓</span>' : ''}`;
       block.appendChild(header);
       const pairsEl = document.createElement('div'); pairsEl.className = 'ph-list-pairs';
       sec.pairs.forEach(pair => {
-        const pairEl = document.createElement('div'); pairEl.className = 'ph-list-pair';
-        const turnsEl = document.createElement('div'); turnsEl.className = 'ph-list-turns';
+        const isMastered = progress[pair.id] === 'know';
+        const pairEl = document.createElement('div');
+        pairEl.className = 'ph-list-pair' + (isMastered ? ' mastered' : '');
+
+        // Checkbox + phrase row
+        const row = document.createElement('div'); row.className = 'ph-list-check-row';
+
+        const cb = document.createElement('button');
+        cb.className = 'ph-list-cb' + (isMastered ? ' checked' : '');
+        cb.innerHTML = isMastered ? '✓' : '';
+        cb.onclick = () => toggleListItem(pair.id, cb, pairEl);
+        if (!IS_TEACHER) cb.style.pointerEvents = 'none';
+        row.appendChild(cb);
+
+        const phraseWrap = document.createElement('div'); phraseWrap.className = 'ph-list-phrase-wrap';
+        // Teacher phrase
         if (pair.teacher && pair.teacher.kor) {
           const isNA = pair.teacher.kor.startsWith('(');
-          const turnEl = document.createElement('div'); turnEl.className = 'ph-list-turn';
-          const dot = document.createElement('div'); dot.className = `ph-list-priority-dot ${pair.priority}`; turnEl.appendChild(dot);
-          const roleEl = document.createElement('div'); roleEl.className = 'ph-list-turn-role ' + (isNA ? 'na' : 't'); roleEl.textContent = isNA ? '—' : '👩‍🏫 Учитель'; turnEl.appendChild(roleEl);
-          const phraseEl = document.createElement('div'); phraseEl.className = 'ph-list-phrase';
-          phraseEl.innerHTML = `<div class="ph-list-kor">${pair.teacher.kor}</div>`;
-          if (pair.teacher.rus && !isNA) phraseEl.innerHTML += `<div class="ph-list-rus">${pair.teacher.rus}</div>`;
-          turnEl.appendChild(phraseEl); turnsEl.appendChild(turnEl);
+          if (!isNA) {
+            const korEl = document.createElement('div'); korEl.className = 'ph-list-kor';
+            korEl.innerHTML = pair.teacher.kor;
+            phraseWrap.appendChild(korEl);
+            if (pair.teacher.rus) {
+              const rusEl = document.createElement('div'); rusEl.className = 'ph-list-rus';
+              rusEl.innerHTML = pair.teacher.rus;
+              phraseWrap.appendChild(rusEl);
+            }
+          }
         }
-        if (pair.student && pair.student.kor) {
-          const turnEl = document.createElement('div'); turnEl.className = 'ph-list-turn';
-          const dot = document.createElement('div'); dot.className = `ph-list-priority-dot ${pair.priority}`; dot.style.opacity = '0'; turnEl.appendChild(dot);
-          const roleEl = document.createElement('div'); roleEl.className = 'ph-list-turn-role s'; roleEl.textContent = '👤 Студент'; turnEl.appendChild(roleEl);
-          const phraseEl = document.createElement('div'); phraseEl.className = 'ph-list-phrase';
-          phraseEl.innerHTML = `<div class="ph-list-kor">${pair.student.kor.replace(/___/g, '<span class="blank">___</span>')}</div>`;
-          if (pair.student.rus) phraseEl.innerHTML += `<div class="ph-list-rus">${pair.student.rus}</div>`;
-          turnEl.appendChild(phraseEl); turnsEl.appendChild(turnEl);
+        // Student phrase (if different from teacher)
+        if (pair.student && pair.student.kor && (!pair.teacher || pair.student.kor !== pair.teacher.kor)) {
+          const korEl = document.createElement('div'); korEl.className = 'ph-list-kor ph-list-kor-student';
+          korEl.innerHTML = '→ ' + pair.student.kor.replace(/___/g, '<span class="blank">___</span>');
+          phraseWrap.appendChild(korEl);
+          if (pair.student.rus) {
+            const rusEl = document.createElement('div'); rusEl.className = 'ph-list-rus';
+            rusEl.innerHTML = pair.student.rus;
+            phraseWrap.appendChild(rusEl);
+          }
         }
-        pairEl.appendChild(turnsEl); pairsEl.appendChild(pairEl);
+        row.appendChild(phraseWrap);
+        pairEl.appendChild(row); pairsEl.appendChild(pairEl);
       });
       block.appendChild(pairsEl); container.appendChild(block);
     });
+  }
+
+  async function toggleListItem(itemId, cbEl, pairEl) {
+    if (!IS_TEACHER) return;
+    const isMastered = progress[itemId] === 'know';
+    const newStatus = isMastered ? '' : 'know';
+    if (newStatus) progress[itemId] = 'know'; else delete progress[itemId];
+
+    cbEl.classList.toggle('checked', !!newStatus);
+    cbEl.innerHTML = newStatus ? '✓' : '';
+    pairEl.classList.toggle('mastered', !!newStatus);
+
+    try {
+      await fetch('/api/items/set', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: STUDENT_ID, trainer: 'phrases', item_id: itemId, status: newStatus })
+      });
+    } catch(e) {}
+    updateMasteredCounters();
+    updateSectionDoneState();
+    // Re-render list to update section header counts
+    renderList();
   }
 
   /* ── OUTLINE ── */
@@ -483,6 +583,7 @@
         });
       } catch(e) {}
     }
+    updateSectionDoneState();
     renderCard();
     setTimeout(() => next(), 400);
   }
@@ -500,8 +601,38 @@
         });
       } catch(e) {}
     }
+    updateSectionDoneState();
     renderCard();
     setTimeout(() => next(), 300);
+  }
+
+  function updateMasteredCounters() {
+    const masteredCount = filtered.filter(p => progress[p.id] === 'know').length;
+    const mc = document.getElementById('mastered-count'); if (mc) mc.textContent = masteredCount;
+    const mt = document.getElementById('mastered-total'); if (mt) mt.textContent = filtered.length;
+  }
+
+  function updateSectionDoneState() {
+    // Auto-mark section tabs when all phrases in a section are mastered
+    const sectionPhrases = {};
+    allPairs.forEach(p => {
+      if (!sectionPhrases[p.section]) sectionPhrases[p.section] = [];
+      sectionPhrases[p.section].push(p);
+    });
+    document.querySelectorAll('.ph-section-btn[data-section]').forEach(btn => {
+      const sec = btn.dataset.section;
+      if (sec === 'all') return;
+      const phrases = sectionPhrases[sec] || [];
+      const allMastered = phrases.length > 0 && phrases.every(p => progress[p.id] === 'know');
+      btn.classList.toggle('auto-done', allMastered);
+      // Update the checkbox visual
+      const cb = btn.querySelector('.ph-section-cb');
+      if (cb && allMastered && !sectionsDone[sec]) {
+        cb.classList.add('auto-checked');
+      } else if (cb) {
+        cb.classList.remove('auto-checked');
+      }
+    });
   }
 
   function next() { if (!filtered.length) return; curIdx = (curIdx + 1) % filtered.length; renderCard(); }
