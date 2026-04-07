@@ -36,7 +36,7 @@
       <div class="hw-list">
         {% for hw in homework_items %}
         {% set meta = trainer_meta.get(hw.trainer, {'icon': '📌', 'name': hw.trainer}) %}
-        <a class="hw-card" href="/student/{{ student.id }}/trainer/{{ hw.trainer }}#{{ hw.item_id }}">
+        <a class="hw-card" href="{% if student_mode %}/my/trainer/{{ hw.trainer }}#{{ hw.item_id }}{% else %}/student/{{ student.id }}/trainer/{{ hw.trainer }}#{{ hw.item_id }}{% endif %}">
           <span class="hw-card-icon">{{ meta.icon }}</span>
           <div class="hw-card-info">
             <div class="hw-card-trainer">{{ meta.name }}</div>
