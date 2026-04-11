@@ -1,7 +1,7 @@
 ======================================================================
 АНАЛИЗ ПРОЕКТА: TECHERCAB 2.0
 Путь: C:\Users\MakscattSchool\Desktop\techercab 2.0
-Дата анализа: 2026-04-11 14:57
+Дата анализа: 2026-04-11 15:24
 Всего файлов: 55
 ======================================================================
 
@@ -60,7 +60,7 @@
   templates\trainer_pictures.html  (20.4 KB)
   templates\trainer_quiz.html  (20.5 KB)
   templates\trainer_sentences.html  (16.9 KB)
-  templates\trainer_text.html  (22.6 KB)
+  templates\trainer_text.html  (35.8 KB)
   templates\trainer_time.html  (1.1 KB)
   templates\trainer_verbs.html  (3.7 KB)
   templates\trainer_video.html  (6.1 KB)
