@@ -57,8 +57,12 @@
           <button class="txt-words-btn" id="txt-words-btn" onclick="openWordStudy()" style="display:none;">📚 Слова</button>
         </div>
 
-        <!-- Text body -->
-        <div class="txt-modal-body" id="txt-modal-body"></div>
+        <!-- Text canvas -->
+        <div class="txt-canvas" id="txt-canvas">
+          <div class="txt-snap-guide txt-snap-h" id="txt-snap-h"></div>
+          <div class="txt-snap-guide txt-snap-v" id="txt-snap-v"></div>
+          <div class="txt-modal-body" id="txt-modal-body"></div>
+        </div>
       </div>
 
       <!-- RIGHT: stage panel -->
@@ -288,15 +292,47 @@
   padding:0 2px;
 }
 
-/* Body */
+/* Canvas */
+.txt-canvas {
+  flex:1; position:relative; overflow:hidden;
+  background:var(--bg-app);
+  cursor:default;
+}
+
+/* Snap guides */
+.txt-snap-guide {
+  position:absolute; display:none; z-index:10;
+  background:var(--primary, #4a90d9);
+  opacity:0.5;
+  pointer-events:none;
+}
+.txt-snap-h {
+  left:0; right:0; height:1px;
+}
+.txt-snap-v {
+  top:0; bottom:0; width:1px;
+}
+
+/* Body — draggable block */
 .txt-modal-body {
-  flex:1; overflow-y:auto; padding:32px 60px 92px 120px;
+  position:absolute; cursor:grab;
+  padding:32px 48px;
   font-family:'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
   font-size:24px; line-height:1.9; color:var(--text-primary);
   white-space:pre-wrap; word-break:keep-all;
   text-align:left;
-  width:100%;
   transition: font-size 0.15s ease;
+  background:var(--bg-surface);
+  border-radius:10px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.08);
+  max-width:90%;
+  min-width:300px;
+  user-select:text;
+}
+.txt-modal-body.dragging {
+  cursor:grabbing;
+  box-shadow:0 6px 24px rgba(0,0,0,0.15);
+  transition:box-shadow 0.15s ease;
 }
 .txt-modal-body .highlight-blue   { background:#a0c4ff; border-radius:2px; padding:0 1px; cursor:pointer; }
 .txt-modal-body .highlight-red    { background:#ffadad; border-radius:2px; padding:0 1px; cursor:pointer; }
@@ -488,7 +524,9 @@
   .stg-reward { min-width:120px; flex:0.5; }
   .stg-ctrl { width:100%; }
   .stg-close-btn { width:100%; margin-top:0; }
-  .txt-modal-body { font-size:20px; padding:20px 16px; }
+  .txt-modal-body { font-size:20px; padding:20px 16px; position:static; max-width:100%; box-shadow:none; border-radius:0; }
+  .txt-canvas { overflow-y:auto; }
+  .txt-snap-guide { display:none !important; }
   .texts-grid { grid-template-columns:1fr; }
 }
 </style>
@@ -515,6 +553,168 @@
     document.getElementById('txt-modal-body').style.fontSize = currentFontSize + 'px';
     document.getElementById('txt-font-size-label').textContent = currentFontSize;
   }
+
+  // ── Canvas drag system ──
+  const SNAP_THRESHOLD = 12;
+  const POS_STORAGE_KEY = 'txt_canvas_pos';
+  let _dragState = null;
+
+  function loadCanvasPos() {
+    try {
+      const raw = localStorage.getItem(POS_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  }
+
+  function saveCanvasPos(x, y) {
+    try { localStorage.setItem(POS_STORAGE_KEY, JSON.stringify({ x, y })); } catch {}
+  }
+
+  function applyCanvasPos() {
+    const canvas = document.getElementById('txt-canvas');
+    const body = document.getElementById('txt-modal-body');
+    if (!canvas || !body) return;
+
+    const saved = loadCanvasPos();
+    const cw = canvas.clientWidth, ch = canvas.clientHeight;
+
+    if (saved) {
+      // Clamp so block stays partially visible
+      const bw = body.offsetWidth, bh = body.offsetHeight;
+      const x = Math.max(-bw + 60, Math.min(cw - 60, saved.x));
+      const y = Math.max(-bh + 60, Math.min(ch - 60, saved.y));
+      body.style.left = x + 'px';
+      body.style.top = y + 'px';
+    } else {
+      // Default: center horizontally, 32px from top
+      const bw = body.offsetWidth;
+      body.style.left = Math.max(32, (cw - bw) / 2) + 'px';
+      body.style.top = '32px';
+    }
+  }
+
+  function initCanvasDrag() {
+    const canvas = document.getElementById('txt-canvas');
+    const body = document.getElementById('txt-modal-body');
+    if (!canvas || !body) return;
+
+    body.addEventListener('mousedown', onDragStart);
+    canvas.addEventListener('mousemove', onDragMove);
+    document.addEventListener('mouseup', onDragEnd);
+
+    body.addEventListener('touchstart', onTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+    document.addEventListener('touchend', onDragEnd);
+  }
+
+  function onTouchStart(e) {
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    startDrag(t.clientX, t.clientY, e);
+  }
+
+  function onTouchMove(e) {
+    if (!_dragState) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    moveDrag(t.clientX, t.clientY);
+  }
+
+  function onDragStart(e) {
+    // Don't start drag if selecting text
+    if (e.button !== 0) return;
+    // Only drag from the body padding area, not text selections
+    startDrag(e.clientX, e.clientY, e);
+  }
+
+  function startDrag(clientX, clientY, e) {
+    // Don't drag when highlighting mode is active
+    if (activeColor) return;
+    const body = document.getElementById('txt-modal-body');
+    const sel = window.getSelection();
+    if (sel && !sel.isCollapsed) return;
+
+    const rect = body.getBoundingClientRect();
+    _dragState = {
+      offsetX: clientX - rect.left,
+      offsetY: clientY - rect.top,
+      moved: false,
+      startX: clientX,
+      startY: clientY
+    };
+  }
+
+  function onDragMove(e) {
+    if (!_dragState) return;
+    moveDrag(e.clientX, e.clientY);
+  }
+
+  function moveDrag(clientX, clientY) {
+    if (!_dragState) return;
+
+    // Dead zone: don't start dragging until moved 5px
+    if (!_dragState.moved) {
+      const dx = clientX - _dragState.startX;
+      const dy = clientY - _dragState.startY;
+      if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+      _dragState.moved = true;
+      document.getElementById('txt-modal-body').classList.add('dragging');
+    }
+
+    const canvas = document.getElementById('txt-canvas');
+    const body = document.getElementById('txt-modal-body');
+    const cRect = canvas.getBoundingClientRect();
+
+    let x = clientX - cRect.left - _dragState.offsetX;
+    let y = clientY - cRect.top - _dragState.offsetY;
+
+    const cw = cRect.width, ch = cRect.height;
+    const bw = body.offsetWidth, bh = body.offsetHeight;
+
+    // Snap to center horizontal
+    const centerX = (cw - bw) / 2;
+    const snapH = document.getElementById('txt-snap-h');
+    const snapV = document.getElementById('txt-snap-v');
+
+    // Vertical center snap
+    const centerY = (ch - bh) / 2;
+    if (Math.abs(y - centerY) < SNAP_THRESHOLD) {
+      y = centerY;
+      snapH.style.top = (ch / 2) + 'px';
+      snapH.style.display = 'block';
+    } else {
+      snapH.style.display = 'none';
+    }
+
+    // Horizontal center snap
+    if (Math.abs(x - centerX) < SNAP_THRESHOLD) {
+      x = centerX;
+      snapV.style.left = (cw / 2) + 'px';
+      snapV.style.display = 'block';
+    } else {
+      snapV.style.display = 'none';
+    }
+
+    body.style.left = x + 'px';
+    body.style.top = y + 'px';
+  }
+
+  function onDragEnd() {
+    if (!_dragState) return;
+    const body = document.getElementById('txt-modal-body');
+    body.classList.remove('dragging');
+
+    document.getElementById('txt-snap-h').style.display = 'none';
+    document.getElementById('txt-snap-v').style.display = 'none';
+
+    if (_dragState.moved) {
+      saveCanvasPos(parseInt(body.style.left), parseInt(body.style.top));
+    }
+    _dragState = null;
+  }
+
+  // Apply position when modal opens
+
 
   // ── Stage system ──
   // Per-text state: { stage: 1|2, reps: 0, completed: false }
@@ -764,6 +964,7 @@
     renderTextModal();
     textOverlay.classList.add('open');
     document.body.style.overflow = 'hidden';
+    requestAnimationFrame(() => applyCanvasPos());
   }
 
   function closeTextModal() {
@@ -1005,6 +1206,7 @@
   });
 
   // ── INIT ──
+  initCanvasDrag();
   loadData().then(() => {
     const hash = decodeURIComponent(location.hash.slice(1));
     if (hash) {
