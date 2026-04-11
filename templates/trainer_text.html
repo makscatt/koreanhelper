@@ -13,9 +13,11 @@
   <div class="texts-grid" id="texts-grid"></div>
 </div>
 
-<!-- ══════ TEXT MODAL ══════ -->
+<!-- ══════ TEXT MODAL (fullscreen) ══════ -->
 <div id="text-modal-overlay" class="txt-overlay">
   <div class="txt-modal">
+
+    <!-- ── TOP BAR ── -->
     <div class="txt-modal-head">
       <div class="txt-modal-nav">
         <button class="txt-nav-btn" onclick="prevText()">←</button>
@@ -33,25 +35,42 @@
       </div>
     </div>
 
-    <!-- Color toolbar -->
-    <div class="txt-toolbar">
-      <span style="font-size:11px;color:var(--text-tertiary);font-family:var(--font-mono);">Выделить:</span>
-      <button class="color-btn" data-color="blue" style="background:#a0c4ff;"></button>
-      <button class="color-btn" data-color="red" style="background:#ffadad;"></button>
-      <button class="color-btn" data-color="green" style="background:#b9fbc0;"></button>
-      <button class="color-btn" data-color="yellow" style="background:#fdffb6;"></button>
-      <div style="flex:1;"></div>
-      <button class="txt-words-btn" id="txt-words-btn" onclick="openWordStudy()" style="display:none;">📚 Слова</button>
-    </div>
+    <!-- ── MAIN CONTENT AREA ── -->
+    <div class="txt-main-area">
 
-    <!-- Text body -->
-    <div class="txt-modal-body" id="txt-modal-body"></div>
+      <!-- LEFT: text column -->
+      <div class="txt-left-col">
+        <!-- Color toolbar -->
+        <div class="txt-toolbar">
+          <span style="font-size:11px;color:var(--text-tertiary);font-family:var(--font-mono);">Выделить:</span>
+          <button class="color-btn" data-color="blue" style="background:#a0c4ff;"></button>
+          <button class="color-btn" data-color="red" style="background:#ffadad;"></button>
+          <button class="color-btn" data-color="green" style="background:#b9fbc0;"></button>
+          <button class="color-btn" data-color="yellow" style="background:#fdffb6;"></button>
+          <div style="flex:1;"></div>
+          <!-- Font size controls -->
+          <div class="txt-font-ctrl">
+            <button class="txt-font-btn" onclick="changeFontSize(-2)" title="Уменьшить шрифт">A−</button>
+            <span class="txt-font-size" id="txt-font-size-label">24</span>
+            <button class="txt-font-btn" onclick="changeFontSize(2)" title="Увеличить шрифт">A+</button>
+          </div>
+          <button class="txt-words-btn" id="txt-words-btn" onclick="openWordStudy()" style="display:none;">📚 Слова</button>
+        </div>
 
-    <!-- Bottom nav -->
-    <div class="txt-modal-foot">
-      <button class="txt-foot-btn" onclick="prevText()">← Назад</button>
-      <button class="txt-foot-btn txt-foot-primary" onclick="nextText()">Далее →</button>
-    </div>
+        <!-- Text body -->
+        <div class="txt-modal-body" id="txt-modal-body"></div>
+      </div>
+
+      <!-- RIGHT: stage panel -->
+      <div class="txt-stage-panel" id="txt-stage-panel">
+        <!-- rendered by JS -->
+      </div>
+
+    </div><!-- /txt-main-area -->
+
+    <!-- Confetti layer -->
+    <div class="txt-confetti-layer" id="txt-confetti-layer"></div>
+
   </div>
 </div>
 
@@ -155,24 +174,31 @@
 .text-card-badge[data-status="done"]    { background: #dcfce7; color: #16a34a; }
 .text-card-badge[data-status="homework"]{ background: #fef3c7; color: #d97706; }
 
-/* ── Modal ── */
+/* ══════════════════════════════════════
+   FULLSCREEN MODAL
+   ══════════════════════════════════════ */
 .txt-overlay {
   position:fixed; inset:0;
   background:rgba(0,0,0,0.5); backdrop-filter:blur(4px);
-  display:none; align-items:center; justify-content:center;
+  display:none; align-items:stretch; justify-content:stretch;
   z-index:5000;
 }
 .txt-overlay.open { display:flex; }
+
 .txt-modal {
-  background:var(--bg-surface); width:94%; max-width:720px;
-  max-height:92vh; border-radius:4px;
-  border:1px solid var(--border-color);
+  background:var(--bg-surface);
+  width:100%; height:100%;
   display:flex; flex-direction:column;
+  position:relative;
+  overflow:hidden;
 }
+
+/* ── Top bar ── */
 .txt-modal-head {
   display:flex; align-items:center; gap:12px;
-  padding:14px 20px; border-bottom:1px solid var(--border-color);
+  padding:10px 20px; border-bottom:1px solid var(--border-color);
   flex-shrink:0;
+  background:var(--bg-surface);
 }
 .txt-modal-nav { display:flex; align-items:center; gap:6px; }
 .txt-nav-btn {
@@ -203,6 +229,25 @@
 .txt-check-btn:hover { opacity:0.8; transform:scale(1.1); }
 .txt-check-btn.active { opacity:1; border-color:var(--primary); background:var(--primary-container); }
 
+/* ══════════════════════════════════════
+   MAIN AREA: text + stage panel
+   ══════════════════════════════════════ */
+.txt-main-area {
+  flex:1;
+  display:flex;
+  overflow:hidden;
+  min-height:0;
+}
+
+/* ── Left: text column ── */
+.txt-left-col {
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+  overflow:hidden;
+}
+
 /* Toolbar */
 .txt-toolbar {
   display:flex; align-items:center; gap:8px;
@@ -222,42 +267,228 @@
 }
 .txt-words-btn:hover { background:var(--primary-container); color:var(--primary); border-color:var(--primary-container); }
 
+/* Font size controls */
+.txt-font-ctrl {
+  display:flex; align-items:center; gap:2px;
+  border:1px solid var(--border-color); border-radius:6px;
+  overflow:hidden;
+  margin-right:4px;
+}
+.txt-font-btn {
+  padding:3px 8px; font-size:12px; font-weight:600;
+  border:none; background:var(--bg-surface); cursor:pointer;
+  color:var(--text-secondary); transition:all 0.12s;
+  font-family:var(--font-main);
+}
+.txt-font-btn:hover { background:var(--bg-app); color:var(--primary); }
+.txt-font-btn:first-child { border-right:1px solid var(--border-light); }
+.txt-font-size {
+  font-size:11px; font-family:var(--font-mono);
+  color:var(--text-tertiary); min-width:22px; text-align:center;
+  padding:0 2px;
+}
+
 /* Body */
 .txt-modal-body {
   flex:1; overflow-y:auto; padding:32px 60px;
   font-family:'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
-  font-size:1.7rem; line-height:1.8; color:var(--text-primary);
+  font-size:24px; line-height:1.9; color:var(--text-primary);
   white-space:pre-wrap; word-break:keep-all;
   text-align:left;
-  max-width:640px; margin:0 auto; width:100%;
+  max-width:720px; margin:0 auto; width:100%;
+  transition: font-size 0.15s ease;
 }
 .txt-modal-body .highlight-blue   { background:#a0c4ff; border-radius:2px; padding:0 1px; cursor:pointer; }
 .txt-modal-body .highlight-red    { background:#ffadad; border-radius:2px; padding:0 1px; cursor:pointer; }
 .txt-modal-body .highlight-green  { background:#b9fbc0; border-radius:2px; padding:0 1px; cursor:pointer; }
 .txt-modal-body .highlight-yellow { background:#fdffb6; border-radius:2px; padding:0 1px; cursor:pointer; }
 
-/* Foot */
-.txt-modal-foot {
-  display:flex; justify-content:center; gap:10px;
-  padding:12px 20px; border-top:1px solid var(--border-color);
+/* ══════════════════════════════════════
+   RIGHT: STAGE PANEL
+   ══════════════════════════════════════ */
+.txt-stage-panel {
+  width:230px;
   flex-shrink:0;
+  border-left:1px solid var(--border-color);
+  background:var(--bg-app);
+  display:flex;
+  flex-direction:column;
+  padding:16px;
+  gap:10px;
+  overflow-y:auto;
 }
-.txt-foot-btn {
-  padding:8px 24px; font-size:13px; font-weight:600;
-  font-family:var(--font-main,inherit);
-  border:1px solid var(--border-color); border-radius:8px;
-  background:var(--bg-surface); color:var(--text-primary);
-  cursor:pointer; transition:all 0.12s; white-space:nowrap;
+.stg-hdr {
+  font-size:11px; font-weight:600; color:var(--text-tertiary);
+  text-transform:uppercase; letter-spacing:0.06em;
+  margin-bottom:2px;
 }
-.txt-foot-btn:hover { background:var(--bg-app); }
-.txt-foot-primary {
-  background:var(--primary); color:#fff; border-color:var(--primary);
-}
-.txt-foot-primary:hover { filter:brightness(1.1); }
 
-@media (max-width:600px) {
-  .txt-modal { width:100%; max-width:100%; max-height:100vh; border-radius:0; }
-  .txt-modal-body { font-size:1.4rem; padding:24px 16px; }
+/* Stage cards */
+.stg-card {
+  border-radius:10px;
+  border:1px solid var(--border-color);
+  background:var(--bg-surface);
+  padding:12px;
+  display:flex; flex-direction:column;
+  gap:6px;
+  transition:all 0.2s;
+}
+.stg-card.stg-done {
+  border-color:#22c55e;
+  background:#f0fdf4;
+}
+.stg-card.stg-active {
+  border-color:var(--primary);
+  border-width:1.5px;
+  box-shadow:0 0 0 3px rgba(11,87,208,0.08);
+}
+.stg-card.stg-locked {
+  opacity:0.35;
+}
+.stg-card-top {
+  display:flex; align-items:center; justify-content:space-between;
+}
+.stg-badge {
+  font-size:10px; font-weight:600; padding:2px 8px; border-radius:12px;
+}
+.stg-badge-done    { background:#dcfce7; color:#16a34a; }
+.stg-badge-active  { background:var(--primary-container); color:var(--primary); }
+.stg-badge-locked  { background:var(--bg-app); color:var(--text-tertiary); }
+.stg-card-name {
+  font-size:13px; font-weight:600; color:var(--text-primary);
+}
+.stg-card.stg-done .stg-card-name { color:#146c2e; }
+.stg-card-desc {
+  font-size:11px; color:var(--text-secondary); line-height:1.35;
+}
+.stg-card.stg-done .stg-card-desc { color:#146c2e; opacity:0.8; }
+
+/* Rep dots */
+.stg-reps {
+  display:flex; gap:6px; align-items:center; margin-top:2px;
+}
+.stg-dot {
+  width:24px; height:24px; border-radius:50%;
+  border:1.5px solid var(--border-color);
+  display:flex; align-items:center; justify-content:center;
+  font-size:10px; font-weight:600;
+  background:var(--bg-surface); color:var(--text-tertiary);
+  transition:all 0.2s;
+}
+.stg-dot.dot-done {
+  background:#dcfce7; border-color:#22c55e; color:#146c2e;
+}
+.stg-dot.dot-current {
+  background:var(--primary-container); border-color:var(--primary); color:var(--primary);
+  box-shadow:0 0 0 3px rgba(11,87,208,0.1);
+}
+
+/* Reward card */
+.stg-reward {
+  border-radius:10px;
+  border:1px solid var(--border-color);
+  background:var(--bg-surface);
+  padding:14px;
+  text-align:center;
+  transition:all 0.3s;
+}
+.stg-reward.stg-locked { opacity:0.3; }
+.stg-reward.stg-won {
+  border-color:#22c55e;
+  background:linear-gradient(135deg, #f0fdf4, #fefce8);
+  animation:rewardPop 0.5s ease;
+}
+@keyframes rewardPop {
+  0%   { transform:scale(0.92); }
+  50%  { transform:scale(1.06); }
+  100% { transform:scale(1); }
+}
+.stg-reward-icon { font-size:28px; margin-bottom:4px; }
+.stg-reward-title { font-size:14px; font-weight:700; color:#146c2e; }
+.stg-reward-sub { font-size:11px; color:#16a34a; margin-top:2px; }
+
+/* Control buttons */
+.stg-ctrl {
+  display:flex; gap:8px; margin-top:6px;
+}
+.stg-ctrl-btn {
+  flex:1; padding:10px 0; border-radius:8px;
+  font-size:13px; font-weight:600; cursor:pointer;
+  text-align:center; font-family:var(--font-main);
+  border:none; transition:all 0.12s;
+}
+.stg-ctrl-btn:active { transform:scale(0.96); }
+.stg-btn-ok {
+  background:#dcfce7; color:#146c2e; border:1px solid #bbf7d0;
+}
+.stg-btn-ok:hover { background:#bbf7d0; }
+.stg-btn-fail {
+  background:#fef2f2; color:#b91c1c; border:1px solid #fecaca;
+}
+.stg-btn-fail:hover { background:#fecaca; }
+
+/* Close button at bottom */
+.stg-close-btn {
+  margin-top:auto;
+  padding:10px 0; border-radius:8px;
+  font-size:13px; font-weight:600; cursor:pointer;
+  text-align:center; font-family:var(--font-main);
+  background:var(--bg-surface); color:var(--text-secondary);
+  border:1px solid var(--border-color);
+  transition:all 0.12s;
+}
+.stg-close-btn:hover { background:var(--bg-app); color:var(--text-primary); }
+
+/* Shake on reset */
+@keyframes stgShake {
+  0%,100% { transform:translateX(0); }
+  20%     { transform:translateX(-4px); }
+  40%     { transform:translateX(4px); }
+  60%     { transform:translateX(-3px); }
+  80%     { transform:translateX(2px); }
+}
+.stg-shake { animation:stgShake 0.35s ease; }
+
+/* ══════════════════════════════════════
+   CONFETTI
+   ══════════════════════════════════════ */
+.txt-confetti-layer {
+  position:absolute; inset:0;
+  pointer-events:none; overflow:hidden;
+  z-index:100;
+}
+.txt-conf {
+  position:absolute;
+  pointer-events:none;
+  will-change:transform, opacity;
+  animation:confettiFall 2.2s ease-out forwards;
+  opacity:0;
+}
+@keyframes confettiFall {
+  0%   { opacity:1; transform:translateY(-30px) scale(0.4) rotate(0deg); }
+  25%  { opacity:1; transform:translateY(25vh) scale(1.1) rotate(120deg); }
+  60%  { opacity:0.8; transform:translateY(55vh) scale(1) rotate(240deg); }
+  100% { opacity:0; transform:translateY(90vh) scale(0.7) rotate(400deg); }
+}
+
+/* ══════════════════════════════════════
+   MOBILE
+   ══════════════════════════════════════ */
+@media (max-width:700px) {
+  .txt-main-area { flex-direction:column; }
+  .txt-stage-panel {
+    width:100%; border-left:none; border-top:1px solid var(--border-color);
+    flex-direction:row; flex-wrap:wrap;
+    padding:12px; gap:8px;
+    overflow-y:visible; overflow-x:auto;
+    max-height:none;
+  }
+  .stg-hdr { width:100%; }
+  .stg-card { min-width:160px; flex:1; }
+  .stg-reward { min-width:120px; flex:0.5; }
+  .stg-ctrl { width:100%; }
+  .stg-close-btn { width:100%; margin-top:0; }
+  .txt-modal-body { font-size:20px; padding:20px 16px; }
   .texts-grid { grid-template-columns:1fr; }
 }
 </style>
@@ -273,8 +504,179 @@
   let currentWordList = [], currentWordIndex = 0;
   const STUDENT_ID = {{ student.id }};
   let _hlSaveTimer = null;
-  let _hlDirty = false;  // only save when user actually changed highlights
+  let _hlDirty = false;
 
+  // ── Font size ──
+  let currentFontSize = 24;
+  const FONT_MIN = 14, FONT_MAX = 42;
+
+  function changeFontSize(delta) {
+    currentFontSize = Math.max(FONT_MIN, Math.min(FONT_MAX, currentFontSize + delta));
+    document.getElementById('txt-modal-body').style.fontSize = currentFontSize + 'px';
+    document.getElementById('txt-font-size-label').textContent = currentFontSize;
+  }
+
+  // ── Stage system ──
+  // Per-text state: { stage: 1|2, reps: 0, completed: false }
+  let stageStates = {};
+
+  function getStageState() {
+    const item = allTextsData[currentTextIdx];
+    if (!item) return { stage: 1, reps: 0, completed: false };
+    const slug = slugify(item.title);
+    if (!stageStates[slug]) stageStates[slug] = { stage: 1, reps: 0, completed: false };
+    return stageStates[slug];
+  }
+
+  function onStageCorrect() {
+    const st = getStageState();
+    if (st.completed) return;
+
+    if (st.stage === 1) {
+      st.stage = 2;
+      st.reps = 0;
+      renderStagePanel();
+      trackExercise();
+      return;
+    }
+
+    // Stage 2
+    st.reps++;
+    if (st.reps >= 3) {
+      st.completed = true;
+      renderStagePanel();
+      spawnConfetti();
+      trackExercise();
+      return;
+    }
+    renderStagePanel();
+    trackExercise();
+  }
+
+  function onStageReset() {
+    const st = getStageState();
+    if (st.completed) return;
+
+    if (st.stage === 1) {
+      // Can't go lower — just shake
+      shakeActiveCard();
+      return;
+    }
+
+    // Stage 2: reset reps to 0, stay on stage 2
+    st.reps = 0;
+    renderStagePanel();
+    shakeActiveCard();
+  }
+
+  function onStageFullReset() {
+    const st = getStageState();
+    st.stage = 1;
+    st.reps = 0;
+    st.completed = false;
+    renderStagePanel();
+  }
+
+  function shakeActiveCard() {
+    const active = document.querySelector('.stg-card.stg-active');
+    if (!active) return;
+    active.classList.remove('stg-shake');
+    void active.offsetWidth;
+    active.classList.add('stg-shake');
+  }
+
+  function renderStagePanel() {
+    const panel = document.getElementById('txt-stage-panel');
+    const st = getStageState();
+    const s1done = st.stage > 1 || st.completed;
+    const s2active = st.stage === 2 && !st.completed;
+    const s2done = st.completed;
+
+    let h = '<div class="stg-hdr">Этапы чтения</div>';
+
+    // Stage 1
+    h += '<div class="stg-card ' + (s1done ? 'stg-done' : 'stg-active') + '">';
+    h += '<div class="stg-card-top">';
+    h += '<span class="stg-badge ' + (s1done ? 'stg-badge-done' : 'stg-badge-active') + '">Этап 1</span>';
+    if (s1done) h += '<span style="font-size:15px;color:#22c55e;">✓</span>';
+    h += '</div>';
+    h += '<div class="stg-card-name">Первое чтение</div>';
+    h += '<div class="stg-card-desc">Прочитать правильно 1 раз</div>';
+    h += '<div class="stg-reps">';
+    if (s1done) h += '<div class="stg-dot dot-done">✓</div>';
+    else h += '<div class="stg-dot dot-current">1</div>';
+    h += '</div></div>';
+
+    // Stage 2
+    h += '<div class="stg-card ' + (s2done ? 'stg-done' : (s2active ? 'stg-active' : 'stg-locked')) + '">';
+    h += '<div class="stg-card-top">';
+    h += '<span class="stg-badge ' + (s2done ? 'stg-badge-done' : (s2active ? 'stg-badge-active' : 'stg-badge-locked')) + '">Этап 2</span>';
+    if (s2active) h += '<span style="font-size:12px;font-weight:600;color:var(--text-secondary);">' + st.reps + '/3</span>';
+    if (s2done) h += '<span style="font-size:15px;color:#22c55e;">✓</span>';
+    h += '</div>';
+    h += '<div class="stg-card-name">Закрепление</div>';
+    h += '<div class="stg-card-desc">Прочитай правильно 3 раза подряд</div>';
+
+    if (s2active || s2done) {
+      h += '<div class="stg-reps">';
+      for (let i = 0; i < 3; i++) {
+        if (s2done) h += '<div class="stg-dot dot-done">✓</div>';
+        else if (i < st.reps) h += '<div class="stg-dot dot-done">✓</div>';
+        else if (i === st.reps) h += '<div class="stg-dot dot-current">' + (i + 1) + '</div>';
+        else h += '<div class="stg-dot">' + (i + 1) + '</div>';
+      }
+      h += '</div>';
+    }
+    h += '</div>';
+
+    // Reward
+    h += '<div class="stg-reward ' + (st.completed ? 'stg-won' : 'stg-locked') + '">';
+    if (st.completed) {
+      h += '<div class="stg-reward-icon">🏆</div>';
+      h += '<div class="stg-reward-title">Текст освоен!</div>';
+      h += '<div class="stg-reward-sub">4 правильных прочтения</div>';
+    } else {
+      h += '<div class="stg-reward-icon">⭐</div>';
+      h += '<div style="font-size:11px;color:var(--text-tertiary);">Награда за мастерство</div>';
+    }
+    h += '</div>';
+
+    // Controls
+    if (!st.completed) {
+      h += '<div class="stg-ctrl">';
+      h += '<button class="stg-ctrl-btn stg-btn-ok" onclick="onStageCorrect()">✓ Верно</button>';
+      h += '<button class="stg-ctrl-btn stg-btn-fail" onclick="onStageReset()">✕ Сброс</button>';
+      h += '</div>';
+    } else {
+      h += '<div class="stg-ctrl">';
+      h += '<button class="stg-ctrl-btn stg-btn-fail" onclick="onStageFullReset()">Начать заново</button>';
+      h += '</div>';
+    }
+
+    // Close button at bottom
+    h += '<button class="stg-close-btn" onclick="closeTextModal()">Закрыть</button>';
+
+    panel.innerHTML = h;
+  }
+
+  // ── Confetti ──
+  function spawnConfetti() {
+    const layer = document.getElementById('txt-confetti-layer');
+    layer.innerHTML = '';
+    const emojis = ['🏆','⭐','🎉','✨','🥇','💪','👏','🔥','💯','🎊','🌟','🥳'];
+    for (let i = 0; i < 40; i++) {
+      const el = document.createElement('div');
+      el.className = 'txt-conf';
+      el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      el.style.left = Math.random() * 100 + '%';
+      el.style.animationDelay = (Math.random() * 1) + 's';
+      el.style.fontSize = (20 + Math.random() * 18) + 'px';
+      layer.appendChild(el);
+    }
+    setTimeout(() => { layer.innerHTML = ''; }, 3500);
+  }
+
+  // ── Helpers ──
   function slugify(title) { return title.replace(/\s+/g, '_').toLowerCase(); }
 
   function getStatusIcon(slug) {
@@ -391,10 +793,15 @@
       body.textContent = item.text;
     }
 
+    // Restore font size
+    body.style.fontSize = currentFontSize + 'px';
+    document.getElementById('txt-font-size-label').textContent = currentFontSize;
+
     const wordsBtn = document.getElementById('txt-words-btn');
     wordsBtn.style.display = (item.vocab && item.vocab.length) ? '' : 'none';
 
     updateModalChecks();
+    renderStagePanel();
 
     if (!IS_TEACHER) {
       document.getElementById('txt-modal-checks').style.pointerEvents = 'none';
