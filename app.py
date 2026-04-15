@@ -26,7 +26,7 @@ os.makedirs(TTS_CACHE_DIR, exist_ok=True)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-change-in-production'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///korean_learning.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:////var/data/korean_learning.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -1438,63 +1438,121 @@ def proxy_yandex(filepath):
 # ══════════════════════════════════════════
 
 with app.app_context():
+    # Убедимся что папка для SQLite существует (Render Disk)
+    db_uri = app.config['SQLALCHEMY_DATABASE_URI']
+    if db_uri.startswith('sqlite:////'):
+        db_dir = os.path.dirname(db_uri.replace('sqlite:////', '/'))
+        os.makedirs(db_dir, exist_ok=True)
+
     db.create_all()
-    # Миграция: добавляем password_plain если его нет
-    try:
-        db.session.execute(db.text(
-            "ALTER TABLE student_account ADD COLUMN password_plain VARCHAR(200) NOT NULL DEFAULT ''"
-        ))
-        db.session.commit()
-        print("Миграция: добавлен столбец password_plain")
-    except Exception:
-        db.session.rollback()
-    # Миграция: создаём таблицу word_hub если её нет
-    try:
-        db.session.execute(db.text("""
-            CREATE TABLE IF NOT EXISTS word_hub (
-                id SERIAL PRIMARY KEY,
-                student_id INTEGER NOT NULL REFERENCES student(id),
-                word_kor VARCHAR(100) NOT NULL,
-                word_rus VARCHAR(200) NOT NULL,
-                original_form VARCHAR(100) NOT NULL,
-                part_of_speech VARCHAR(50) DEFAULT '',
-                is_learned BOOLEAN DEFAULT FALSE,
-                added_by VARCHAR(20) DEFAULT 'teacher',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                CONSTRAINT uq_student_word UNIQUE (student_id, word_kor)
-            )
-        """))
-        db.session.commit()
-        print("Миграция: таблица word_hub готова")
-    except Exception:
-        db.session.rollback()
-    # Миграция: добавляем telegram_id в student
-    try:
-        db.session.execute(db.text(
-            "ALTER TABLE student ADD COLUMN telegram_id VARCHAR(50) UNIQUE"
-        ))
-        db.session.commit()
-        print("Миграция: добавлен столбец telegram_id")
-    except Exception:
-        db.session.rollback()
-    # Миграция: делаем teacher_id nullable
-    try:
-        db.session.execute(db.text(
-            "ALTER TABLE student ALTER COLUMN teacher_id DROP NOT NULL"
-        ))
-        db.session.commit()
-        print("Миграция: teacher_id теперь nullable")
-    except Exception:
-        db.session.rollback()
-    # Миграция: расширяем status в trainer_item_progress до TEXT (для хранения HTML маркеров)
-    try:
-        db.session.execute(db.text(
-            "ALTER TABLE trainer_item_progress ALTER COLUMN status TYPE TEXT"
-        ))
-        db.session.commit()
-        print("Миграция: trainer_item_progress.status расширен до TEXT")
-    except Exception:
-        db.session.rollback()
+
+    # ── Миграции (SQLite-совместимые) ──
+    # Для SQLite: ALTER TABLE ADD COLUMN работает, но ALTER COLUMN — нет.
+    # Поэтому просто добавляем колонки если их нет, остальное не нужно
+    # (db.create_all() уже создаёт таблицы с правильными типами).
+
+    def _column_exists(table, column):
+        """Проверяет наличие колонки в таблице (работает и с SQLite и с PostgreSQL)"""
+        try:
+            db.session.execute(db.text(f"SELECT {column} FROM {table} LIMIT 0"))
+            db.session.rollback()
+            return True
+        except Exception:
+            db.session.rollback()
+            return False
+
+    if not _column_exists('student_account', 'password_plain'):
+        try:
+            db.session.execute(db.text(
+                "ALTER TABLE student_account ADD COLUMN password_plain VARCHAR(200) NOT NULL DEFAULT ''"
+            ))
+            db.session.commit()
+            print("Миграция: добавлен столбец password_plain")
+        except Exception:
+            db.session.rollback()
+
+    if not _column_exists('student', 'telegram_id'):
+        try:
+            db.session.execute(db.text(
+                "ALTER TABLE student ADD COLUMN telegram_id VARCHAR(50) UNIQUE"
+            ))
+            db.session.commit()
+            print("Миграция: добавлен столбец telegram_id")
+        except Exception:
+            db.session.rollback()
+
+    # PostgreSQL-специфичные миграции (ALTER COLUMN) — пропускаем для SQLite,
+    # т.к. db.create_all() уже создаёт колонки с правильными типами.
+    if 'postgresql' in db_uri or 'postgres' in db_uri:
+        try:
+            db.session.execute(db.text(
+                "ALTER TABLE student ALTER COLUMN teacher_id DROP NOT NULL"
+            ))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+        try:
+            db.session.execute(db.text(
+                "ALTER TABLE trainer_item_progress ALTER COLUMN status TYPE TEXT"
+            ))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+    # ── Автомиграция из PostgreSQL в SQLite ──
+    # Если текущая БД — SQLite и она пустая, а есть старый DATABASE_URL_OLD с PostgreSQL,
+    # то переливаем данные автоматически при первом запуске.
+    OLD_DB_URL = os.environ.get('DATABASE_URL_OLD', '')
+    if ('sqlite' in db_uri and OLD_DB_URL and
+            ('postgresql' in OLD_DB_URL or 'postgres' in OLD_DB_URL)):
+        # Проверяем что SQLite пустая (нет учителей = первый запуск)
+        if Teacher.query.count() == 0:
+            print("🔄 Обнаружена старая PostgreSQL — начинаю автомиграцию...")
+            try:
+                import psycopg2
+                import psycopg2.extras
+                pg = psycopg2.connect(OLD_DB_URL)
+                pg_cur = pg.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+                TABLES = [
+                    'teacher', 'student', 'student_account', 'note',
+                    'module_progress', 'session_log', 'section_check',
+                    'trainer_item_progress', 'word_hub',
+                ]
+                for table in TABLES:
+                    try:
+                        pg_cur.execute(f"SELECT * FROM {table}")
+                        rows = pg_cur.fetchall()
+                    except Exception:
+                        pg.rollback()
+                        continue
+                    if not rows:
+                        continue
+                    columns = list(rows[0].keys())
+                    placeholders = ','.join([':' + c for c in columns])
+                    cols_str = ','.join(columns)
+                    count = 0
+                    for row in rows:
+                        try:
+                            db.session.execute(
+                                db.text(f"INSERT OR IGNORE INTO {table} ({cols_str}) VALUES ({placeholders})"),
+                                dict(row)
+                            )
+                            count += 1
+                        except Exception as e:
+                            print(f"  ⚠️ {table}: {e}")
+                    db.session.commit()
+                    print(f"  ✅ {table}: перенесено {count} строк")
+
+                pg_cur.close()
+                pg.close()
+                print("🎉 Автомиграция завершена! Можно удалить DATABASE_URL_OLD и psycopg2-binary")
+            except ImportError:
+                print("⚠️ psycopg2 не установлен — автомиграция невозможна. Добавь psycopg2-binary в requirements.txt")
+            except Exception as e:
+                print(f"❌ Ошибка автомиграции: {e}")
+                db.session.rollback()
+
     if not Teacher.query.filter_by(username='admin').first():
         teacher = Teacher(
             username='admin',
