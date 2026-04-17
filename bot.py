@@ -12,6 +12,7 @@ import re
 import json
 import hashlib
 import logging
+import sqlite3
 import threading
 import time
 import datetime
@@ -36,18 +37,26 @@ TG_MAX_LENGTH = 4000
 TOPICS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "published_topics.json")
 MAX_SAVED_TOPICS = 50
 
+# БД бота на persistent disk Render (тот же диск, что у основного SQLite Flask-приложения).
+# Локально, если /var/data недоступен — пишем рядом с bot.py.
+_DEFAULT_DB_DIR = "/var/data"
+if os.path.isdir(_DEFAULT_DB_DIR) and os.access(_DEFAULT_DB_DIR, os.W_OK):
+    BOT_DB_PATH = os.path.join(_DEFAULT_DB_DIR, "bot.db")
+else:
+    BOT_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bot.db")
+
 # ============================================================
-# СОСТОЯНИЕ
+# СОСТОЯНИЕ (только кэш в памяти — всё персистентное живёт в SQLite)
 # ============================================================
 
 _state = {
-    "interval": int(12 * 60 * 60),   # 12 часов
     "news_cache": {},
     "digest_list": [],
     "last_post_text": "",
     "last_post_nid": "",
-    "sent_news_ids": set(),
 }
+
+_db_lock = threading.Lock()
 
 # ============================================================
 # RSS-ИСТОЧНИКИ (только корейский шоубиз)
@@ -263,38 +272,153 @@ def _extract_image(entry) -> str:
 
 
 # ============================================================
-# ИСТОРИЯ ОПУБЛИКОВАННЫХ ТЕМ (Слой 2 — защита между циклами)
+# ИСТОРИЯ ОПУБЛИКОВАННЫХ ТЕМ (SQLite — persistent disk Render)
 # ============================================================
 
+def _db():
+    """Открывает соединение. Каждый вызов — своё соединение (безопасно для потоков)."""
+    conn = sqlite3.connect(BOT_DB_PATH, timeout=10)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def _init_db():
+    """Создаёт таблицы при первом старте. Идемпотентно."""
+    with _db_lock, _db() as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS sent_news (
+                nid      TEXT PRIMARY KEY,
+                headline TEXT NOT NULL,
+                summary  TEXT DEFAULT '',
+                ts       TEXT NOT NULL
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS bot_kv (
+                key   TEXT PRIMARY KEY,
+                value TEXT
+            )
+        """)
+        conn.commit()
+    logger.info(f"💾 Bot DB ready: {BOT_DB_PATH}")
+
+
+def _kv_get(key: str, default=None):
+    with _db_lock, _db() as conn:
+        row = conn.execute("SELECT value FROM bot_kv WHERE key = ?", (key,)).fetchone()
+    return row["value"] if row else default
+
+
+def _kv_set(key: str, value):
+    with _db_lock, _db() as conn:
+        conn.execute(
+            "INSERT INTO bot_kv(key, value) VALUES(?, ?) "
+            "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (key, str(value)),
+        )
+        conn.commit()
+
+
+def _is_sent(nid: str) -> bool:
+    with _db_lock, _db() as conn:
+        row = conn.execute("SELECT 1 FROM sent_news WHERE nid = ?", (nid,)).fetchone()
+    return row is not None
+
+
 def _load_published_topics() -> list:
-    """Загружает список опубликованных тем из файла."""
+    """Возвращает последние MAX_SAVED_TOPICS опубликованных тем (для промпта Gemini)."""
     try:
-        if os.path.exists(TOPICS_FILE):
-            with open(TOPICS_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                # Оставляем только последние MAX_SAVED_TOPICS
-                return data[-MAX_SAVED_TOPICS:]
+        with _db_lock, _db() as conn:
+            rows = conn.execute(
+                "SELECT headline, summary, ts FROM sent_news ORDER BY ts DESC LIMIT ?",
+                (MAX_SAVED_TOPICS,),
+            ).fetchall()
+        # Возвращаем в хронологическом порядке (старые → новые), как было в старом JSON
+        return [dict(r) for r in reversed(rows)]
     except Exception as e:
         logger.error(f"Load topics error: {e}")
-    return []
+        return []
 
 
-def _save_published_topic(headline: str, summary: str = ""):
-    """Сохраняет тему в файл после успешной публикации."""
-    topics = _load_published_topics()
-    topics.append({
-        "headline": headline,
-        "summary": summary,
-        "ts": datetime.datetime.now().isoformat(),
-    })
-    # Оставляем только последние MAX_SAVED_TOPICS
-    topics = topics[-MAX_SAVED_TOPICS:]
+def _save_published_topic(nid: str, headline: str, summary: str = ""):
+    """Сохраняет факт публикации: и сам nid (чтобы не постить повторно),
+    и тему (чтобы Gemini не предлагал похожие)."""
     try:
-        with open(TOPICS_FILE, "w", encoding="utf-8") as f:
-            json.dump(topics, f, ensure_ascii=False, indent=2)
-        logger.info(f"📝 Тема сохранена: {headline[:50]}")
+        with _db_lock, _db() as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO sent_news(nid, headline, summary, ts) VALUES(?, ?, ?, ?)",
+                (nid, headline, summary, datetime.datetime.now().isoformat()),
+            )
+            conn.commit()
+        logger.info(f"📝 Сохранено в БД: {headline[:50]}")
     except Exception as e:
         logger.error(f"Save topic error: {e}")
+
+
+def _migrate_json_to_db():
+    """Одноразовая миграция старого published_topics.json в БД при первом запуске после апдейта.
+    После успешной миграции файл переименовывается в .migrated, чтобы не повторяться."""
+    if not os.path.exists(TOPICS_FILE):
+        return
+    try:
+        with open(TOPICS_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, list) or not data:
+            return
+
+        migrated = 0
+        with _db_lock, _db() as conn:
+            for t in data:
+                headline = (t.get("headline") or "").strip()
+                if not headline:
+                    continue
+                summary = t.get("summary", "") or ""
+                ts = t.get("ts") or datetime.datetime.now().isoformat()
+                # В старом JSON не было nid — генерим синтетический по headline
+                nid = "json_" + hashlib.md5(headline.encode()).hexdigest()[:12]
+                conn.execute(
+                    "INSERT OR IGNORE INTO sent_news(nid, headline, summary, ts) VALUES(?, ?, ?, ?)",
+                    (nid, headline, summary, ts),
+                )
+                migrated += 1
+            conn.commit()
+
+        try:
+            os.rename(TOPICS_FILE, TOPICS_FILE + ".migrated")
+        except Exception:
+            pass
+        logger.info(f"📦 Мигрировано из JSON в БД: {migrated} тем")
+    except Exception as e:
+        logger.error(f"Migrate JSON error: {e}")
+
+
+# ============================================================
+# НАСТРОЙКИ С ПЕРСИСТЕНТНОСТЬЮ (interval, last_publish_time)
+# ============================================================
+
+def _get_interval() -> int:
+    """Интервал в секундах. По умолчанию 12 часов."""
+    raw = _kv_get("interval", None)
+    try:
+        return int(raw) if raw is not None else 12 * 60 * 60
+    except (TypeError, ValueError):
+        return 12 * 60 * 60
+
+
+def _set_interval(seconds: int):
+    _kv_set("interval", int(seconds))
+
+
+def _get_last_publish_time() -> float:
+    raw = _kv_get("last_publish_time", None)
+    try:
+        return float(raw) if raw is not None else 0.0
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _set_last_publish_time(ts: float):
+    _kv_set("last_publish_time", float(ts))
 
 
 # ============================================================
@@ -561,19 +685,18 @@ def gemini_chat(message: str, history: list = None, model_name: str = "", system
 
 def _seconds_since_last_channel_post() -> int:
     """Сколько секунд прошло с последней публикации в канал.
-    Сначала проверяет _state (если бот сам постил в этой сессии).
-    При рестарте — пробует получить время последнего сообщения через Telegram API."""
+    Читает из SQLite (переживает рестарты/деплои).
+    При самом первом запуске (БД пустая) — пробует узнать через Telegram API."""
 
-    # Если бот уже постил в этой сессии — знаем точно
-    last_pub = _state.get("last_publish_time", 0)
+    # Если уже постили когда-либо — значение есть в БД
+    last_pub = _get_last_publish_time()
     if last_pub > 0:
         now = datetime.datetime.now().timestamp()
         return int(now - last_pub)
 
-    # При первом запуске — пробуем узнать через Telegram API
-    # getChatAdministrators + forward trick не подходят
-    # Но можно попробовать получить инфо через getChat — у каналов
-    # иногда есть pinned_message с датой
+    interval = _get_interval()
+
+    # Самый первый запуск (БД только что создана) — пробуем узнать через Telegram API
     try:
         result = tg_api("getChat", {"chat_id": CHANNEL_USERNAME})
         if result and result.get("ok"):
@@ -585,18 +708,16 @@ def _seconds_since_last_channel_post() -> int:
                 logger.info(f"📌 Pinned message age: {elapsed}s")
                 # Закреплённое сообщение — не обязательно последнее,
                 # но если оно свежее интервала — точно не надо постить
-                if elapsed < _state["interval"]:
+                if elapsed < interval:
                     return elapsed
     except Exception as e:
         logger.error(f"Check channel error: {e}")
 
-    # Не удалось узнать — безопасно ждём полный интервал при первом запуске
-    # Ставим last_publish_time = сейчас минус (интервал - 30мин)
-    # чтобы первый пост был через ~30 минут после старта
-    wait_after_start = max(_state["interval"] - 1800, 600)
-    _state["last_publish_time"] = datetime.datetime.now().timestamp() - (_state["interval"] - wait_after_start)
+    # Не удалось узнать — безопасно ждём ~30 минут после старта
+    wait_after_start = max(interval - 1800, 600)
+    _set_last_publish_time(datetime.datetime.now().timestamp() - (interval - wait_after_start))
     logger.info(f"⏰ First start — will post in ~{wait_after_start // 60} min")
-    return _state["interval"] - wait_after_start
+    return interval - wait_after_start
 
 
 # ============================================================
@@ -608,12 +729,14 @@ def send_news_digest(chat_id: str = None):
     cid = chat_id or TELEGRAM_CHAT_ID
     logger.info("🚀 Auto best-news started")
 
+    interval = _get_interval()
+
     # Проверяем: не слишком ли рано постить?
     if not chat_id:  # только для автопостинга, не для /news
         elapsed = _seconds_since_last_channel_post()
-        if elapsed < _state["interval"]:
-            remaining = _state["interval"] - elapsed
-            logger.info(f"⏭ Слишком рано. Прошло {elapsed}с, интервал {_state['interval']}с. Ждём ещё {remaining}с")
+        if elapsed < interval:
+            remaining = interval - elapsed
+            logger.info(f"⏭ Слишком рано. Прошло {elapsed}с, интервал {interval}с. Ждём ещё {remaining}с")
             return
 
     config = FEEDS["korean"]
@@ -631,8 +754,8 @@ def send_news_digest(chat_id: str = None):
 
     digest_items = gemini_digest(items, config["topic_filter"])
 
-    # Фильтруем: только не отправленные ранее
-    candidates = [d for d in digest_items if d.get("id") not in _state["sent_news_ids"]]
+    # Фильтруем: только не отправленные ранее (проверяем БД)
+    candidates = [d for d in digest_items if not _is_sent(d.get("id", ""))]
 
     if not candidates:
         logger.info("🤷 No new quality news found")
@@ -669,7 +792,6 @@ def send_news_digest(chat_id: str = None):
         return
 
     nid = best["id"]
-    _state["sent_news_ids"].add(nid)
 
     # Генерируем пост
     post_text = gemini_post(news_item["title"], news_item["description"], news_item["link"], True)
@@ -687,7 +809,6 @@ def send_news_digest(chat_id: str = None):
             img2 = _find_image_for(nid2)
             if not img2:
                 continue
-            _state["sent_news_ids"].add(nid2)
             post_text2 = gemini_post(ni2["title"], ni2["description"], ni2["link"], True)
             if post_text2 != "SKIP":
                 _auto_publish(nid2, post_text2, img2, candidate, cid)
@@ -717,12 +838,13 @@ def _auto_publish(nid: str, post_text: str, image_url: str, best: dict, chat_id:
         })
 
     if result and result.get("ok"):
-        _state["last_publish_time"] = datetime.datetime.now().timestamp()
+        _set_last_publish_time(datetime.datetime.now().timestamp())
         logger.info(f"✅ Auto-published: [{score}/10] {headline[:50]}")
         tg_send(f"🤖 <b>Автопост опубликован:</b>\n\n{headline}\n\n<i>(оценка: {score}/10)</i>", chat_id=chat_id)
-        # Слой 2: сохраняем тему чтобы не дублировать в будущих циклах
+        # Сохраняем в БД: и nid (защита от повторной отправки той же новости),
+        # и headline/summary (чтобы Gemini не предлагал похожие темы)
         summary = best.get("summary", "")
-        _save_published_topic(headline, summary)
+        _save_published_topic(nid, headline, summary)
     else:
         logger.error(f"❌ Auto-publish failed: {headline[:50]}")
         tg_send(f"❌ Не удалось опубликовать. Бот — админ {CHANNEL_USERNAME}?", chat_id=chat_id)
@@ -756,7 +878,7 @@ def handle_update(update: dict):
 
         if data.startswith("int:"):
             h = float(data.split(":", 1)[1])
-            _state["interval"] = int(h * 3600)
+            _set_interval(int(h * 3600))
             tg_api("answerCallbackQuery", {"callback_query_id": cb_id, "text": f"Интервал: {_interval_text(int(h*3600))}"})
             cmd_interval_update(chat_id, cb["message"]["message_id"])
         else:
@@ -769,7 +891,7 @@ def handle_update(update: dict):
 
 def cmd_start(chat_id: str):
     tg_send(f"👋 <b>Новостной бот — Корейский шоубиз</b>\n\n"
-            f"<b>Интервал:</b> {_interval_text(_state['interval'])}\n"
+            f"<b>Интервал:</b> {_interval_text(_get_interval())}\n"
             f"<b>Режим:</b> автопост лучшей новости с фото (8+/10)\n"
             f"<b>Канал:</b> {CHANNEL_USERNAME}\n\n"
             "<b>Команды:</b>\n/news — лучшая новость сейчас\n"
@@ -777,7 +899,7 @@ def cmd_start(chat_id: str):
 
 def cmd_help(chat_id: str):
     tg_send("📖 <b>Как работает:</b>\n\n"
-            f"Каждые {_interval_text(_state['interval'])} бот:\n"
+            f"Каждые {_interval_text(_get_interval())} бот:\n"
             "1️⃣ Парсит RSS-ленты корейского шоубиза\n"
             "2️⃣ Gemini оценивает новости (8+/10)\n"
             "3️⃣ Лучшая новость С ФОТО публикуется в канал\n"
@@ -786,7 +908,8 @@ def cmd_help(chat_id: str):
             "/interval — изменить частоту", chat_id=chat_id)
 
 def cmd_interval(chat_id: str):
-    cur = _state["interval"] / 3600
+    interval = _get_interval()
+    cur = interval / 3600
     b, r = [], []
     for h in [2, 4, 6, 8, 12]:
         label = f"{h}ч"
@@ -794,10 +917,11 @@ def cmd_interval(chat_id: str):
         r.append({"text": f"{sel}{label}", "callback_data": f"int:{h}"})
         if len(r) == 3: b.append(r); r = []
     if r: b.append(r)
-    tg_send(f"⏰ Сейчас: каждые <b>{_interval_text(_state['interval'])}</b>", reply_markup={"inline_keyboard": b}, chat_id=chat_id)
+    tg_send(f"⏰ Сейчас: каждые <b>{_interval_text(interval)}</b>", reply_markup={"inline_keyboard": b}, chat_id=chat_id)
 
 def cmd_interval_update(chat_id: str, mid: int):
-    cur = _state["interval"] / 3600
+    interval = _get_interval()
+    cur = interval / 3600
     b, r = [], []
     for h in [2, 4, 6, 8, 12]:
         label = f"{h}ч"
@@ -806,7 +930,7 @@ def cmd_interval_update(chat_id: str, mid: int):
         if len(r) == 3: b.append(r); r = []
     if r: b.append(r)
     tg_api("editMessageText", {"chat_id": chat_id, "message_id": mid,
-        "text": f"⏰ Сейчас: каждые <b>{_interval_text(_state['interval'])}</b>",
+        "text": f"⏰ Сейчас: каждые <b>{_interval_text(interval)}</b>",
         "parse_mode": "HTML", "reply_markup": {"inline_keyboard": b}})
 
 
@@ -836,7 +960,7 @@ def scheduler_loop():
     while True:
         time.sleep(60)  # проверяем каждую минуту
         elapsed = _seconds_since_last_channel_post()
-        if elapsed >= _state["interval"]:
+        if elapsed >= _get_interval():
             try:
                 send_news_digest()
             except Exception as e:
@@ -847,6 +971,9 @@ def scheduler_loop():
 def start():
     if not all([GEMINI_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID]):
         logger.warning("⚠ Bot env vars not set — bot disabled"); return
+    # Инициализация БД и одноразовая миграция старого JSON
+    _init_db()
+    _migrate_json_to_db()
     threading.Thread(target=polling_loop, daemon=True).start()
     threading.Thread(target=scheduler_loop, daemon=True).start()
     logger.info("🤖 News bot started (2 threads: polling, digest)")
