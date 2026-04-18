@@ -3,7 +3,9 @@
 /* ── REPETITION COUNTER FAB ── */
 .rep-counter {
   position: fixed;
-  z-index: 900;
+  /* Выше модалок тренажёра текстов (5000) и word-modal-overlay (5100),
+     чтобы пульт всегда оставался на виду. */
+  z-index: 5500;
   background: var(--bg-surface, #fff);
   border: 1px solid var(--border-color, #e2e5ec);
   border-radius: 14px;
@@ -178,7 +180,7 @@
 /* Goal picker dropdown */
 .rep-goal-picker {
   position: fixed;
-  z-index: 901;
+  z-index: 5501;
   display: none;
   background: var(--bg-surface, #fff);
   border: 1px solid var(--border-color, #e2e5ec);
@@ -245,7 +247,7 @@
 .sel-popup {
   position: absolute;
   display: none;
-  z-index: 3000;
+  z-index: 5502;
   background: var(--bg-surface, #fff);
   border: 1px solid var(--border-color, #e2e5ec);
   border-radius: 10px;

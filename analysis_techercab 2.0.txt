@@ -1,7 +1,7 @@
 ======================================================================
 АНАЛИЗ ПРОЕКТА: TECHERCAB 2.0
 Путь: C:\Users\MakscattSchool\Desktop\projects\techercab 2.0
-Дата анализа: 2026-04-17 09:53
+Дата анализа: 2026-04-18 10:06
 Всего файлов: 56
 ======================================================================
 
@@ -14,7 +14,7 @@
 📁 СТРУКТУРА ПРОЕКТА
 ----------------------------------------
   app.py  (64.5 KB)
-  bot.py  (38.1 KB)
+  bot.py  (42.5 KB)
   get-pip.py  (2142.0 KB)
   homework_integration.md  (5.7 KB)
   korean-roadmap.html  (19.8 KB)
@@ -249,10 +249,26 @@
      def _find_image_for(nid: str) -> str
        """Ищет фото для новости. Сначала в самой записи, потом по похожим заголовкам в кэше."""
      def _extract_image(entry) -> str
+     def _db()
+       """Открывает соединение. Каждый вызов — своё соединение (безопасно для потоков)."""
+     def _init_db()
+       """Создаёт таблицы при первом старте. Идемпотентно."""
+     def _kv_get(key: str, default=None)
+     def _kv_set(key: str, value)
+     def _is_sent(nid: str) -> bool
      def _load_published_topics() -> list
-       """Загружает список опубликованных тем из файла."""
-     def _save_published_topic(headline: str, summary: str = "")
-       """Сохраняет тему в файл после успешной публикации."""
+       """Возвращает последние MAX_SAVED_TOPICS опубликованных тем (для промпта Gemini)."""
+     def _save_published_topic(nid: str, headline: str, summary: str = "")
+       """Сохраняет факт публикации: и сам nid (чтобы не постить повторно),
+    и тему (чтобы Gemini не предлагал похожие)."""
+     def _migrate_json_to_db()
+       """Одноразовая миграция старого published_topics.json в БД при первом запуске после апдейта.
+    После успешной миграции файл переименовывается в .migrated, чтобы не повторяться."""
+     def _get_interval() -> int
+       """Интервал в секундах. По умолчанию 12 часов."""
+     def _set_interval(seconds: int)
+     def _get_last_publish_time() -> float
+     def _set_last_publish_time(ts: float)
      def gemini_dedup_titles(items: list) -> list
        """Группирует новости по темам через Gemini (только заголовки — дёшево).
     Из каждой группы оставляет одну лучшую новость (с фото и длинным описанием).
@@ -264,8 +280,8 @@
        """Простой чат с Gemini. history = [{"role":"user","text":"..."}, {"role":"model","text":"..."}]"""
      def _seconds_since_last_channel_post() -> int
        """Сколько секунд прошло с последней публикации в канал.
-    Сначала проверяет _state (если бот сам постил в этой сессии).
-    При рестарте — пробует получить время последнего сообщения через Telegram API."""
+    Читает из SQLite (переживает рестарты/деплои).
+    При самом первом запуске (БД пустая) — пробует узнать через Telegram API."""
      def send_news_digest(chat_id: str = None)
        """Находит лучшую новость (8+/10, с фото) и автоматически публикует в канал."""
      def _auto_publish(nid: str, post_text: str, image_url: str, best: dict, chat_id: str)
@@ -403,30 +419,30 @@
 
   📄 templates\base.html
      title: {% block title %}한국어{% endblock %}
-     blocks: extra_js, content, extra_css, title
+     blocks: extra_js, title, extra_css, content
      scripts: https://telegram.org/js/telegram-web-app.js
 
   📄 templates\dashboard.html
      extends: base.html
-     blocks: extra_js, content, title
+     blocks: extra_js, title, content
      scripts: {{ url_for(, {{ url_for(
 
   📄 templates\history.html
      extends: base.html
-     blocks: extra_js, content, title
-     api_calls: /api/notes/delete, /api/notes/list
+     blocks: extra_js, title, content
+     api_calls: /api/notes/list, /api/notes/delete
 
   📄 templates\login.html
      extends: base.html
-     blocks: content, title
+     blocks: title, content
 
   📄 templates\register.html
      extends: base.html
-     blocks: content, title
+     blocks: title, content
 
   📄 templates\select_student.html
      extends: base.html
-     blocks: content, title
+     blocks: title, content
      forms: {{ url_for(
 
   📄 templates\trainer_alphabet.html
@@ -435,7 +451,7 @@
 
   📄 templates\trainer_base.html
      extends: base.html
-     blocks: extra_js, content, trainer_js, trainer_content
+     blocks: extra_js, trainer_js, content, trainer_content
      scripts: {{ url_for(, {{ url_for(
 
   📄 templates\trainer_cards.html
@@ -459,7 +475,7 @@
   📄 templates\trainer_hub.html
      extends: trainer_base.html
      blocks: trainer_js, title, trainer_content
-     api_calls: /api/hub/delete, /api/hub/list, /api/hub/add-batch, /api/hub/toggle-learned
+     api_calls: /api/hub/toggle-learned, /api/hub/add-batch, /api/hub/delete, /api/hub/list
 
   📄 templates\trainer_locations.html
      extends: trainer_base.html
@@ -484,7 +500,7 @@
   📄 templates\trainer_phrases.html
      extends: trainer_base.html
      blocks: trainer_js, title, trainer_content
-     api_calls: /api/items/set, {{ url_for(, /api/sections/toggle, /api/sections/get, /api/items/get
+     api_calls: {{ url_for(, /api/items/get, /api/sections/toggle, /api/sections/get, /api/items/set
 
   📄 templates\trainer_pictures.html
      extends: trainer_base.html
@@ -499,12 +515,12 @@
   📄 templates\trainer_sentences.html
      extends: trainer_base.html
      blocks: trainer_js, title, trainer_content
-     api_calls: /static/data/sentences.json, /api/items/set, /api/items/get
+     api_calls: /api/items/get, /static/data/sentences.json, /api/items/set
 
   📄 templates\trainer_text.html
      extends: trainer_base.html
      blocks: trainer_js, title, trainer_content
-     api_calls: /api/highlights/save, /api/items/set, /api/items/get, /static/data/texts.json
+     api_calls: /api/items/set, /api/items/get, /api/highlights/save, /static/data/texts.json
 
   📄 templates\trainer_time.html
      extends: trainer_base.html

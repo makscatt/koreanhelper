@@ -313,9 +313,9 @@
   top:0; bottom:0; width:1px;
 }
 
-/* Body — draggable block */
+/* Body — draggable block (drag on right mouse button) */
 .txt-modal-body {
-  position:absolute; cursor:grab;
+  position:absolute; cursor:text;
   padding:32px 48px;
   font-family:'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
   font-size:24px; line-height:1.9; color:var(--text-primary);
@@ -330,7 +330,7 @@
   user-select:text;
 }
 .txt-modal-body.dragging {
-  cursor:grabbing;
+  cursor:move;
   box-shadow:0 6px 24px rgba(0,0,0,0.15);
   transition:box-shadow 0.15s ease;
 }
@@ -555,6 +555,9 @@
   }
 
   // ── Canvas drag system ──
+  // Desktop: drag on RIGHT mouse button only. Left button is always free
+  // for text selection and highlighting.
+  // Mobile: one-finger touch drags the block (kept as-is).
   const SNAP_THRESHOLD = 12;
   const POS_STORAGE_KEY = 'txt_canvas_pos';
   let _dragState = null;
@@ -598,61 +601,84 @@
     const body = document.getElementById('txt-modal-body');
     if (!canvas || !body) return;
 
-    body.addEventListener('mousedown', onDragStart);
-    canvas.addEventListener('mousemove', onDragMove);
-    document.addEventListener('mouseup', onDragEnd);
+    // Desktop: drag is triggered ONLY by right mouse button (button === 2).
+    // Left button is reserved for text selection / highlighting.
+    body.addEventListener('mousedown', onMouseDown);
+    canvas.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
 
+    // Suppress native context menu over the canvas so RMB drag works cleanly.
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+    // Touch (mobile): keep existing one-finger drag.
     body.addEventListener('touchstart', onTouchStart, { passive: false });
     canvas.addEventListener('touchmove', onTouchMove, { passive: false });
-    document.addEventListener('touchend', onDragEnd);
+    document.addEventListener('touchend', onTouchEnd);
   }
 
+  // ── Desktop handlers ──
+  function onMouseDown(e) {
+    // Only right mouse button starts a drag.
+    if (e.button !== 2) return;
+    e.preventDefault();
+
+    const body = document.getElementById('txt-modal-body');
+    const rect = body.getBoundingClientRect();
+    _dragState = {
+      kind: 'mouse',
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      moved: false,
+      startX: e.clientX,
+      startY: e.clientY,
+    };
+  }
+
+  function onMouseMove(e) {
+    if (!_dragState || _dragState.kind !== 'mouse') return;
+    moveDrag(e.clientX, e.clientY);
+  }
+
+  function onMouseUp(e) {
+    if (!_dragState || _dragState.kind !== 'mouse') return;
+    // Only stop when the same (right) button is released, otherwise ignore.
+    if (e.button !== 2) return;
+    endDrag();
+  }
+
+  // ── Touch handlers (mobile) ──
   function onTouchStart(e) {
     if (e.touches.length !== 1) return;
     const t = e.touches[0];
-    startDrag(t.clientX, t.clientY, e);
+    const body = document.getElementById('txt-modal-body');
+    const rect = body.getBoundingClientRect();
+    _dragState = {
+      kind: 'touch',
+      offsetX: t.clientX - rect.left,
+      offsetY: t.clientY - rect.top,
+      moved: false,
+      startX: t.clientX,
+      startY: t.clientY,
+    };
   }
 
   function onTouchMove(e) {
-    if (!_dragState) return;
+    if (!_dragState || _dragState.kind !== 'touch') return;
     e.preventDefault();
     const t = e.touches[0];
     moveDrag(t.clientX, t.clientY);
   }
 
-  function onDragStart(e) {
-    // Don't start drag if selecting text
-    if (e.button !== 0) return;
-    // Only drag from the body padding area, not text selections
-    startDrag(e.clientX, e.clientY, e);
+  function onTouchEnd() {
+    if (!_dragState || _dragState.kind !== 'touch') return;
+    endDrag();
   }
 
-  function startDrag(clientX, clientY, e) {
-    // Don't drag when highlighting mode is active
-    if (activeColor) return;
-    const body = document.getElementById('txt-modal-body');
-    const sel = window.getSelection();
-    if (sel && !sel.isCollapsed) return;
-
-    const rect = body.getBoundingClientRect();
-    _dragState = {
-      offsetX: clientX - rect.left,
-      offsetY: clientY - rect.top,
-      moved: false,
-      startX: clientX,
-      startY: clientY
-    };
-  }
-
-  function onDragMove(e) {
-    if (!_dragState) return;
-    moveDrag(e.clientX, e.clientY);
-  }
-
+  // ── Shared drag logic ──
   function moveDrag(clientX, clientY) {
     if (!_dragState) return;
 
-    // Dead zone: don't start dragging until moved 5px
+    // Dead zone: don't start visually dragging until moved 5px.
     if (!_dragState.moved) {
       const dx = clientX - _dragState.startX;
       const dy = clientY - _dragState.startY;
@@ -671,13 +697,12 @@
     const cw = cRect.width, ch = cRect.height;
     const bw = body.offsetWidth, bh = body.offsetHeight;
 
-    // Snap to center horizontal
+    // Snap to center horizontal / vertical
     const centerX = (cw - bw) / 2;
+    const centerY = (ch - bh) / 2;
     const snapH = document.getElementById('txt-snap-h');
     const snapV = document.getElementById('txt-snap-v');
 
-    // Vertical center snap
-    const centerY = (ch - bh) / 2;
     if (Math.abs(y - centerY) < SNAP_THRESHOLD) {
       y = centerY;
       snapH.style.top = (ch / 2) + 'px';
@@ -686,7 +711,6 @@
       snapH.style.display = 'none';
     }
 
-    // Horizontal center snap
     if (Math.abs(x - centerX) < SNAP_THRESHOLD) {
       x = centerX;
       snapV.style.left = (cw / 2) + 'px';
@@ -699,7 +723,7 @@
     body.style.top = y + 'px';
   }
 
-  function onDragEnd() {
+  function endDrag() {
     if (!_dragState) return;
     const body = document.getElementById('txt-modal-body');
     body.classList.remove('dragging');
