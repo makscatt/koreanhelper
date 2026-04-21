@@ -197,7 +197,7 @@
         const opt = document.createElement('option');
         opt.value = d.grammar_id;
         const icon = getCheckIcon(d.grammar_id);
-        opt.textContent = (icon ? icon + ' ' : '') + d.title + ' — ' + d.category;
+        opt.textContent = (icon ? icon + ' ' : '') + d.title;
         sel.appendChild(opt);
       }
     });
@@ -261,7 +261,7 @@
       return;
     }
     const s = filtered[curIdx];
-    document.getElementById('badge-hint').textContent = s.title + ' · ' + s.category;
+    document.getElementById('badge-hint').textContent = s.title;
     document.getElementById('badge-topik').textContent = 'TOPIK ' + s.topik;
     document.getElementById('badge-num').textContent = '#' + (curIdx + 1);
     document.getElementById('cnt-cur').textContent = curIdx + 1;

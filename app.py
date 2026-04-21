@@ -1562,18 +1562,48 @@ with app.app_context():
         db.session.commit()
         print('Создан тестовый учитель: admin/admin')
 
-# ── Gemini News Bot (работает в фоновых потоках) ──
-import bot
-
 # ── Gemini Chat API (для внешнего приложения) ──
+import logging
+import google.generativeai as genai
+
 GEMINI_CHAT_SECRET = os.environ.get("GEMINI_CHAT_SECRET", "jarvis2026")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_DEFAULT_MODEL = "gemini-3.1-pro-preview"
+GEMINI_CHAT_MODELS = {
+    "gemini-3-flash-preview",
+    "gemini-3.1-pro-preview",
+}
+_gemini_logger = logging.getLogger("gemini_chat")
+
+
+def gemini_chat(message: str, history: list = None, model_name: str = "", system_prompt: str = "") -> str:
+    """Простой чат с Gemini. history = [{"role":"user","text":"..."}, {"role":"model","text":"..."}]"""
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+        use_model = model_name if model_name in GEMINI_CHAT_MODELS else GEMINI_DEFAULT_MODEL
+        model_kwargs = {}
+        if system_prompt:
+            model_kwargs["system_instruction"] = system_prompt
+        model = genai.GenerativeModel(use_model, **model_kwargs)
+
+        contents = []
+        if history:
+            for h in history:
+                contents.append({"role": h["role"], "parts": [h["text"]]})
+        contents.append({"role": "user", "parts": [message]})
+
+        response = model.generate_content(contents)
+        return response.text.strip()
+    except Exception as e:
+        _gemini_logger.error(f"Gemini chat error: {e}")
+        return f"❌ Ошибка: {e}"
+
 
 @app.route('/api/gemini/chat', methods=['POST'])
 def api_gemini_chat():
     """Эндпоинт для чата с Gemini через внешнее приложение."""
     data = request.get_json(silent=True) or {}
 
-    # Простая авторизация по секрету
     if data.get("secret") != GEMINI_CHAT_SECRET:
         return jsonify({"error": "Unauthorized"}), 401
 
@@ -1584,7 +1614,7 @@ def api_gemini_chat():
     history = data.get("history", [])
     model = data.get("model", "")
     system_prompt = data.get("system_prompt", "")
-    reply = bot.gemini_chat(message, history, model, system_prompt=system_prompt)
+    reply = gemini_chat(message, history, model, system_prompt=system_prompt)
     return jsonify({"reply": reply})
 
 if __name__ == '__main__':
