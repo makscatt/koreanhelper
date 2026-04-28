@@ -1049,5 +1049,491 @@
       "kor": "네, 감사합니다!",
       "rus": "Хорошо, спасибо!"
     }
+  },
+
+  {
+    "id": "travel-airport-01",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "airport",
+    "section_label": "Аэропорт",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "여권 검사는 어디예요?", "rus": "Где паспортный контроль?" },
+    "staff_responses": [
+      { "kor": "저쪽으로 가세요.", "rus": "Идите туда." },
+      { "kor": "오른쪽에 있어요.", "rus": "Справа." },
+      { "kor": "이쪽 줄에 서세요.", "rus": "Встаньте в эту очередь." }
+    ]
+  },
+  {
+    "id": "travel-airport-02",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "airport",
+    "section_label": "Аэропорт",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "짐은 어디에서 찾아요?", "rus": "Где забирать багаж?" },
+    "staff_responses": [
+      { "kor": "저기 컨베이어 벨트에서요.", "rus": "Вон там, на ленте." },
+      { "kor": "1번 벨트로 가세요.", "rus": "Идите к ленте №1." },
+      { "kor": "이 표지판 따라가세요.", "rus": "Идите по этим указателям." }
+    ]
+  },
+  {
+    "id": "travel-airport-03",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "airport",
+    "section_label": "Аэропорт",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "출구가 어디예요?", "rus": "Где выход?" },
+    "staff_responses": [
+      { "kor": "이쪽으로 쭉 가세요.", "rus": "Идите прямо в эту сторону." },
+      { "kor": "왼쪽 문으로 나가세요.", "rus": "Выходите через левую дверь." },
+      { "kor": "저 에스컬레이터 타고 1층이에요.", "rus": "По эскалатору на первый этаж." }
+    ]
+  },
+  {
+    "id": "travel-airport-04",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "airport",
+    "section_label": "Аэропорт",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "환전소는 어디에 있어요?", "rus": "Где обменник?" },
+    "staff_responses": [
+      { "kor": "1층에 있어요.", "rus": "На первом этаже." },
+      { "kor": "저쪽 끝에 있어요.", "rus": "В том конце зала." },
+      { "kor": "은행 옆에 있어요.", "rus": "Рядом с банком." }
+    ]
+  },
+  {
+    "id": "travel-airport-05",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "airport",
+    "section_label": "Аэропорт",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "공항버스는 어디에서 타요?", "rus": "Где сесть на автобус-экспресс?" },
+    "staff_responses": [
+      { "kor": "밖으로 나가서 오른쪽이에요.", "rus": "На выходе направо." },
+      { "kor": "6번 정류장으로 가세요.", "rus": "Идите к остановке №6." },
+      { "kor": "저 표지판 따라가세요.", "rus": "Идите по тем указателям." }
+    ]
+  },
+  {
+    "id": "travel-airport-06",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "airport",
+    "section_label": "Аэропорт",
+    "priority": "regular",
+    "type": "travel_dialog",
+    "tourist": { "kor": "와이파이 비밀번호 좀 알려 주세요.", "rus": "Подскажите пароль от Wi-Fi." },
+    "staff_responses": [
+      { "kor": "여기 적혀 있어요.", "rus": "Вот тут написан." },
+      { "kor": "비밀번호 없어요. 무료예요.", "rus": "Без пароля, бесплатно." },
+      { "kor": "이 와이파이 사용하세요.", "rus": "Используйте вот эту сеть." }
+    ]
+  },
+
+  {
+    "id": "travel-bus-01",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "bus",
+    "section_label": "Автобус",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "서울역까지 한 장 주세요.", "rus": "Один билет до Сеула, пожалуйста." },
+    "staff_responses": [
+      { "kor": "네, 만 오천 원입니다.", "rus": "15 000 вон." },
+      { "kor": "왕복으로 드릴까요?", "rus": "Туда-обратно?" },
+      { "kor": "다음 버스 표 드릴게요.", "rus": "Дам на следующий автобус." }
+    ]
+  },
+  {
+    "id": "travel-bus-02",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "bus",
+    "section_label": "Автобус",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "다음 버스는 몇 시에 와요?", "rus": "Когда следующий автобус?" },
+    "staff_responses": [
+      { "kor": "10분 후에 와요.", "rus": "Через 10 минут." },
+      { "kor": "30분쯤 후예요.", "rus": "Примерно через 30 минут." },
+      { "kor": "곧 와요.", "rus": "Скоро." }
+    ]
+  },
+  {
+    "id": "travel-bus-03",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "bus",
+    "section_label": "Автобус",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "이 버스 시내 가요?", "rus": "Этот автобус идёт в центр?" },
+    "staff_responses": [
+      { "kor": "네, 맞아요.", "rus": "Да, верно." },
+      { "kor": "아니요, 저 버스 타세요.", "rus": "Нет, садитесь на тот." },
+      { "kor": "그쪽으로 안 가요.", "rus": "В ту сторону не едет." }
+    ]
+  },
+  {
+    "id": "travel-bus-04",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "bus",
+    "section_label": "Автобус",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "얼마나 걸려요?", "rus": "Сколько ехать?" },
+    "staff_responses": [
+      { "kor": "한 시간 정도요.", "rus": "Примерно час." },
+      { "kor": "약 40분이요.", "rus": "Около 40 минут." },
+      { "kor": "두 시간쯤 걸려요.", "rus": "Около двух часов." }
+    ]
+  },
+  {
+    "id": "travel-bus-05",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "bus",
+    "section_label": "Автобус",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "어디에서 내려요?", "rus": "Где мне выходить?" },
+    "staff_responses": [
+      { "kor": "다음 정류장에서요.", "rus": "На следующей остановке." },
+      { "kor": "종점까지 가세요.", "rus": "До конечной." },
+      { "kor": "제가 알려 드릴게요.", "rus": "Я подскажу." }
+    ]
+  },
+  {
+    "id": "travel-bus-06",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "bus",
+    "section_label": "Автобус",
+    "priority": "regular",
+    "type": "travel_dialog",
+    "tourist": { "kor": "정류장이 어디예요?", "rus": "Где автобусная остановка?" },
+    "staff_responses": [
+      { "kor": "저기 표지판 보이세요?", "rus": "Видите вон тот знак?" },
+      { "kor": "길 건너에 있어요.", "rus": "Через дорогу." },
+      { "kor": "이쪽으로 50미터요.", "rus": "Метров 50 в эту сторону." }
+    ]
+  },
+
+  {
+    "id": "travel-taxi-01",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "taxi",
+    "section_label": "Такси",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "택시 좀 불러 주세요.", "rus": "Вызовите такси, пожалуйста." },
+    "staff_responses": [
+      { "kor": "네, 잠시만요.", "rus": "Да, минуточку." },
+      { "kor": "5분 정도 걸려요.", "rus": "Будет минут через 5." },
+      { "kor": "어디로 가세요?", "rus": "Куда едете?" }
+    ]
+  },
+  {
+    "id": "travel-taxi-02",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "taxi",
+    "section_label": "Такси",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "이 주소로 가 주세요.", "rus": "Отвезите по этому адресу." },
+    "staff_responses": [
+      { "kor": "네, 알겠습니다.", "rus": "Хорошо, понял." },
+      { "kor": "이 주소 맞아요?", "rus": "Адрес точно этот?" },
+      { "kor": "내비게이션에 넣을게요.", "rus": "Введу в навигатор." }
+    ]
+  },
+  {
+    "id": "travel-taxi-03",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "taxi",
+    "section_label": "Такси",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "얼마나 걸릴까요?", "rus": "Сколько ехать?" },
+    "staff_responses": [
+      { "kor": "20분쯤요.", "rus": "Минут 20." },
+      { "kor": "길이 막히면 더 걸려요.", "rus": "Если пробки — дольше." },
+      { "kor": "30분 정도요.", "rus": "Около 30 минут." }
+    ]
+  },
+  {
+    "id": "travel-taxi-04",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "taxi",
+    "section_label": "Такси",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "여기에서 세워 주세요.", "rus": "Остановите здесь, пожалуйста." },
+    "staff_responses": [
+      { "kor": "네.", "rus": "Хорошо." },
+      { "kor": "잠시만요.", "rus": "Секунду." },
+      { "kor": "이 앞에 세울게요.", "rus": "Остановлю здесь у обочины." }
+    ]
+  },
+  {
+    "id": "travel-taxi-05",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "taxi",
+    "section_label": "Такси",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "얼마예요?", "rus": "Сколько с меня?" },
+    "staff_responses": [
+      { "kor": "만 오천 원이에요.", "rus": "15 000 вон." },
+      { "kor": "팔천 원입니다.", "rus": "8 000 вон." },
+      { "kor": "이만 원이에요.", "rus": "20 000 вон." }
+    ]
+  },
+  {
+    "id": "travel-taxi-06",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "taxi",
+    "section_label": "Такси",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "카드로 계산할 수 있어요?", "rus": "Можно расплатиться картой?" },
+    "staff_responses": [
+      { "kor": "네, 됩니다.", "rus": "Да, можно." },
+      { "kor": "아니요, 현금만 받아요.", "rus": "Нет, только наличные." },
+      { "kor": "여기 단말기에 넣으세요.", "rus": "Вставьте в терминал." }
+    ]
+  },
+
+  {
+    "id": "travel-directions-01",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "directions",
+    "section_label": "Спросить дорогу",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "실례지만, 길 좀 물어볼게요.", "rus": "Извините, можно спросить дорогу?" },
+    "staff_responses": [
+      { "kor": "네, 말씀하세요.", "rus": "Да, слушаю." },
+      { "kor": "어디 찾으세요?", "rus": "Куда вам?" },
+      { "kor": "물어보세요.", "rus": "Спрашивайте." }
+    ]
+  },
+  {
+    "id": "travel-directions-02",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "directions",
+    "section_label": "Спросить дорогу",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "지하철역이 어디예요?", "rus": "Где станция метро?" },
+    "staff_responses": [
+      { "kor": "저쪽으로 5분만 가세요.", "rus": "Минут 5 в ту сторону." },
+      { "kor": "이 길 끝에 있어요.", "rus": "В конце этой улицы." },
+      { "kor": "사거리에서 왼쪽이에요.", "rus": "На перекрёстке налево." }
+    ]
+  },
+  {
+    "id": "travel-directions-03",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "directions",
+    "section_label": "Спросить дорогу",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "이 근처에 편의점 있어요?", "rus": "Есть рядом круглосуточный?" },
+    "staff_responses": [
+      { "kor": "네, 저 모퉁이에 있어요.", "rus": "Да, за углом." },
+      { "kor": "길 건너에 있어요.", "rus": "Через дорогу." },
+      { "kor": "조금만 더 가시면 돼요.", "rus": "Чуть дальше пройдите." }
+    ]
+  },
+  {
+    "id": "travel-directions-04",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "directions",
+    "section_label": "Спросить дорогу",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "여기에서 멀어요?", "rus": "Это далеко отсюда?" },
+    "staff_responses": [
+      { "kor": "아니요, 가까워요.", "rus": "Нет, близко." },
+      { "kor": "걸어서 10분이에요.", "rus": "Минут 10 пешком." },
+      { "kor": "택시 타시는 게 좋아요.", "rus": "Лучше на такси." }
+    ]
+  },
+  {
+    "id": "travel-directions-05",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "directions",
+    "section_label": "Спросить дорогу",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "화장실이 어디 있어요?", "rus": "Где туалет?" },
+    "staff_responses": [
+      { "kor": "저쪽 안쪽에 있어요.", "rus": "Вон там, внутри." },
+      { "kor": "2층에 있어요.", "rus": "На втором этаже." },
+      { "kor": "이 건물 밖에 있어요.", "rus": "Снаружи здания." }
+    ]
+  },
+  {
+    "id": "travel-directions-06",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "directions",
+    "section_label": "Спросить дорогу",
+    "priority": "regular",
+    "type": "travel_dialog",
+    "tourist": { "kor": "지도에서 좀 보여 주실래요?", "rus": "Покажите на карте, пожалуйста." },
+    "staff_responses": [
+      { "kor": "네, 여기예요.", "rus": "Да, вот здесь." },
+      { "kor": "이 위치예요.", "rus": "Вот эта точка." },
+      { "kor": "잠깐만요, 봐 드릴게요.", "rus": "Минутку, посмотрю." }
+    ]
+  },
+
+  {
+    "id": "travel-essentials-01",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "essentials",
+    "section_label": "Если не понимают",
+    "priority": "core",
+    "type": "phrase_only",
+    "speaker": "tourist",
+    "phrase": { "kor": "영어 할 줄 아세요?", "rus": "Вы говорите по-английски?" }
+  },
+  {
+    "id": "travel-essentials-02",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "essentials",
+    "section_label": "Если не понимают",
+    "priority": "core",
+    "type": "phrase_only",
+    "speaker": "tourist",
+    "phrase": { "kor": "한국어 잘 못해요.", "rus": "Я плохо говорю по-корейски." }
+  },
+  {
+    "id": "travel-essentials-03",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "essentials",
+    "section_label": "Если не понимают",
+    "priority": "core",
+    "type": "phrase_only",
+    "speaker": "tourist",
+    "phrase": { "kor": "천천히 말해 주세요.", "rus": "Говорите помедленнее, пожалуйста." }
+  },
+  {
+    "id": "travel-essentials-04",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "essentials",
+    "section_label": "Если не понимают",
+    "priority": "core",
+    "type": "phrase_only",
+    "speaker": "tourist",
+    "phrase": { "kor": "다시 한 번 말해 주세요.", "rus": "Повторите ещё раз, пожалуйста." }
+  },
+  {
+    "id": "travel-essentials-05",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "essentials",
+    "section_label": "Если не понимают",
+    "priority": "core",
+    "type": "phrase_only",
+    "speaker": "tourist",
+    "phrase": { "kor": "이해 못했어요.", "rus": "Я не понял(а)." }
+  },
+  {
+    "id": "travel-essentials-06",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "essentials",
+    "section_label": "Если не понимают",
+    "priority": "regular",
+    "type": "phrase_only",
+    "speaker": "tourist",
+    "phrase": { "kor": "잠깐만요.", "rus": "Минуточку." }
+  },
+  {
+    "id": "travel-essentials-07",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "essentials",
+    "section_label": "Если не понимают",
+    "priority": "core",
+    "type": "phrase_only",
+    "speaker": "tourist",
+    "phrase": { "kor": "도와주세요.", "rus": "Помогите, пожалуйста." }
+  },
+  {
+    "id": "travel-essentials-08",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "essentials",
+    "section_label": "Если не понимают",
+    "priority": "core",
+    "type": "phrase_only",
+    "speaker": "staff",
+    "phrase": { "kor": "네?", "rus": "Что? / Простите? (переспрос)" }
+  },
+  {
+    "id": "travel-essentials-09",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "essentials",
+    "section_label": "Если не понимают",
+    "priority": "core",
+    "type": "phrase_only",
+    "speaker": "staff",
+    "phrase": { "kor": "다시 말씀해 주세요.", "rus": "Повторите, пожалуйста (переспрос сотрудника)." }
+  },
+  {
+    "id": "travel-essentials-10",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "essentials",
+    "section_label": "Если не понимают",
+    "priority": "regular",
+    "type": "phrase_only",
+    "speaker": "staff",
+    "phrase": { "kor": "뭐라고 하셨어요?", "rus": "Что вы сказали? (переспрос сотрудника)" }
+  },
+  {
+    "id": "travel-essentials-11",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "essentials",
+    "section_label": "Если не понимают",
+    "priority": "regular",
+    "type": "phrase_only",
+    "speaker": "staff",
+    "phrase": { "kor": "잘 못 들었어요.", "rus": "Я не расслышал. (переспрос сотрудника)" }
   }
 ]

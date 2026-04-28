@@ -31,6 +31,9 @@
   <!-- MAIN CONTENT -->
   <div class="phrases-main">
 
+    <!-- Категории (Урок / Путешествие / ...) -->
+    <div class="ph-cat-tabs" id="cat-tabs"></div>
+
     <!-- Секции -->
     <div class="ph-section-tabs" id="section-tabs"></div>
 
@@ -93,6 +96,48 @@
 </div>
 
 <style>
+/* ── Category tabs (Урок / Путешествие …) ── */
+.ph-cat-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1.5px solid #e4e8ef;
+}
+.ph-cat-btn {
+  padding: 8px 18px;
+  background: #fff;
+  border: 1.5px solid #e4e8ef;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: 0.15s;
+  color: #4b5563;
+  white-space: nowrap;
+}
+.ph-cat-btn:hover:not(.active) { border-color: #c0c8d8; color: #1a1d23; }
+.ph-cat-btn.active {
+  background: #1a1d23;
+  color: #fff;
+  border-color: #1a1d23;
+}
+
+/* ── Travel-style: список вариантов ответа сотрудника ── */
+.ph-staff-list-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 4px 0 6px;
+}
+.ph-bubble.staff-variant {
+  margin-bottom: 6px;
+}
+
 /* ── List checkbox row ── */
 .ph-list-check-row {
   display: flex;
@@ -151,6 +196,7 @@
   let filtered = [];
   let curIdx = 0;
   let answerVisible = false;
+  let activeCategory = 'lesson';
   let activeSection = 'all';
   let activePriority = 'all';
   let activeMode = 'card';
@@ -159,9 +205,13 @@
   const STUDENT_ID = {{ student.id }};
   let sectionsDone = {};
 
+  const categoryIcons = {
+    lesson: '📚', travel: '✈️'
+  };
   const sectionIcons = {
     start: '👋', homework: '📝', review: '🔄', new: '✨',
-    practice: '💪', feedback: '💬', close: '🏁'
+    practice: '💪', feedback: '💬', close: '🏁',
+    airport: '✈️', bus: '🚌', taxi: '🚕', directions: '🧭', essentials: '🆘'
   };
   function getSectionIcon(section) {
     for (const key of Object.keys(sectionIcons)) {
@@ -202,9 +252,41 @@
           student:{ kor:"안녕하세요!", rus:"Здравствуйте!" } }
       ];
     }
+    // Дефолт категории для старых фраз
+    allPairs.forEach(p => {
+      if (!p.category) { p.category = 'lesson'; p.category_label = 'Урок'; }
+    });
+    buildCategoryTabs();
     buildSectionTabs();
     applyFilters();
     updateSectionDoneState();
+  }
+
+  function buildCategoryTabs() {
+    const container = document.getElementById('cat-tabs');
+    container.innerHTML = '';
+    const seen = new Set();
+    const cats = [];
+    allPairs.forEach(p => {
+      if (!seen.has(p.category)) { seen.add(p.category); cats.push({ key: p.category, label: p.category_label }); }
+    });
+    if (cats.length <= 1) { container.style.display = 'none'; return; }
+    cats.forEach(c => {
+      const btn = document.createElement('button');
+      btn.className = 'ph-cat-btn' + (c.key === activeCategory ? ' active' : '');
+      btn.dataset.cat = c.key;
+      btn.textContent = (categoryIcons[c.key] || '') + ' ' + c.label;
+      btn.onclick = () => {
+        activeCategory = c.key;
+        activeSection = 'all';
+        curIdx = 0;
+        document.querySelectorAll('.ph-cat-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === activeCategory));
+        buildSectionTabs();
+        applyFilters();
+        updateSectionDoneState();
+      };
+      container.appendChild(btn);
+    });
   }
 
   function setMode(mode, btn) {
@@ -220,12 +302,13 @@
   function buildSectionTabs() {
     const container = document.getElementById('section-tabs');
     container.innerHTML = '';
-    container.appendChild(makeTabBtn('Все', 'all', true));
+    container.appendChild(makeTabBtn('Все', 'all', activeSection === 'all'));
     const seen = new Set();
     allPairs.forEach(p => {
+      if (p.category !== activeCategory) return;
       if (!seen.has(p.section)) {
         seen.add(p.section);
-        container.appendChild(makeTabBtn(p.section_label, p.section, false));
+        container.appendChild(makeTabBtn(p.section_label, p.section, p.section === activeSection));
       }
     });
   }
@@ -295,9 +378,10 @@
 
   function applyFilters() {
     filtered = allPairs.filter(p => {
+      const catOk = p.category === activeCategory;
       const secOk = activeSection === 'all' || p.section === activeSection;
       const priOk = activePriority === 'all' || p.priority === activePriority;
-      return secOk && priOk;
+      return catOk && secOk && priOk;
     });
     renderCurrentMode();
   }
@@ -348,6 +432,10 @@
   function buildDialog(pair) {
     const container = document.getElementById('dialog');
     container.innerHTML = '';
+
+    if (pair.type === 'travel_dialog') return buildTravelDialog(pair, container);
+    if (pair.type === 'phrase_only')  return buildPhraseOnly(pair, container);
+
     const isTemplate = pair.type === 'template';
 
     if (pair.teacher && pair.teacher.kor) {
@@ -424,6 +512,72 @@
     }
   }
 
+  /* ── TRAVEL CARD: турист + список ответов сотрудника ── */
+  function buildTravelDialog(pair, container) {
+    if (pair.tourist && pair.tourist.kor) {
+      const turn = document.createElement('div'); turn.className = 'ph-turn';
+      const lbl = document.createElement('div'); lbl.className = 'ph-turn-label s';
+      lbl.textContent = '🧳 Турист'; turn.appendChild(lbl);
+      const bubble = document.createElement('div'); bubble.className = 'ph-bubble s';
+      const korEl = document.createElement('div'); korEl.className = 'ph-kor';
+      korEl.innerHTML = pair.tourist.kor; bubble.appendChild(korEl);
+      const spk = document.createElement('button'); spk.className = 'ph-speak-inline';
+      spk.textContent = '🔊'; spk.title = 'Прослушать';
+      spk.onclick = (e) => { e.stopPropagation(); speakText(pair.tourist.kor.replace(/<[^>]+>/g,'')); };
+      bubble.appendChild(spk);
+      if (pair.tourist.rus) {
+        const rusEl = document.createElement('div'); rusEl.className = 'ph-rus';
+        rusEl.innerHTML = pair.tourist.rus; bubble.appendChild(rusEl);
+      }
+      turn.appendChild(bubble); container.appendChild(turn);
+    }
+
+    if (Array.isArray(pair.staff_responses) && pair.staff_responses.length) {
+      container.appendChild(Object.assign(document.createElement('div'), { className: 'ph-divider' }));
+      const staffTurn = document.createElement('div'); staffTurn.className = 'ph-turn';
+      const lbl = document.createElement('div'); lbl.className = 'ph-turn-label t';
+      lbl.textContent = '👮 Возможные ответы сотрудника';
+      staffTurn.appendChild(lbl);
+      pair.staff_responses.forEach(resp => {
+        const bubble = document.createElement('div'); bubble.className = 'ph-bubble t staff-variant';
+        const korEl = document.createElement('div'); korEl.className = 'ph-kor';
+        korEl.innerHTML = resp.kor; bubble.appendChild(korEl);
+        const spk = document.createElement('button'); spk.className = 'ph-speak-inline';
+        spk.textContent = '🔊'; spk.title = 'Прослушать';
+        spk.onclick = (e) => { e.stopPropagation(); speakText(resp.kor.replace(/<[^>]+>/g,'')); };
+        bubble.appendChild(spk);
+        if (resp.rus) {
+          const rusEl = document.createElement('div'); rusEl.className = 'ph-rus';
+          rusEl.innerHTML = resp.rus; bubble.appendChild(rusEl);
+        }
+        staffTurn.appendChild(bubble);
+      });
+      container.appendChild(staffTurn);
+    }
+  }
+
+  /* ── PHRASE ONLY: одиночная фраза (турист или сотрудник) ── */
+  function buildPhraseOnly(pair, container) {
+    const isStaff = pair.speaker === 'staff';
+    const turn = document.createElement('div'); turn.className = 'ph-turn';
+    const lbl = document.createElement('div');
+    lbl.className = 'ph-turn-label ' + (isStaff ? 't' : 's');
+    lbl.textContent = isStaff ? '👮 Сотрудник' : '🧳 Турист';
+    turn.appendChild(lbl);
+    const bubble = document.createElement('div'); bubble.className = 'ph-bubble ' + (isStaff ? 't' : 's');
+    const korEl = document.createElement('div'); korEl.className = 'ph-kor';
+    korEl.innerHTML = pair.phrase.kor; bubble.appendChild(korEl);
+    const spk = document.createElement('button'); spk.className = 'ph-speak-inline';
+    spk.textContent = '🔊'; spk.title = 'Прослушать';
+    spk.onclick = (e) => { e.stopPropagation(); speakText(pair.phrase.kor.replace(/<[^>]+>/g,'')); };
+    bubble.appendChild(spk);
+    if (pair.phrase.rus) {
+      const rusEl = document.createElement('div'); rusEl.className = 'ph-rus';
+      rusEl.innerHTML = pair.phrase.rus; bubble.appendChild(rusEl);
+    }
+    turn.appendChild(bubble); container.appendChild(turn);
+  }
+
   /* ── LIST ── */
   function renderList() {
     const container = document.getElementById('list-view');
@@ -458,29 +612,60 @@
         row.appendChild(cb);
 
         const phraseWrap = document.createElement('div'); phraseWrap.className = 'ph-list-phrase-wrap';
-        // Teacher phrase
-        if (pair.teacher && pair.teacher.kor) {
-          const isNA = pair.teacher.kor.startsWith('(');
-          if (!isNA) {
+
+        if (pair.type === 'travel_dialog') {
+          if (pair.tourist && pair.tourist.kor) {
             const korEl = document.createElement('div'); korEl.className = 'ph-list-kor';
-            korEl.innerHTML = pair.teacher.kor;
+            korEl.innerHTML = '🧳 ' + pair.tourist.kor;
             phraseWrap.appendChild(korEl);
-            if (pair.teacher.rus) {
+            if (pair.tourist.rus) {
               const rusEl = document.createElement('div'); rusEl.className = 'ph-list-rus';
-              rusEl.innerHTML = pair.teacher.rus;
-              phraseWrap.appendChild(rusEl);
+              rusEl.innerHTML = pair.tourist.rus; phraseWrap.appendChild(rusEl);
             }
           }
-        }
-        // Student phrase (if different from teacher)
-        if (pair.student && pair.student.kor && (!pair.teacher || pair.student.kor !== pair.teacher.kor)) {
-          const korEl = document.createElement('div'); korEl.className = 'ph-list-kor ph-list-kor-student';
-          korEl.innerHTML = '→ ' + pair.student.kor.replace(/___/g, '<span class="blank">___</span>');
+          (pair.staff_responses || []).forEach(resp => {
+            const korEl = document.createElement('div'); korEl.className = 'ph-list-kor ph-list-kor-student';
+            korEl.innerHTML = '👮 ' + resp.kor; phraseWrap.appendChild(korEl);
+            if (resp.rus) {
+              const rusEl = document.createElement('div'); rusEl.className = 'ph-list-rus';
+              rusEl.innerHTML = resp.rus; phraseWrap.appendChild(rusEl);
+            }
+          });
+        } else if (pair.type === 'phrase_only') {
+          const isStaff = pair.speaker === 'staff';
+          const korEl = document.createElement('div');
+          korEl.className = 'ph-list-kor' + (isStaff ? '' : ' ph-list-kor-student');
+          korEl.innerHTML = (isStaff ? '👮 ' : '🧳 ') + pair.phrase.kor;
           phraseWrap.appendChild(korEl);
-          if (pair.student.rus) {
+          if (pair.phrase.rus) {
             const rusEl = document.createElement('div'); rusEl.className = 'ph-list-rus';
-            rusEl.innerHTML = pair.student.rus;
-            phraseWrap.appendChild(rusEl);
+            rusEl.innerHTML = pair.phrase.rus; phraseWrap.appendChild(rusEl);
+          }
+        } else {
+          // Teacher phrase
+          if (pair.teacher && pair.teacher.kor) {
+            const isNA = pair.teacher.kor.startsWith('(');
+            if (!isNA) {
+              const korEl = document.createElement('div'); korEl.className = 'ph-list-kor';
+              korEl.innerHTML = pair.teacher.kor;
+              phraseWrap.appendChild(korEl);
+              if (pair.teacher.rus) {
+                const rusEl = document.createElement('div'); rusEl.className = 'ph-list-rus';
+                rusEl.innerHTML = pair.teacher.rus;
+                phraseWrap.appendChild(rusEl);
+              }
+            }
+          }
+          // Student phrase (if different from teacher)
+          if (pair.student && pair.student.kor && (!pair.teacher || pair.student.kor !== pair.teacher.kor)) {
+            const korEl = document.createElement('div'); korEl.className = 'ph-list-kor ph-list-kor-student';
+            korEl.innerHTML = '→ ' + pair.student.kor.replace(/___/g, '<span class="blank">___</span>');
+            phraseWrap.appendChild(korEl);
+            if (pair.student.rus) {
+              const rusEl = document.createElement('div'); rusEl.className = 'ph-list-rus';
+              rusEl.innerHTML = pair.student.rus;
+              phraseWrap.appendChild(rusEl);
+            }
           }
         }
         row.appendChild(phraseWrap);
@@ -641,8 +826,15 @@
     if (!filtered.length || !answerVisible) return;
     const pair = filtered[curIdx];
     const parts = [];
-    if (pair.teacher && !pair.teacher.kor.startsWith('(')) parts.push(pair.teacher.kor);
-    if (pair.student) parts.push(pair.student.kor.replace(/___/g, ''));
+    if (pair.type === 'travel_dialog') {
+      if (pair.tourist && pair.tourist.kor) parts.push(pair.tourist.kor);
+      (pair.staff_responses || []).forEach(r => parts.push(r.kor));
+    } else if (pair.type === 'phrase_only') {
+      if (pair.phrase && pair.phrase.kor) parts.push(pair.phrase.kor);
+    } else {
+      if (pair.teacher && !pair.teacher.kor.startsWith('(')) parts.push(pair.teacher.kor);
+      if (pair.student) parts.push(pair.student.kor.replace(/___/g, ''));
+    }
     speakText(parts.join('. ').replace(/<[^>]+>/g, ''));
   }
   document.addEventListener('keydown', e => {
