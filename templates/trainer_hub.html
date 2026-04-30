@@ -339,6 +339,19 @@
   let activeFilter = 'active';
   let cardIdx = { kr: 0, ru: 0 };
   let cardFlipped = { kr: false, ru: false };
+  let cardOrder = { kr: [], ru: [] }; // перемешанные индексы в filtered
+
+  function shuffleArr(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+  function shuffleCardOrder(dir) {
+    cardOrder[dir] = shuffleArr(filtered.map((_, i) => i));
+    cardIdx[dir] = 0;
+  }
   let quizIdx = 0, quizScore = 0, quizAnswered = false;
 
   // ── LOAD ──
@@ -387,6 +400,8 @@
     document.getElementById(modeId).classList.add('active');
     cardIdx.kr = 0; cardIdx.ru = 0;
     quizIdx = 0; quizScore = 0;
+    if (mode === 'cards-kr') shuffleCardOrder('kr');
+    else if (mode === 'cards-ru') shuffleCardOrder('ru');
     renderMode();
   }
 
@@ -469,8 +484,12 @@
       return;
     }
 
+    // Если порядок устарел (фильтр поменялся, слово удалили) — пересоздаём.
+    if (cardOrder[dir].length !== filtered.length) shuffleCardOrder(dir);
+
     const idx = cardIdx[dir] % filtered.length;
-    const w = filtered[idx];
+    const realIdx = cardOrder[dir][idx];
+    const w = filtered[realIdx];
 
     if (dir === 'kr') {
       document.getElementById('card-kr-main').textContent = w.word_kor;
@@ -505,7 +524,8 @@
 
   function speakCardWord(dir) {
     if (!filtered.length) return;
-    const w = filtered[cardIdx[dir] % filtered.length];
+    if (cardOrder[dir].length !== filtered.length) shuffleCardOrder(dir);
+    const w = filtered[cardOrder[dir][cardIdx[dir] % filtered.length]];
     speakText(w.word_kor);
   }
 
