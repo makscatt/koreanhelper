@@ -1,0 +1,169 @@
+/* Korean Virtual Keyboard (한글) — bottom sheet panel + FAB toggle button */
+
+/* ── Плавающая кнопка вызова клавиатуры (видна всем) ──────────────────── */
+.kkb-fab {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 5400;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color, #e2e5ec);
+  background: var(--bg-surface, #fff);
+  color: var(--text-primary, #1f1f1f);
+  font-family: "Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,.12), 0 1px 4px rgba(0,0,0,.06);
+  transition: background 0.12s, color 0.12s, transform 0.05s, box-shadow 0.12s;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.kkb-fab:hover {
+  background: var(--primary-container, #d3e3fd);
+  color: var(--primary, #0b57d0);
+  box-shadow: 0 6px 20px rgba(0,0,0,.16), 0 2px 6px rgba(0,0,0,.08);
+}
+.kkb-fab:active { transform: scale(0.94); }
+.kkb-fab.active {
+  background: var(--primary, #0b57d0);
+  color: #fff;
+  border-color: var(--primary, #0b57d0);
+  box-shadow: 0 4px 18px rgba(11,87,208,.35);
+}
+/* Когда клавиатура открыта — поднимаем кнопку над панелью */
+body.kkb-open .kkb-fab {
+  bottom: calc(16px + 260px);
+  transition: bottom 0.2s ease-out;
+}
+@media (max-width: 600px) {
+  .kkb-fab { width: 44px; height: 44px; font-size: 18px; right: 12px; bottom: 12px; }
+  body.kkb-open .kkb-fab { bottom: calc(12px + 220px); }
+}
+
+/* ── Сама панель клавиатуры ───────────────────────────────────────────── */
+.kkb-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5500;
+  background: var(--bg-surface, #fff);
+  border-top: 1px solid var(--border-color, #e2e5ec);
+  box-shadow: 0 -6px 24px rgba(0,0,0,.10);
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+  display: none;
+  font-family: "Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.kkb-panel.open {
+  display: block;
+  animation: kkbSlide 0.18s ease-out;
+}
+@keyframes kkbSlide {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.kkb-row {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+  margin-bottom: 4px;
+}
+/* Средний и нижний ряды короче — выравниваем по центру */
+.kkb-row-9 {
+  grid-template-columns: repeat(9, 1fr);
+  margin-left: calc((100% - 9 * (100% / 10)) / 2);
+  margin-right: calc((100% - 9 * (100% / 10)) / 2);
+}
+.kkb-row-7 {
+  grid-template-columns: repeat(7, 1fr);
+  margin-left: calc((100% - 7 * (100% / 10)) / 2);
+  margin-right: calc((100% - 7 * (100% / 10)) / 2);
+}
+.kkb-row-bottom {
+  grid-template-columns: 1.4fr 4fr 1fr 1.4fr 1fr;
+  gap: 6px;
+  margin-top: 6px;
+  margin-bottom: 0;
+}
+
+.kkb-key {
+  min-height: 44px;
+  padding: 6px 4px;
+  font-size: 20px;
+  background: var(--bg-surface, #fff);
+  color: var(--text-primary, #1f1f1f);
+  border: 1px solid var(--border-color, #e2e5ec);
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 500;
+  transition: background 0.08s, transform 0.05s;
+}
+.kkb-key:hover { background: var(--bg-surface-hover, #f8f9fa); }
+.kkb-key:active {
+  background: var(--bg-surface-active, #e8eaed);
+  transform: scale(0.96);
+}
+
+.kkb-key-ctrl {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #1f1f1f);
+  background: #f5f6fa;
+}
+.kkb-key-shift { font-size: 13px; }
+.kkb-panel.shift-on .kkb-key-shift {
+  background: var(--primary-container, #d3e3fd);
+  color: var(--primary, #0b57d0);
+  border-color: var(--primary, #0b57d0);
+}
+.kkb-panel.shift-locked .kkb-key-shift {
+  background: var(--primary, #0b57d0);
+  color: #fff;
+}
+.kkb-key-bs    { font-size: 18px; }
+.kkb-key-enter { font-size: 18px; }
+.kkb-key-close {
+  color: #c62828;
+  font-size: 14px;
+}
+
+/* Подсказка о shift-варианте на клавише */
+.kkb-panel.shift-on .kkb-key-jamo[data-shift] {
+  background: #eef2ff;
+}
+
+/* Не закрывать активный input панелью */
+body.kkb-open {
+  padding-bottom: 260px;
+}
+/* Поднимаем FAB-пульт над клавиатурой пока она открыта */
+body.kkb-open .rep-counter {
+  transform: translateY(-240px);
+  transition: transform 0.2s ease-out;
+}
+
+/* ── Адаптив ──────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .kkb-panel { padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px)); }
+  .kkb-row { gap: 3px; margin-bottom: 3px; }
+  .kkb-key {
+    min-height: 40px;
+    padding: 4px 2px;
+    font-size: 17px;
+    border-radius: 6px;
+  }
+  .kkb-key-ctrl { font-size: 12px; }
+  body.kkb-open { padding-bottom: 220px; }
+  body.kkb-open .rep-counter { transform: translateY(-200px); }
+}
+
+@media (max-width: 380px) {
+  .kkb-key { font-size: 15px; min-height: 36px; }
+}

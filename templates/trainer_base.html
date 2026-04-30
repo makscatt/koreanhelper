@@ -2,6 +2,7 @@
 
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/trainer_base.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/korean_keyboard.css') }}">
 
 <div class="trainer-wrap">
   {% block trainer_content %}{% endblock %}
@@ -94,6 +95,9 @@
 </div>
 {% endif %}
 
+<!-- ── KOREAN KEYBOARD TRIGGER (видна всем, включая учеников) ── -->
+<button id="kkb-fab" class="kkb-fab" type="button" title="Корейская клавиатура">한</button>
+
 <!-- ── SELECTION CONTEXT MENU ── -->
 {% if not readonly %}
 <div id="sel-popup" class="sel-popup">
@@ -115,5 +119,6 @@
 </script>
 <script src="{{ url_for('static', filename='js/grammar_highlight.js') }}"></script>
 <script src="{{ url_for('static', filename='js/trainer_base.js') }}"></script>
+<script src="{{ url_for('static', filename='js/korean_keyboard.js') }}"></script>
 {% block trainer_js %}{% endblock %}
 {% endblock %}
