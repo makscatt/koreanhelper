@@ -4091,15 +4091,15 @@ body[data-module="video"] .trainer-header {
 .ph-turn-label.t  { color: #2563eb; }
 .ph-turn-label.s  { color: #16a34a; }
 .ph-turn-label.na { color: #8b92a0; }
-.ph-bubble { border-radius: 10px; padding: 9px 13px; max-width: 94%; }
+.ph-bubble { border-radius: 10px; padding: 9px 13px; max-width: 94%; display: flex; flex-wrap: wrap; align-items: center; column-gap: 8px; row-gap: 4px; }
 .ph-bubble.t  { background: #eff4ff; border: 1.5px solid #bfcfff; align-self: flex-start; }
 .ph-bubble.s  { background: #f0fdf4; border: 1.5px solid #bbf7d0; align-self: flex-end; }
 .ph-bubble.na { background: #f8fafc; border: 1.5px solid #e4e8ef; align-self: flex-start; font-style: italic; color: #8b92a0; font-size: 0.83rem; }
-.ph-kor { font-size: 1.25rem; font-weight: 700; line-height: 1.4; font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
+.ph-kor { font-size: 1.25rem; font-weight: 700; line-height: 1.4; font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; flex: 0 1 auto; min-width: 0; }
 .ph-kor .blank { display: inline-block; background: #fde68a; color: #92400e; border-radius: 4px; padding: 0 5px; font-size: 1.1rem; }
-.ph-rus { font-size: 0.84rem; color: #8b92a0; font-weight: 500; margin-top: 3px; line-height: 1.4; opacity: 0; transform: translateY(4px); transition: opacity 0.25s, transform 0.25s; }
+.ph-rus { font-size: 0.84rem; color: #8b92a0; font-weight: 500; margin-top: 3px; line-height: 1.4; opacity: 0; transform: translateY(4px); transition: opacity 0.25s, transform 0.25s; flex-basis: 100%; }
 .ph-rus.visible { opacity: 1; transform: translateY(0); }
-.ph-hint-box { margin-top: 8px; padding: 8px 12px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; font-size: 0.76rem; color: #9a3412; font-weight: 600; line-height: 1.4; opacity: 0; transform: translateY(4px); transition: opacity 0.25s 0.08s, transform 0.25s 0.08s; }
+.ph-hint-box { margin-top: 8px; padding: 8px 12px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; font-size: 0.76rem; color: #9a3412; font-weight: 600; line-height: 1.4; opacity: 0; transform: translateY(4px); transition: opacity 0.25s 0.08s, transform 0.25s 0.08s; flex-basis: 100%; }
 .ph-hint-box.visible { opacity: 1; transform: translateY(0); }
 .ph-hint-box::before { content: '💡 '; }
 .ph-divider { height: 1px; background: #e4e8ef; margin: 2px 0; }
@@ -4167,7 +4167,7 @@ body[data-module="video"] .trainer-header {
 .ph-speak-inline {
   display: inline-flex;
   align-items: center;
-  margin-top: 6px;
+  flex-shrink: 0;
   padding: 2px 8px;
   border: none;
   background: transparent;
