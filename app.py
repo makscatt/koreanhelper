@@ -449,6 +449,7 @@ def group_trainer(module):
         'video':     'trainer_video.html',
         'pictures':  'trainer_pictures.html',
         'phrases':   'trainer_phrases.html',
+        'selfintro': 'trainer_selfintro.html',
         'hub':       'trainer_hub.html',
         'mini':      'trainer_mini.html',
     }
@@ -655,6 +656,7 @@ def student_trainer(module):
         'video':     'trainer_video.html',
         'pictures':  'trainer_pictures.html',
         'phrases':   'trainer_phrases.html',
+        'selfintro': 'trainer_selfintro.html',
         'hub':       'trainer_hub.html',
         'mini':      'trainer_mini.html',
     }
@@ -1395,6 +1397,11 @@ def trainer_pictures(student_id):
 @teacher_required
 def trainer_phrases(student_id):
     return _teacher_trainer(student_id, 'trainer_phrases.html')
+
+@app.route('/student/<int:student_id>/trainer/selfintro')
+@teacher_required
+def trainer_selfintro(student_id):
+    return _teacher_trainer(student_id, 'trainer_selfintro.html')
 
 @app.route('/student/<int:student_id>/trainer/hub')
 @teacher_required

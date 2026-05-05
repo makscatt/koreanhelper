@@ -1098,10 +1098,10 @@
   },
   {
     "id": "travel-airport-04",
-    "category": "travel",
-    "category_label": "Путешествие",
-    "section": "airport",
-    "section_label": "Аэропорт",
+    "category": "money",
+    "category_label": "Деньги",
+    "section": "exchange",
+    "section_label": "Обмен валюты",
     "priority": "core",
     "type": "travel_dialog",
     "tourist": { "kor": "환전소는 어디에 있어요?", "rus": "Где обменник?" },
@@ -1535,5 +1535,324 @@
     "type": "phrase_only",
     "speaker": "staff",
     "phrase": { "kor": "잘 못 들었어요.", "rus": "Я не расслышал. (переспрос сотрудника)" }
+  },
+
+  {
+    "id": "travel-metro-01",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "metro",
+    "section_label": "Метро",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "교통카드는 어디에서 사요?", "rus": "Где купить проездной (T-money)?" },
+    "staff_responses": [
+      { "kor": "편의점에서 살 수 있어요.", "rus": "Можно купить в магазине у дома (편의점)." },
+      { "kor": "지하철역 안내소에서 파세요.", "rus": "Продают в инфоцентре станции метро." },
+      { "kor": "저기 자판기에서 사세요.", "rus": "Купите вон в том автомате." }
+    ]
+  },
+  {
+    "id": "travel-metro-02",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "metro",
+    "section_label": "Метро",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "티머니 카드 얼마예요?", "rus": "Сколько стоит карта T-money?" },
+    "staff_responses": [
+      { "kor": "카드값은 사천 원이에요.", "rus": "Сама карта — 4 000 вон." },
+      { "kor": "충전은 따로 하셔야 해요.", "rus": "Пополнение — отдельно." },
+      { "kor": "디자인에 따라 가격이 달라요.", "rus": "Цена зависит от дизайна." }
+    ]
+  },
+  {
+    "id": "travel-metro-03",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "metro",
+    "section_label": "Метро",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "교통카드 어떻게 충전해요?", "rus": "Как пополнить проездной?" },
+    "staff_responses": [
+      { "kor": "저쪽 충전 기계에서 하세요.", "rus": "На том автомате пополнения." },
+      { "kor": "편의점에서도 충전돼요.", "rus": "В 편의점 тоже можно пополнить." },
+      { "kor": "현금만 받아요.", "rus": "Принимают только наличные." }
+    ]
+  },
+  {
+    "id": "travel-metro-04",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "metro",
+    "section_label": "Метро",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "여기서 가장 가까운 지하철역이 어디예요?", "rus": "Где ближайшая станция метро?" },
+    "staff_responses": [
+      { "kor": "이쪽으로 5분만 걸어가세요.", "rus": "5 минут пешком в эту сторону." },
+      { "kor": "사거리에서 오른쪽이에요.", "rus": "На перекрёстке направо." },
+      { "kor": "저 건물 지하에 있어요.", "rus": "Под тем зданием, на минус первом." }
+    ]
+  },
+  {
+    "id": "travel-metro-05",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "metro",
+    "section_label": "Метро",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "이 지하철 강남역 가요?", "rus": "Этот поезд идёт до Каннама?" },
+    "staff_responses": [
+      { "kor": "네, 가요.", "rus": "Да, идёт." },
+      { "kor": "아니요, 반대 방향이에요.", "rus": "Нет, это противоположное направление." },
+      { "kor": "다음 역에서 갈아타세요.", "rus": "Пересядьте на следующей станции." }
+    ]
+  },
+  {
+    "id": "travel-metro-06",
+    "category": "travel",
+    "category_label": "Путешествие",
+    "section": "metro",
+    "section_label": "Метро",
+    "priority": "regular",
+    "type": "travel_dialog",
+    "tourist": { "kor": "잔액이 얼마 남았는지 어떻게 봐요?", "rus": "Как посмотреть остаток на карте?" },
+    "staff_responses": [
+      { "kor": "충전 기계에 카드를 올려 보세요.", "rus": "Приложите карту к автомату пополнения." },
+      { "kor": "개찰구에 찍으면 화면에 떠요.", "rus": "Появляется на турникете при проходе." },
+      { "kor": "티머니 앱으로 확인하세요.", "rus": "Через приложение T-money." }
+    ]
+  },
+
+  {
+    "id": "money-atm-01",
+    "category": "money",
+    "category_label": "Деньги",
+    "section": "atm",
+    "section_label": "Банкомат",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "이 근처에 ATM 있어요?", "rus": "Есть рядом банкомат?" },
+    "staff_responses": [
+      { "kor": "편의점 안에 있어요.", "rus": "Внутри 편의점." },
+      { "kor": "은행 앞에 있어요.", "rus": "Перед банком." },
+      { "kor": "1층 로비에 있어요.", "rus": "В лобби на первом этаже." }
+    ]
+  },
+  {
+    "id": "money-atm-02",
+    "category": "money",
+    "category_label": "Деньги",
+    "section": "atm",
+    "section_label": "Банкомат",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "이 ATM은 외국 카드도 돼요?", "rus": "Этот банкомат принимает иностранные карты?" },
+    "staff_responses": [
+      { "kor": "네, 'Global' 표시 있는 거예요.", "rus": "Да, со значком «Global»." },
+      { "kor": "아니요, 국내 카드만 돼요.", "rus": "Нет, только корейские карты." },
+      { "kor": "저쪽 ATM을 쓰세요.", "rus": "Используйте вон тот банкомат." }
+    ]
+  },
+  {
+    "id": "money-atm-03",
+    "category": "money",
+    "category_label": "Деньги",
+    "section": "atm",
+    "section_label": "Банкомат",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "현금 어떻게 뽑아요?", "rus": "Как снять наличные?" },
+    "staff_responses": [
+      { "kor": "영어 메뉴를 선택하세요.", "rus": "Выберите меню на английском." },
+      { "kor": "카드를 먼저 넣으세요.", "rus": "Сначала вставьте карту." },
+      { "kor": "비밀번호 네 자리 누르세요.", "rus": "Введите 4-значный PIN." }
+    ]
+  },
+  {
+    "id": "money-atm-04",
+    "category": "money",
+    "category_label": "Деньги",
+    "section": "atm",
+    "section_label": "Банкомат",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "ATM이 카드를 안 돌려줘요.", "rus": "Банкомат не возвращает карту." },
+    "staff_responses": [
+      { "kor": "은행에 바로 연락하세요.", "rus": "Сразу свяжитесь с банком." },
+      { "kor": "ATM에 적힌 번호로 전화해 보세요.", "rus": "Позвоните по номеру на банкомате." },
+      { "kor": "잠시만요, 직원 부를게요.", "rus": "Минуту, позову сотрудника." }
+    ]
+  },
+  {
+    "id": "money-atm-05",
+    "category": "money",
+    "category_label": "Деньги",
+    "section": "atm",
+    "section_label": "Банкомат",
+    "priority": "regular",
+    "type": "travel_dialog",
+    "tourist": { "kor": "한 번에 얼마까지 뽑을 수 있어요?", "rus": "Какой лимит снятия за одну операцию?" },
+    "staff_responses": [
+      { "kor": "보통 백만 원까지예요.", "rus": "Обычно до 1 000 000 вон." },
+      { "kor": "ATM마다 달라요.", "rus": "Зависит от банкомата." },
+      { "kor": "외국 카드는 한도가 더 낮아요.", "rus": "Для иностранных карт лимит ниже." }
+    ]
+  },
+
+  {
+    "id": "money-exchange-02",
+    "category": "money",
+    "category_label": "Деньги",
+    "section": "exchange",
+    "section_label": "Обмен валюты",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "루블도 환전돼요?", "rus": "Можно поменять рубли?" },
+    "staff_responses": [
+      { "kor": "네, 가능해요.", "rus": "Да, можно." },
+      { "kor": "죄송해요, 루블은 안 받아요.", "rus": "Извините, рубли не принимаем." },
+      { "kor": "달러나 유로만 가능해요.", "rus": "Только доллары или евро." }
+    ]
+  },
+  {
+    "id": "money-exchange-03",
+    "category": "money",
+    "category_label": "Деньги",
+    "section": "exchange",
+    "section_label": "Обмен валюты",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "오늘 환율이 어떻게 돼요?", "rus": "Какой сегодня курс?" },
+    "staff_responses": [
+      { "kor": "여기 화면에 나와 있어요.", "rus": "Курс на экране." },
+      { "kor": "1달러에 천삼백 원이에요.", "rus": "1 доллар — 1 300 вон." },
+      { "kor": "루블은 한 십오 원쯤이에요.", "rus": "Рубль — около 15 вон." }
+    ]
+  },
+  {
+    "id": "money-exchange-04",
+    "category": "money",
+    "category_label": "Деньги",
+    "section": "exchange",
+    "section_label": "Обмен валюты",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "수수료는 얼마예요?", "rus": "Сколько комиссия?" },
+    "staff_responses": [
+      { "kor": "수수료 없어요.", "rus": "Без комиссии." },
+      { "kor": "1.5% 정도예요.", "rus": "Около 1,5%." },
+      { "kor": "환율에 이미 포함돼 있어요.", "rus": "Уже включена в курс." }
+    ]
+  },
+  {
+    "id": "money-exchange-05",
+    "category": "money",
+    "category_label": "Деньги",
+    "section": "exchange",
+    "section_label": "Обмен валюты",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "백 달러 환전해 주세요.", "rus": "Поменяйте 100 долларов, пожалуйста." },
+    "staff_responses": [
+      { "kor": "여권 좀 보여 주세요.", "rus": "Покажите паспорт." },
+      { "kor": "잠시만 기다려 주세요.", "rus": "Минуточку, пожалуйста." },
+      { "kor": "여기 영수증이에요.", "rus": "Вот ваш чек." }
+    ]
+  },
+  {
+    "id": "money-exchange-06",
+    "category": "money",
+    "category_label": "Деньги",
+    "section": "exchange",
+    "section_label": "Обмен валюты",
+    "priority": "regular",
+    "type": "travel_dialog",
+    "tourist": { "kor": "잔돈으로 주세요.", "rus": "Дайте, пожалуйста, мелкими купюрами." },
+    "staff_responses": [
+      { "kor": "네, 만 원짜리로 드릴게요.", "rus": "Хорошо, дам по 10 000 вон." },
+      { "kor": "오천 원도 섞어 드릴까요?", "rus": "Подмешать 5 000?" },
+      { "kor": "죄송해요, 큰 돈만 있어요.", "rus": "Извините, есть только крупные." }
+    ]
+  },
+
+  {
+    "id": "money-bank-01",
+    "category": "money",
+    "category_label": "Деньги",
+    "section": "bank",
+    "section_label": "Банк",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "근처에 은행 있어요?", "rus": "Где ближайший банк?" },
+    "staff_responses": [
+      { "kor": "이 거리 끝에 있어요.", "rus": "В конце этой улицы." },
+      { "kor": "사거리 건너편에 있어요.", "rus": "Через перекрёсток напротив." },
+      { "kor": "지하철역 옆에 있어요.", "rus": "Рядом со станцией метро." }
+    ]
+  },
+  {
+    "id": "money-bank-02",
+    "category": "money",
+    "category_label": "Деньги",
+    "section": "bank",
+    "section_label": "Банк",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "카드 충전하고 싶어요.", "rus": "Хочу пополнить карту." },
+    "staff_responses": [
+      { "kor": "어떤 카드예요?", "rus": "Какая карта?" },
+      { "kor": "여기 번호표 뽑으세요.", "rus": "Возьмите талончик электронной очереди." },
+      { "kor": "ATM에서도 가능해요.", "rus": "Можно и в банкомате." }
+    ]
+  },
+  {
+    "id": "money-bank-03",
+    "category": "money",
+    "category_label": "Деньги",
+    "section": "bank",
+    "section_label": "Банк",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "은행은 몇 시까지 해요?", "rus": "До скольки работает банк?" },
+    "staff_responses": [
+      { "kor": "오후 네 시까지예요.", "rus": "До 16:00." },
+      { "kor": "주말에는 안 해요.", "rus": "В выходные не работает." },
+      { "kor": "점심시간은 한 시부터 두 시까지예요.", "rus": "Обед с 13:00 до 14:00." }
+    ]
+  },
+  {
+    "id": "money-bank-04",
+    "category": "money",
+    "category_label": "Деньги",
+    "section": "bank",
+    "section_label": "Банк",
+    "priority": "core",
+    "type": "travel_dialog",
+    "tourist": { "kor": "환전하려면 어떤 서류가 필요해요?", "rus": "Какие документы нужны для обмена?" },
+    "staff_responses": [
+      { "kor": "여권만 있으면 돼요.", "rus": "Достаточно паспорта." },
+      { "kor": "여권하고 입국 카드요.", "rus": "Паспорт и миграционная карта." },
+      { "kor": "외국인 등록증도 가능해요.", "rus": "Подойдёт и ARC (карта иностранца)." }
+    ]
+  },
+  {
+    "id": "money-bank-05",
+    "category": "money",
+    "category_label": "Деньги",
+    "section": "bank",
+    "section_label": "Банк",
+    "priority": "regular",
+    "type": "travel_dialog",
+    "tourist": { "kor": "외국인도 계좌 만들 수 있어요?", "rus": "Иностранцу можно открыть счёт?" },
+    "staff_responses": [
+      { "kor": "외국인 등록증이 있어야 해요.", "rus": "Нужна карта иностранца (ARC)." },
+      { "kor": "여권만으로는 어려워요.", "rus": "По одному паспорту сложно." },
+      { "kor": "이 지점에서는 가능해요.", "rus": "В этом отделении — можно." }
+    ]
   }
 ]

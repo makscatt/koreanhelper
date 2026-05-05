@@ -206,12 +206,13 @@
   let sectionsDone = {};
 
   const categoryIcons = {
-    lesson: '📚', travel: '✈️'
+    lesson: '📚', travel: '✈️', money: '💰'
   };
   const sectionIcons = {
     start: '👋', homework: '📝', review: '🔄', new: '✨',
     practice: '💪', feedback: '💬', close: '🏁',
-    airport: '✈️', bus: '🚌', taxi: '🚕', directions: '🧭', essentials: '🆘'
+    airport: '✈️', bus: '🚌', taxi: '🚕', directions: '🧭', essentials: '🆘',
+    metro: '🚇', atm: '🏧', exchange: '💱', bank: '🏦'
   };
   function getSectionIcon(section) {
     for (const key of Object.keys(sectionIcons)) {
