@@ -208,21 +208,21 @@ function generateQuestions() {
   if (!items.length) return [];
   const allExamples = [];
   items.forEach(item => {
-    item.examples.forEach(ex => {
-      ex.sentences.forEach((sent, i) => {
-        allExamples.push({ item, ex, sent, translation: ex.translations[i] });
+    (item.examples || []).forEach(ex => {
+      (ex.sentences || []).forEach((sent, i) => {
+        allExamples.push({ item, ex, sent, translation: (ex.translations || [])[i] });
       });
     });
   });
   const typesArr = [...selectedTypes];
-  const shuffled = shuffle([...allExamples]);
-  const pool = shuffled.slice(0, Math.min(questionCount * 3, shuffled.length));
+  const pool = shuffle([...allExamples]);
   const qs = [];
-  for (let i = 0; i < Math.min(questionCount, pool.length); i++) {
-    const q = buildQuestion(typesArr[i % typesArr.length], pool[i], items);
-    if (q) qs.push(q);
+  let ti = 0;
+  for (let i = 0; i < pool.length && qs.length < questionCount; i++) {
+    const q = buildQuestion(typesArr[ti % typesArr.length], pool[i], items);
+    if (q) { qs.push(q); ti++; }
   }
-  return shuffle(qs).slice(0, questionCount);
+  return qs;
 }
 
 function buildQuestion(type, entry, allItems) {
@@ -230,11 +230,11 @@ function buildQuestion(type, entry, allItems) {
 
   if (type === 'choice') {
     const correct = ex.applied;
-    const distractors = getDistractors(correct, allItems, ex).slice(0, 3);
+    const distractors = (ex.distractors || []).filter(d => d && d !== correct);
     if (distractors.length < 3) return null;
     return { type, grammarTitle: item.title, formula: item.formula,
       prompt: `К слову <strong>${ex.base}</strong> (${ex.type}) нужно присоединить грамматику.<br>Какая форма правильная?`,
-      options: shuffle([correct, ...distractors]), correct };
+      options: shuffle([correct, ...distractors.slice(0, 3)]), correct };
   }
   if (type === 'input') {
     const blanked = sent.replace(ex.applied, '___');
@@ -245,9 +245,10 @@ function buildQuestion(type, entry, allItems) {
   }
   if (type === 'translate_choice') {
     const correct = sent;
-    const allSents = [];
-    allItems.forEach(it => it.examples.forEach(e => e.sentences.forEach(s => { if (s !== correct) allSents.push(s); })));
-    const distractors = shuffle([...new Set(allSents)]).slice(0, 3);
+    if (!ex.applied || !sent.includes(ex.applied)) return null;
+    const distractors = [...new Set(
+      (ex.distractors || []).map(d => sent.replace(ex.applied, d)).filter(s => s && s !== correct)
+    )].slice(0, 3);
     if (distractors.length < 3) return null;
     return { type, grammarTitle: item.title, formula: item.formula,
       prompt: 'Выберите правильный перевод:',
@@ -257,18 +258,12 @@ function buildQuestion(type, entry, allItems) {
     const blanked = sent.replace(ex.applied, '______');
     if (blanked === sent) return null;
     const correct = ex.applied;
-    const distractors = getDistractors(correct, allItems, ex).slice(0, 3);
+    const distractors = (ex.distractors || []).filter(d => d && d !== correct);
     if (distractors.length < 3) return null;
     return { type, grammarTitle: item.title, formula: item.formula,
       prompt: 'Выберите слово, которое подходит в пропуск:',
-      sentence: blanked, translation, options: shuffle([correct, ...distractors]), correct };
+      sentence: blanked, translation, options: shuffle([correct, ...distractors.slice(0, 3)]), correct };
   }
-}
-
-function getDistractors(correct, allItems) {
-  const pool = [];
-  allItems.forEach(item => item.examples.forEach(ex => { if (ex.applied !== correct && ex.applied) pool.push(ex.applied); }));
-  return shuffle([...new Set(pool)]).slice(0, 3);
 }
 
 function shuffle(arr) {
