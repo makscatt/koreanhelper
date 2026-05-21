@@ -976,9 +976,9 @@ main:has(> .trainer-layout) {
 
 .note-modal {
   background: var(--bg-surface);
-  width: 90%;
-  max-width: 600px;
-  height: 60vh;
+  width: 95%;
+  max-width: 1100px;
+  height: 88vh;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-3);
   padding: 24px;
@@ -989,7 +989,10 @@ main:has(> .trainer-layout) {
 
 .note-modal textarea {
   flex: 1;
-  padding: 16px;
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 24px 32px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   resize: none;
