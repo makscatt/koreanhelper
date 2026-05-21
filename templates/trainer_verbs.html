@@ -1,9 +1,13 @@
 {% extends "trainer_base.html" %}
-{% block title %}Глаголы — {{ student.name }}{% endblock %}
+{% block title %}Спряжение — {{ student.name }}{% endblock %}
 {% block trainer_content %}
 <div class="trainer-header">
-  
-  <h1 class="trainer-title">Глаголы</h1>
+
+  <h1 class="trainer-title">Спряжение</h1>
+</div>
+<div class="tabs-wrapper" id="mode-tabs">
+  <button class="tab-btn active" data-mode="verbs">Глаголы</button>
+  <button class="tab-btn" data-mode="adjectives">Прилагательные</button>
 </div>
 <div class="tabs-wrapper" id="verb-tabs"></div>
 <div class="display-container">
@@ -38,17 +42,30 @@ document.body.dataset.module = 'verbs';
 let allVerbs=[],curBlock=[],vi=0,curVerb=null;
 const BLOCK=15;
 const tabsEl=document.getElementById('verb-tabs');
+const DATA_URLS={
+  verbs:      "{{ url_for('static', filename='data/verbs.json') }}",
+  adjectives: "{{ url_for('static', filename='data/adjectives.json') }}"
+};
 
-async function init(){
+async function loadData(mode){
   try{
-    const r=await fetch("{{ url_for('static', filename='data/verbs.json') }}");
+    const r=await fetch(DATA_URLS[mode]);
     if(!r.ok)throw new Error();
     allVerbs=await r.json();
     buildTabs();loadBlock(0);
   }catch(e){
-    document.getElementById('verb-inf').textContent='Ошибка загрузки verbs.json';
+    document.getElementById('verb-inf').textContent='Ошибка загрузки данных';
   }
 }
+
+document.querySelectorAll('#mode-tabs .tab-btn').forEach(btn=>{
+  btn.onclick=()=>{
+    if(btn.classList.contains('active'))return;
+    document.querySelectorAll('#mode-tabs .tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    loadData(btn.dataset.mode);
+  };
+});
 
 function buildTabs(){
   tabsEl.innerHTML='';
@@ -77,6 +94,6 @@ function speakTense(t){if(!curVerb)return;const txt=curVerb[t];if(txt&&txt!=='-'
 function prevVerb(){if(curBlock.length)setVerb((vi-1+curBlock.length)%curBlock.length);}
 function nextVerb(){if(curBlock.length)setVerb((vi+1)%curBlock.length);}
 function generateVerb(){if(curBlock.length)setVerb(randExcept(curBlock.length,vi));}
-init();
+loadData('verbs');
 </script>
 {% endblock %}
