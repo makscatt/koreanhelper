@@ -227,19 +227,31 @@ function generateQuestions() {
 
 function buildQuestion(type, entry, allItems) {
   const { item, ex, sent, translation } = entry;
+  const grammarName = (item.title.split('→')[1] || item.title).trim();
+  const grammarRule = (item.details && item.details.content) || '';
 
   if (type === 'choice') {
     const correct = ex.applied;
     const distractors = (ex.distractors || []).filter(d => d && d !== correct);
     if (distractors.length < 3) return null;
-    return { type, grammarTitle: item.title, formula: item.formula,
-      prompt: `К слову <strong>${ex.base}</strong> (${ex.type}) нужно присоединить грамматику.<br>Какая форма правильная?`,
+    const hasBase = ex.base && ex.base !== '-';
+    let prompt, sentence = null;
+    if (hasBase) {
+      prompt = `К слову <strong>${ex.base}</strong> — какая форма правильная?`;
+    } else {
+      const blanked = sent.replace(ex.applied, '______');
+      if (blanked === sent) return null;
+      sentence = blanked;
+      prompt = 'Выберите слово, которое подходит в пропуск:';
+    }
+    return { type, grammarTitle: item.title, formula: item.formula, grammarName, grammarRule,
+      prompt, sentence, translation,
       options: shuffle([correct, ...distractors.slice(0, 3)]), correct };
   }
   if (type === 'input') {
     const blanked = sent.replace(ex.applied, '___');
     if (blanked === sent) return null;
-    return { type, grammarTitle: item.title, formula: item.formula,
+    return { type, grammarTitle: item.title, formula: item.formula, grammarName, grammarRule,
       prompt: 'Вставьте правильную форму в предложение:',
       sentence: blanked, translation, correct: ex.applied, hint: `Базовое слово: ${ex.base}` };
   }
@@ -250,7 +262,7 @@ function buildQuestion(type, entry, allItems) {
       (ex.distractors || []).map(d => sent.replace(ex.applied, d)).filter(s => s && s !== correct)
     )].slice(0, 3);
     if (distractors.length < 3) return null;
-    return { type, grammarTitle: item.title, formula: item.formula,
+    return { type, grammarTitle: item.title, formula: item.formula, grammarName, grammarRule,
       prompt: 'Выберите правильный перевод:',
       russian: translation, options: shuffle([correct, ...distractors]), correct };
   }
@@ -260,7 +272,7 @@ function buildQuestion(type, entry, allItems) {
     const correct = ex.applied;
     const distractors = (ex.distractors || []).filter(d => d && d !== correct);
     if (distractors.length < 3) return null;
-    return { type, grammarTitle: item.title, formula: item.formula,
+    return { type, grammarTitle: item.title, formula: item.formula, grammarName, grammarRule,
       prompt: 'Выберите слово, которое подходит в пропуск:',
       sentence: blanked, translation, options: shuffle([correct, ...distractors.slice(0, 3)]), correct };
   }
@@ -318,6 +330,7 @@ function renderQuestion() {
 
   if (q.type === 'choice') {
     bodyHTML = `
+      ${q.sentence ? `<div class="quiz-korean">${q.sentence}</div><div class="quiz-cloze-hint">💡 ${q.translation}</div>` : ''}
       <div class="quiz-options-grid">
         ${q.options.map((opt, i) => `
           <button class="quiz-option-btn" data-value="${opt}" onclick="selectOption(this,'${opt}')">
@@ -380,7 +393,14 @@ function renderQuestion() {
 
   card.innerHTML = `
     <div class="quiz-type-label"><span>${tl.icon}</span> ${tl.text}</div>
-    <div class="quiz-grammar-ref">📌 <strong>${q.grammarTitle}</strong> &nbsp;·&nbsp; ${q.formula}</div>
+    <div class="quiz-grammar-task">
+      <span>🎯 Добавьте грамматику: <strong>«${q.grammarName}»</strong></span>
+      <button type="button" class="quiz-hint-btn" onclick="toggleGrammarHint(this)">💡 Подсказка</button>
+    </div>
+    <div class="quiz-grammar-hint" id="grammar-hint" hidden>
+      <div class="quiz-hint-formula">${q.formula}</div>
+      ${q.grammarRule ? `<div class="quiz-hint-rule">${q.grammarRule}</div>` : ''}
+    </div>
     <div class="quiz-prompt">${q.prompt}</div>
     ${bodyHTML}
   `;
@@ -391,6 +411,14 @@ function renderQuestion() {
     inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !document.getElementById('btn-check').disabled && !answered) checkAnswer(); });
     inp.focus();
   }
+}
+
+function toggleGrammarHint(btn) {
+  const hint = document.getElementById('grammar-hint');
+  if (!hint) return;
+  const show = hint.hidden;
+  hint.hidden = !show;
+  btn.textContent = show ? '🙈 Скрыть подсказку' : '💡 Подсказка';
 }
 
 function selectOption(btn, value) {
