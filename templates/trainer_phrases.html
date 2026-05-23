@@ -18,7 +18,12 @@
       <button class="ph-sidebar-btn" data-mode="outline" onclick="setMode('outline',this)">🗂 Блоки</button>
     </div>
 
-    <div class="ph-sidebar-block">
+    <div class="ph-sidebar-block" id="story-picker-block" style="display:none">
+      <div class="ph-sidebar-label">История</div>
+      <div id="story-picker"></div>
+    </div>
+
+    <div class="ph-sidebar-block" id="priority-block">
       <div class="ph-sidebar-label">Уровень</div>
       <button class="ph-sidebar-btn active" data-p="all"         onclick="setPriority('all',this)">Все</button>
       <button class="ph-sidebar-btn"        data-p="core"        onclick="setPriority('core',this)">● Базовые</button>
@@ -319,6 +324,64 @@
   .ph-popup-card { padding: 18px; }
 }
 
+/* ── Selfintro flow (Список для категории Чагисоге) ── */
+.ph-flow-head {
+  background: #fff;
+  border: 1.5px solid #e4e8ef;
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 14px;
+}
+.ph-flow-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1a1d23;
+  margin-bottom: 4px;
+}
+.ph-flow-summary {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+.ph-flow { display: flex; flex-direction: column; gap: 10px; }
+.ph-flow-item {
+  background: #fff;
+  border: 1.5px solid #e4e8ef;
+  border-radius: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: 0.15s;
+}
+.ph-flow-item:hover { border-color: #c0c8d8; }
+.ph-flow-item.mastered { background: #f0fdf4; border-color: #bbf7d0; }
+.ph-flow-num {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #9ca3af;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+.ph-flow-q-kor {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #2563eb;
+  margin-bottom: 2px;
+}
+.ph-flow-q-rus {
+  font-size: 0.78rem;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+.ph-flow-a-kor {
+  font-size: 1.0rem;
+  font-weight: 600;
+  color: #1a1d23;
+  margin-bottom: 2px;
+}
+.ph-flow-a-rus {
+  font-size: 0.88rem;
+  color: #6b7280;
+}
+
 /* ── Section tab auto-done (all phrases mastered) ── */
 .ph-section-btn.auto-done {
   border-color: #86efac;
@@ -343,6 +406,9 @@
 {% block trainer_js %}
 <script>
   let allPairs = [];
+  let phrasesRaw = [];
+  let selfintroData = null;
+  let activeStoryId = null;
   let filtered = [];
   let curIdx = 0;
   let answerVisible = false;
@@ -356,7 +422,7 @@
   let sectionsDone = {};
 
   const categoryIcons = {
-    lesson: '📚', travel: '✈️', money: '💰'
+    lesson: '📚', travel: '✈️', money: '💰', selfintro: '🪪'
   };
   const sectionIcons = {
     start: '👋', homework: '📝', review: '🔄', new: '✨',
@@ -395,22 +461,83 @@
     try {
       const res = await fetch('{{ url_for("static", filename="data/phrases.json") }}');
       if (!res.ok) throw new Error();
-      allPairs = await res.json();
+      phrasesRaw = await res.json();
     } catch {
-      allPairs = [
+      phrasesRaw = [
         { id:"demo-01", section:"start", section_label:"Старт урока", priority:"core", type:"fixed",
           teacher:{ kor:"안녕하세요!", rus:"Здравствуйте!" },
           student:{ kor:"안녕하세요!", rus:"Здравствуйте!" } }
       ];
     }
     // Дефолт категории для старых фраз
-    allPairs.forEach(p => {
+    phrasesRaw.forEach(p => {
       if (!p.category) { p.category = 'lesson'; p.category_label = 'Урок'; }
     });
+
+    // Загрузить selfintro (자기소개) — рендерим как отдельную категорию
+    try {
+      const res = await fetch('{{ url_for("static", filename="data/selfintro.json") }}');
+      if (res.ok) {
+        selfintroData = await res.json();
+        if (selfintroData.stories && selfintroData.stories.length) {
+          activeStoryId = selfintroData.stories[0].id;
+        }
+      }
+    } catch (e) { selfintroData = null; }
+
+    rebuildAllPairs();
     buildCategoryTabs();
     buildSectionTabs();
+    renderStoryPicker();
     applyFilters();
     updateSectionDoneState();
+  }
+
+  /* ── Сборка allPairs: phrases.json + виртуальные пары selfintro ── */
+  function rebuildAllPairs() {
+    allPairs = phrasesRaw.slice();
+    if (!selfintroData || !selfintroData.questions) return;
+    const story = (selfintroData.stories || []).find(s => s.id === activeStoryId);
+    selfintroData.questions.forEach((q, i) => {
+      const para = story && (story.paragraphs || []).find(p => p.question_id === q.id);
+      allPairs.push({
+        id: 'selfintro-' + q.id,
+        category: 'selfintro',
+        category_label: 'Чагисоге',
+        section: 'template',
+        section_label: '🪪 Шаблон',
+        priority: 'core',
+        type: 'fixed',
+        teacher: { kor: q.kor, rus: q.rus },
+        student: para ? { kor: para.kor || '', rus: para.rus || '' } : { kor: '(нет ответа в этой истории)', rus: '' }
+      });
+    });
+  }
+
+  function renderStoryPicker() {
+    const box = document.getElementById('story-picker');
+    if (!box) return;
+    box.innerHTML = '';
+    if (!selfintroData || !(selfintroData.stories || []).length) return;
+    selfintroData.stories.forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'ph-sidebar-btn' + (s.id === activeStoryId ? ' active' : '');
+      btn.textContent = s.title;
+      btn.onclick = () => {
+        activeStoryId = s.id;
+        rebuildAllPairs();
+        renderStoryPicker();
+        applyFilters();
+      };
+      box.appendChild(btn);
+    });
+  }
+
+  function updateSidebarVisibility() {
+    const storyBlock = document.getElementById('story-picker-block');
+    if (storyBlock) {
+      storyBlock.style.display = (activeCategory === 'selfintro' && selfintroData) ? '' : 'none';
+    }
   }
 
   function buildCategoryTabs() {
@@ -432,12 +559,14 @@
         activeSection = 'all';
         curIdx = 0;
         document.querySelectorAll('.ph-cat-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === activeCategory));
+        updateSidebarVisibility();
         buildSectionTabs();
         applyFilters();
         updateSectionDoneState();
       };
       container.appendChild(btn);
     });
+    updateSidebarVisibility();
   }
 
   function setMode(mode, btn) {
@@ -836,6 +965,7 @@
     const container = document.getElementById('list-view');
     container.innerHTML = '';
     if (!filtered.length) { container.innerHTML = '<p style="color:#8b92a0;text-align:center;padding:30px 0">Нет пар в этом фильтре</p>'; return; }
+    if (activeCategory === 'selfintro') { renderSelfintroFlow(container); return; }
     const sections = [], sectionMap = {};
     filtered.forEach(pair => {
       if (!sectionMap[pair.section]) { sectionMap[pair.section] = { label: pair.section_label, section: pair.section, pairs: [] }; sections.push(sectionMap[pair.section]); }
@@ -926,6 +1056,36 @@
       });
       block.appendChild(pairsEl); container.appendChild(block);
     });
+  }
+
+  /* ── SELFINTRO FLOW (рассказ о себе подряд) ── */
+  function renderSelfintroFlow(container) {
+    const story = (selfintroData && selfintroData.stories || []).find(s => s.id === activeStoryId);
+    const head = document.createElement('div'); head.className = 'ph-flow-head';
+    head.innerHTML = '<div class="ph-flow-title"></div><div class="ph-flow-summary"></div>';
+    head.querySelector('.ph-flow-title').textContent = story ? story.title : 'Чагисоге';
+    head.querySelector('.ph-flow-summary').textContent = story ? (story.summary || '') : '';
+    container.appendChild(head);
+
+    const flow = document.createElement('div'); flow.className = 'ph-flow';
+    filtered.forEach((pair, idx) => {
+      const isMastered = progress[pair.id] === 'know';
+      const item = document.createElement('div');
+      item.className = 'ph-flow-item' + (isMastered ? ' mastered' : '');
+      item.innerHTML =
+        '<div class="ph-flow-num">#' + String(idx + 1).padStart(2, '0') + '</div>' +
+        '<div class="ph-flow-q-kor"></div>' +
+        '<div class="ph-flow-q-rus"></div>' +
+        '<div class="ph-flow-a-kor"></div>' +
+        '<div class="ph-flow-a-rus"></div>';
+      item.querySelector('.ph-flow-q-kor').textContent = pair.teacher.kor;
+      item.querySelector('.ph-flow-q-rus').textContent = pair.teacher.rus || '';
+      item.querySelector('.ph-flow-a-kor').textContent = pair.student.kor;
+      item.querySelector('.ph-flow-a-rus').textContent = pair.student.rus || '';
+      item.onclick = () => openPopup(idx);
+      flow.appendChild(item);
+    });
+    container.appendChild(flow);
   }
 
   async function toggleListItem(itemId, cbEl, pairEl) {
