@@ -17,6 +17,10 @@
       <button class="mini-sidebar-btn" data-t="weather" onclick="switchTrainer('weather',this)">🌤️ Погода</button>
       <button class="mini-sidebar-btn" data-t="locations" onclick="switchTrainer('locations',this)">📍 Место</button>
       <button class="mini-sidebar-btn" data-t="character" onclick="switchTrainer('character',this)">😊 Характер</button>
+      <button class="mini-sidebar-btn" data-t="irregular" onclick="switchTrainer('irregular',this)">🌀 Неправильные</button>
+      <button class="mini-sidebar-btn" data-t="connect" onclick="switchTrainer('connect',this)">🔗 Связки</button>
+      <button class="mini-sidebar-btn" data-t="flash" onclick="switchTrainer('flash',this)">⚡ Флеш-вокаб</button>
+      <button class="mini-sidebar-btn" data-t="negation" onclick="switchTrainer('negation',this)">🚫 Отрицание</button>
     </div>
   </div>
 
@@ -131,6 +135,81 @@
           <button class="action-btn" onclick="prevChar()">⬅️</button>
           <button class="action-btn" onclick="nextChar()">➡️</button>
           <button class="action-btn" onclick="genChar()">🎲</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ IRREGULAR ═══ -->
+    <div class="mini-panel" id="panel-irregular">
+      <div class="tabs-wrapper" id="irr-tabs"></div>
+      <div class="mini-card">
+        <div class="mini-card-visual">
+          <div class="mini-card-big" id="irr-base">듣다</div>
+          <div style="color:var(--text-tertiary,#8b92a0);font-size:0.95rem;" id="irr-mean">слушать</div>
+          <div id="irr-tense" style="margin-top:8px;display:inline-block;padding:4px 16px;border-radius:999px;background:var(--primary,#4758d6);color:#fff;font-size:0.95rem;font-weight:700;">Прошедшее</div>
+        </div>
+        <div class="mini-card-answer" id="irr-answer">들었어요</div>
+        <div class="mini-card-controls">
+          <button class="action-btn warning" onclick="toggleVis('irr-answer')">👁️</button>
+          <button class="action-btn secondary" onclick="speakText(irrAnswerText())">🔊</button>
+          <button class="action-btn" onclick="genIrr()">🎲</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ CONNECT ═══ -->
+    <div class="mini-panel" id="panel-connect">
+      <div class="tabs-wrapper" id="conn-tabs"></div>
+      <div class="mini-card">
+        <div class="mini-card-visual">
+          <div style="font-size:1.5rem;font-family:'Noto Sans KR',sans-serif;text-align:center;" id="conn-p1">비가 와요</div>
+          <div style="color:var(--text-tertiary,#8b92a0);font-size:0.78rem;" id="conn-p1r">идёт дождь</div>
+          <div style="font-size:1.4rem;font-weight:700;color:var(--primary,#4758d6);margin:2px 0;">＋ <span id="conn-c">그래서</span></div>
+          <div style="font-size:1.5rem;font-family:'Noto Sans KR',sans-serif;text-align:center;" id="conn-p2">집에 있어요</div>
+          <div style="color:var(--text-tertiary,#8b92a0);font-size:0.78rem;" id="conn-p2r">я дома</div>
+        </div>
+        <div class="mini-card-answer" id="conn-answer">...</div>
+        <div class="mini-card-controls">
+          <button class="action-btn warning" onclick="toggleVis('conn-answer')">👁️</button>
+          <button class="action-btn secondary" onclick="speakText(connAnswerKor())">🔊</button>
+          <button class="action-btn" onclick="genConn()">🎲</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ FLASH ═══ -->
+    <div class="mini-panel" id="panel-flash">
+      <div class="tabs-wrapper" id="flash-speed"></div>
+      <div class="mini-card">
+        <div class="mini-card-visual">
+          <div class="mini-card-big" id="flash-front" style="font-size:2.6rem;">⚡</div>
+          <div style="color:var(--text-tertiary,#8b92a0);font-size:0.78rem;" id="flash-info">нажмите ▶</div>
+        </div>
+        <div class="mini-card-answer" id="flash-back">перевод</div>
+        <div class="mini-card-controls">
+          <button class="action-btn" id="flash-play" onclick="toggleFlashPlay()">▶</button>
+          <button class="action-btn secondary" onclick="flashDir()"><span id="flash-dir-lbl">한→рус</span></button>
+          <button class="action-btn warning" onclick="toggleVis('flash-back')">👁️</button>
+          <button class="action-btn secondary" onclick="speakText(flashCur?flashCur.kor:'')">🔊</button>
+          <button class="action-btn" onclick="genFlash()">🎲</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ NEGATION ═══ -->
+    <div class="mini-panel" id="panel-negation">
+      <div class="tabs-wrapper" id="neg-tabs"></div>
+      <div class="mini-card">
+        <div class="mini-card-visual">
+          <div class="mini-card-big" id="neg-base">가다</div>
+          <div style="color:var(--text-tertiary,#8b92a0);font-size:0.95rem;" id="neg-mean">идти</div>
+          <div id="neg-type" style="margin-top:8px;display:inline-block;padding:4px 16px;border-radius:999px;background:#ef4444;color:#fff;font-size:1.05rem;font-weight:700;">안</div>
+        </div>
+        <div class="mini-card-answer" id="neg-answer">안 가요</div>
+        <div class="mini-card-controls">
+          <button class="action-btn warning" onclick="toggleVis('neg-answer')">👁️</button>
+          <button class="action-btn secondary" onclick="speakText(document.getElementById('neg-answer').textContent)">🔊</button>
+          <button class="action-btn" onclick="genNeg()">🎲</button>
         </div>
       </div>
     </div>
@@ -316,6 +395,7 @@
 {% block trainer_js %}
 <script>
 document.body.dataset.module = 'mini';
+const STUDENT_ID = {{ student.id }};
 
 /* ── Shared helpers ── */
 function toggleVis(id) {
@@ -517,6 +597,303 @@ function prevChar() { setCharCard((chari - 1 + charList.length) % charList.lengt
 function nextChar() { setCharCard((chari + 1) % charList.length); }
 function genChar() { trackExercise(); setCharCard(randExcept(charList.length, chari)); }
 setCharCard(0);
+
+/* ═══════════ IRREGULAR (불규칙) ═══════════ */
+const irrGroups = {
+  'ㅂ': [
+    {base:'돕다',mean:'помогать',pres:'도와요',past:'도왔어요',fut:'도울 거예요'},
+    {base:'굽다',mean:'жарить',pres:'구워요',past:'구웠어요',fut:'구울 거예요'},
+    {base:'무겁다',mean:'тяжёлый',pres:'무거워요',past:'무거웠어요',fut:'무거울 거예요'},
+    {base:'가볍다',mean:'лёгкий',pres:'가벼워요',past:'가벼웠어요',fut:'가벼울 거예요'},
+    {base:'춥다',mean:'холодный',pres:'추워요',past:'추웠어요',fut:'추울 거예요'},
+    {base:'덥다',mean:'жаркий',pres:'더워요',past:'더웠어요',fut:'더울 거예요'},
+    {base:'쉽다',mean:'лёгкий (простой)',pres:'쉬워요',past:'쉬웠어요',fut:'쉬울 거예요'},
+    {base:'어렵다',mean:'трудный',pres:'어려워요',past:'어려웠어요',fut:'어려울 거예요'},
+  ],
+  'ㄷ': [
+    {base:'듣다',mean:'слушать',pres:'들어요',past:'들었어요',fut:'들을 거예요'},
+    {base:'걷다',mean:'идти пешком',pres:'걸어요',past:'걸었어요',fut:'걸을 거예요'},
+    {base:'묻다',mean:'спрашивать',pres:'물어요',past:'물었어요',fut:'물을 거예요'},
+    {base:'싣다',mean:'грузить',pres:'실어요',past:'실었어요',fut:'실을 거예요'},
+    {base:'깨닫다',mean:'осознавать',pres:'깨달아요',past:'깨달았어요',fut:'깨달을 거예요'},
+  ],
+  '르': [
+    {base:'모르다',mean:'не знать',pres:'몰라요',past:'몰랐어요',fut:'모를 거예요'},
+    {base:'빠르다',mean:'быстрый',pres:'빨라요',past:'빨랐어요',fut:'빠를 거예요'},
+    {base:'다르다',mean:'другой',pres:'달라요',past:'달랐어요',fut:'다를 거예요'},
+    {base:'부르다',mean:'звать / петь',pres:'불러요',past:'불렀어요',fut:'부를 거예요'},
+    {base:'고르다',mean:'выбирать',pres:'골라요',past:'골랐어요',fut:'고를 거예요'},
+    {base:'자르다',mean:'резать',pres:'잘라요',past:'잘랐어요',fut:'자를 거예요'},
+    {base:'흐르다',mean:'течь',pres:'흘러요',past:'흘렀어요',fut:'흐를 거예요'},
+  ],
+  'ㅎ': [
+    {base:'빨갛다',mean:'красный',pres:'빨개요',past:'빨갰어요',fut:'빨갈 거예요'},
+    {base:'파랗다',mean:'синий',pres:'파래요',past:'파랬어요',fut:'파랄 거예요'},
+    {base:'노랗다',mean:'жёлтый',pres:'노래요',past:'노랬어요',fut:'노랄 거예요'},
+    {base:'하얗다',mean:'белый',pres:'하얘요',past:'하얬어요',fut:'하얄 거예요'},
+    {base:'까맣다',mean:'чёрный',pres:'까매요',past:'까맸어요',fut:'까말 거예요'},
+    {base:'어떻다',mean:'какой',pres:'어때요',past:'어땠어요',fut:'어떨 거예요'},
+  ],
+  'ㅅ': [
+    {base:'짓다',mean:'строить',pres:'지어요',past:'지었어요',fut:'지을 거예요'},
+    {base:'낫다',mean:'выздоравливать',pres:'나아요',past:'나았어요',fut:'나을 거예요'},
+    {base:'붓다',mean:'наливать / опухать',pres:'부어요',past:'부었어요',fut:'부을 거예요'},
+    {base:'잇다',mean:'соединять',pres:'이어요',past:'이었어요',fut:'이을 거예요'},
+    {base:'젓다',mean:'мешать (ложкой)',pres:'저어요',past:'저었어요',fut:'저을 거예요'},
+  ],
+  '으': [
+    {base:'쓰다',mean:'писать',pres:'써요',past:'썼어요',fut:'쓸 거예요'},
+    {base:'크다',mean:'большой',pres:'커요',past:'컸어요',fut:'클 거예요'},
+    {base:'바쁘다',mean:'занятой',pres:'바빠요',past:'바빴어요',fut:'바쁠 거예요'},
+    {base:'아프다',mean:'болеть',pres:'아파요',past:'아팠어요',fut:'아플 거예요'},
+    {base:'예쁘다',mean:'красивый',pres:'예뻐요',past:'예뻤어요',fut:'예쁠 거예요'},
+    {base:'슬프다',mean:'грустный',pres:'슬퍼요',past:'슬펐어요',fut:'슬플 거예요'},
+    {base:'배고프다',mean:'голодный',pres:'배고파요',past:'배고팠어요',fut:'배고플 거예요'},
+  ],
+};
+const IRR_TYPES = ['Все','ㅂ','ㄷ','르','ㅎ','ㅅ','으'];
+const IRR_TENSES = [['pres','Настоящее'],['past','Прошедшее'],['fut','Будущее']];
+let irrType = 'Все', irrTense = 'past', irrCur = null;
+function irrPool() {
+  if (irrType === 'Все') { let a = []; for (const k in irrGroups) a = a.concat(irrGroups[k]); return a; }
+  return irrGroups[irrType];
+}
+function irrAnswerText() { return irrCur ? irrCur[irrTense] : ''; }
+function genIrr() {
+  trackExercise();
+  const pool = irrPool();
+  irrCur = pool[Math.floor(Math.random() * pool.length)];
+  irrTense = IRR_TENSES[Math.floor(Math.random() * 3)][0];
+  document.getElementById('irr-base').textContent = irrCur.base;
+  document.getElementById('irr-mean').textContent = irrCur.mean;
+  document.getElementById('irr-tense').textContent = IRR_TENSES.find(t => t[0] === irrTense)[1];
+  const el = document.getElementById('irr-answer');
+  el.textContent = irrCur[irrTense];
+  el.style.visibility = 'hidden';
+}
+(function buildIrrTabs() {
+  const wrap = document.getElementById('irr-tabs');
+  IRR_TYPES.forEach((t, i) => {
+    const b = document.createElement('button');
+    b.className = 'tab-btn' + (i === 0 ? ' active' : '');
+    b.textContent = t === 'Все' ? 'Все' : t + ' 불규칙';
+    b.onclick = () => {
+      wrap.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active'); irrType = t; genIrr();
+    };
+    wrap.appendChild(b);
+  });
+})();
+genIrr();
+
+/* ═══════════ CONNECT (связки) ═══════════ */
+const connData = {
+  '그래서': [
+    {p1:'배가 고파요',p1r:'я голоден',p2:'밥을 먹어요',p2r:'ем',ck:'배가 고파요. 그래서 밥을 먹어요.',cr:'Я голоден, поэтому ем.'},
+    {p1:'피곤해요',p1r:'я устал',p2:'일찍 자요',p2r:'рано ложусь',ck:'피곤해요. 그래서 일찍 자요.',cr:'Я устал, поэтому рано ложусь.'},
+    {p1:'시간이 없어요',p1r:'нет времени',p2:'택시를 타요',p2r:'еду на такси',ck:'시간이 없어요. 그래서 택시를 타요.',cr:'Нет времени, поэтому еду на такси.'},
+    {p1:'날씨가 좋아요',p1r:'погода хорошая',p2:'산책해요',p2r:'гуляю',ck:'날씨가 좋아요. 그래서 산책해요.',cr:'Погода хорошая, поэтому я гуляю.'},
+    {p1:'돈이 없어요',p1r:'нет денег',p2:'못 사요',p2r:'не могу купить',ck:'돈이 없어요. 그래서 못 사요.',cr:'Нет денег, поэтому не могу купить.'},
+  ],
+  '그런데': [
+    {p1:'이 옷이 예뻐요',p1r:'эта одежда красивая',p2:'너무 비싸요',p2r:'слишком дорогая',ck:'이 옷이 예뻐요. 그런데 너무 비싸요.',cr:'Одежда красивая, но слишком дорогая.'},
+    {p1:'한국어가 재미있어요',p1r:'корейский интересный',p2:'어려워요',p2r:'трудный',ck:'한국어가 재미있어요. 그런데 어려워요.',cr:'Корейский интересный, но трудный.'},
+    {p1:'친구를 만났어요',p1r:'встретил друга',p2:'기분이 안 좋았어요',p2r:'был не в духе',ck:'친구를 만났어요. 그런데 기분이 안 좋았어요.',cr:'Встретил друга, а вот настроения не было.'},
+    {p1:'배가 고파요',p1r:'я голоден',p2:'음식이 없어요',p2r:'еды нет',ck:'배가 고파요. 그런데 음식이 없어요.',cr:'Я голоден, а еды нет.'},
+    {p1:'비가 와요',p1r:'идёт дождь',p2:'우산이 없어요',p2r:'зонта нет',ck:'비가 와요. 그런데 우산이 없어요.',cr:'Идёт дождь, а зонта нет.'},
+  ],
+  '-지만': [
+    {p1:'비싸요',p1r:'дорого',p2:'사고 싶어요',p2r:'хочу купить',ck:'비싸지만 사고 싶어요.',cr:'Дорого, но хочу купить.'},
+    {p1:'맛있어요',p1r:'вкусно',p2:'매워요',p2r:'остро',ck:'맛있지만 매워요.',cr:'Вкусно, но остро.'},
+    {p1:'바빠요',p1r:'занят',p2:'운동해요',p2r:'занимаюсь спортом',ck:'바쁘지만 운동해요.',cr:'Занят, но занимаюсь спортом.'},
+    {p1:'어려워요',p1r:'трудно',p2:'재미있어요',p2r:'интересно',ck:'어렵지만 재미있어요.',cr:'Трудно, но интересно.'},
+    {p1:'피곤해요',p1r:'устал',p2:'일해요',p2r:'работаю',ck:'피곤하지만 일해요.',cr:'Устал, но работаю.'},
+  ],
+  '-니까': [
+    {p1:'비가 와요',p1r:'идёт дождь',p2:'집에 있어요',p2r:'останусь дома',ck:'비가 오니까 집에 있어요.',cr:'Раз дождь, останусь дома.'},
+    {p1:'시간이 없어요',p1r:'нет времени',p2:'빨리 가요',p2r:'идём быстрее',ck:'시간이 없으니까 빨리 가요.',cr:'Раз нет времени, идём быстрее.'},
+    {p1:'위험해요',p1r:'опасно',p2:'조심하세요',p2r:'будьте осторожны',ck:'위험하니까 조심하세요.',cr:'Раз опасно, будьте осторожны.'},
+    {p1:'배가 고파요',p1r:'я голоден',p2:'밥을 먹어요',p2r:'поедим',ck:'배가 고프니까 밥을 먹어요.',cr:'Раз я голоден, поедим.'},
+    {p1:'날씨가 추워요',p1r:'холодно',p2:'옷을 입어요',p2r:'одеваюсь теплее',ck:'날씨가 추우니까 옷을 입어요.',cr:'Раз холодно, одеваюсь теплее.'},
+  ],
+};
+const CONN_TYPES = ['Все','그래서','그런데','-지만','-니까'];
+let connType = 'Все', connCur = null;
+function connPool() {
+  if (connType === 'Все') {
+    let a = []; for (const k in connData) connData[k].forEach(o => a.push(Object.assign({c:k}, o))); return a;
+  }
+  return connData[connType].map(o => Object.assign({c:connType}, o));
+}
+function connAnswerKor() { return connCur ? connCur.ck : ''; }
+function genConn() {
+  trackExercise();
+  const pool = connPool();
+  connCur = pool[Math.floor(Math.random() * pool.length)];
+  document.getElementById('conn-p1').textContent = connCur.p1;
+  document.getElementById('conn-p1r').textContent = connCur.p1r;
+  document.getElementById('conn-p2').textContent = connCur.p2;
+  document.getElementById('conn-p2r').textContent = connCur.p2r;
+  document.getElementById('conn-c').textContent = connCur.c;
+  const el = document.getElementById('conn-answer');
+  el.innerHTML = connCur.ck + '<div style="font-size:0.78rem;color:var(--text-tertiary,#8b92a0);font-weight:400;margin-top:4px;">' + connCur.cr + '</div>';
+  el.style.visibility = 'hidden';
+}
+(function buildConnTabs() {
+  const wrap = document.getElementById('conn-tabs');
+  CONN_TYPES.forEach((t, i) => {
+    const b = document.createElement('button');
+    b.className = 'tab-btn' + (i === 0 ? ' active' : '');
+    b.textContent = t;
+    b.onclick = () => {
+      wrap.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active'); connType = t; genConn();
+    };
+    wrap.appendChild(b);
+  });
+})();
+genConn();
+
+/* ═══════════ FLASH (флеш-вокаб) ═══════════ */
+let flashBank = [], flashLoaded = false, flashLoading = null, flashCur = null;
+let flashTimer = null, flashDelay = 2500, flashKR2RU = true, flashIdx = -1, flashPlaying = false;
+async function loadFlashBank() {
+  if (flashLoaded) return;
+  if (flashLoading) return flashLoading;
+  flashLoading = (async () => {
+    const bank = [];
+    async function pull(url, map) {
+      try { const r = await fetch(url); const j = await r.json(); map(j, bank); } catch (e) {}
+    }
+    await pull('/static/data/verbs.json', (j, b) => j.forEach(v => { if (v.base && v.mean) b.push({kor:v.base, rus:v.mean}); }));
+    await pull('/static/data/adjectives.json', (j, b) => j.forEach(v => { if (v.base && v.mean) b.push({kor:v.base, rus:v.mean}); }));
+    await pull('/static/data/words-data.json', (j, b) => { for (const k in j) (j[k].words || []).forEach(w => { if (w.korean && w.russian) b.push({kor:w.korean, rus:w.russian}); }); });
+    try {
+      const r = await fetch('/api/hub/list', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({student_id: STUDENT_ID})});
+      const j = await r.json();
+      if (j && j.ok && j.words) j.words.forEach(w => { if (w.word_kor && w.word_rus) bank.push({kor:w.word_kor, rus:w.word_rus}); });
+    } catch (e) {}
+    for (let i = bank.length - 1; i > 0; i--) { const k = Math.floor(Math.random() * (i + 1)); [bank[i], bank[k]] = [bank[k], bank[i]]; }
+    flashBank = bank; flashLoaded = true;
+  })();
+  return flashLoading;
+}
+function renderFlash() {
+  if (!flashCur) return;
+  document.getElementById('flash-front').textContent = flashKR2RU ? flashCur.kor : flashCur.rus;
+  const back = document.getElementById('flash-back');
+  back.textContent = flashKR2RU ? flashCur.rus : flashCur.kor;
+  back.style.visibility = 'hidden';
+  document.getElementById('flash-info').textContent = flashBank.length + ' слов';
+}
+async function genFlash() {
+  trackExercise();
+  await loadFlashBank();
+  if (!flashBank.length) { document.getElementById('flash-front').textContent = 'нет слов'; return; }
+  flashIdx = (flashIdx + 1) % flashBank.length;
+  flashCur = flashBank[flashIdx];
+  renderFlash();
+}
+function startFlashTimer() {
+  stopFlashTimer();
+  flashTimer = setInterval(() => {
+    if (!document.getElementById('panel-flash').classList.contains('active')) { toggleFlashPlay(true); return; }
+    genFlash();
+  }, flashDelay);
+}
+function stopFlashTimer() { if (flashTimer) { clearInterval(flashTimer); flashTimer = null; } }
+function toggleFlashPlay(forceStop) {
+  if (flashPlaying || forceStop) {
+    flashPlaying = false; stopFlashTimer(); document.getElementById('flash-play').textContent = '▶';
+  } else {
+    flashPlaying = true; document.getElementById('flash-play').textContent = '⏸'; genFlash(); startFlashTimer();
+  }
+}
+function flashDir() {
+  flashKR2RU = !flashKR2RU;
+  document.getElementById('flash-dir-lbl').textContent = flashKR2RU ? '한→рус' : 'рус→한';
+  renderFlash();
+}
+(function buildFlashSpeed() {
+  const speeds = [['медл',4000],['средн',2500],['быстр',1500]];
+  const wrap = document.getElementById('flash-speed');
+  speeds.forEach((s, i) => {
+    const b = document.createElement('button');
+    b.className = 'tab-btn' + (i === 1 ? ' active' : '');
+    b.textContent = s[0];
+    b.onclick = () => {
+      wrap.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active'); flashDelay = s[1]; if (flashPlaying) startFlashTimer();
+    };
+    wrap.appendChild(b);
+  });
+})();
+loadFlashBank();
+
+/* ═══════════ NEGATION (отрицание) ═══════════ */
+const negData = [
+  {base:'가다',mean:'идти',an:'안 가요',mot:'못 가요',ja:'가지 않아요',jm:'가지 못해요',m:true},
+  {base:'먹다',mean:'есть',an:'안 먹어요',mot:'못 먹어요',ja:'먹지 않아요',jm:'먹지 못해요',m:true},
+  {base:'보다',mean:'смотреть',an:'안 봐요',mot:'못 봐요',ja:'보지 않아요',jm:'보지 못해요',m:true},
+  {base:'자다',mean:'спать',an:'안 자요',mot:'못 자요',ja:'자지 않아요',jm:'자지 못해요',m:true},
+  {base:'마시다',mean:'пить',an:'안 마셔요',mot:'못 마셔요',ja:'마시지 않아요',jm:'마시지 못해요',m:true},
+  {base:'읽다',mean:'читать',an:'안 읽어요',mot:'못 읽어요',ja:'읽지 않아요',jm:'읽지 못해요',m:true},
+  {base:'만나다',mean:'встречать',an:'안 만나요',mot:'못 만나요',ja:'만나지 않아요',jm:'만나지 못해요',m:true},
+  {base:'사다',mean:'покупать',an:'안 사요',mot:'못 사요',ja:'사지 않아요',jm:'사지 못해요',m:true},
+  {base:'듣다',mean:'слушать',an:'안 들어요',mot:'못 들어요',ja:'듣지 않아요',jm:'듣지 못해요',m:true},
+  {base:'공부하다',mean:'учиться',an:'공부 안 해요',mot:'공부 못 해요',ja:'공부하지 않아요',jm:'공부하지 못해요',m:true},
+  {base:'일하다',mean:'работать',an:'일 안 해요',mot:'일 못 해요',ja:'일하지 않아요',jm:'일하지 못해요',m:true},
+  {base:'운동하다',mean:'заниматься спортом',an:'운동 안 해요',mot:'운동 못 해요',ja:'운동하지 않아요',jm:'운동하지 못해요',m:true},
+  {base:'비싸다',mean:'дорогой',an:'안 비싸요',mot:null,ja:'비싸지 않아요',jm:null,m:false},
+  {base:'크다',mean:'большой',an:'안 커요',mot:null,ja:'크지 않아요',jm:null,m:false},
+  {base:'바쁘다',mean:'занятой',an:'안 바빠요',mot:null,ja:'바쁘지 않아요',jm:null,m:false},
+  {base:'좋다',mean:'хороший',an:'안 좋아요',mot:null,ja:'좋지 않아요',jm:null,m:false},
+  {base:'예쁘다',mean:'красивый',an:'안 예뻐요',mot:null,ja:'예쁘지 않아요',jm:null,m:false},
+  {base:'춥다',mean:'холодный',an:'안 추워요',mot:null,ja:'춥지 않아요',jm:null,m:false},
+];
+const NEG_TYPES = [
+  {key:'Все'},
+  {key:'안', field:'an'},
+  {key:'못', field:'mot'},
+  {key:'-지 않다', field:'ja'},
+  {key:'-지 못하다', field:'jm'},
+];
+const NEG_LABELS = {an:'안', mot:'못', ja:'-지 않다', jm:'-지 못하다'};
+let negType = 'Все', negCur = null, negField = 'an';
+function negFieldsFor(w) {
+  const f = [['an'], ['ja']];
+  if (w.m) { f.push(['mot']); f.push(['jm']); }
+  return f;
+}
+function genNeg() {
+  trackExercise();
+  let pool, forcedField = null;
+  if (negType === 'Все') { pool = negData; }
+  else { forcedField = NEG_TYPES.find(x => x.key === negType).field; pool = negData.filter(w => w[forcedField]); }
+  negCur = pool[Math.floor(Math.random() * pool.length)];
+  if (forcedField) { negField = forcedField; }
+  else { const fs = negFieldsFor(negCur); negField = fs[Math.floor(Math.random() * fs.length)][0]; }
+  document.getElementById('neg-base').textContent = negCur.base;
+  document.getElementById('neg-mean').textContent = negCur.mean;
+  document.getElementById('neg-type').textContent = NEG_LABELS[negField];
+  const el = document.getElementById('neg-answer');
+  el.textContent = negCur[negField];
+  el.style.visibility = 'hidden';
+}
+(function buildNegTabs() {
+  const wrap = document.getElementById('neg-tabs');
+  NEG_TYPES.forEach((t, i) => {
+    const b = document.createElement('button');
+    b.className = 'tab-btn' + (i === 0 ? ' active' : '');
+    b.textContent = t.key;
+    b.onclick = () => {
+      wrap.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active'); negType = t.key; genNeg();
+    };
+    wrap.appendChild(b);
+  });
+})();
+genNeg();
 
 </script>
 {% endblock %}
