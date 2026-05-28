@@ -31,6 +31,11 @@
       <button class="ph-sidebar-btn"        data-p="situational" onclick="setPriority('situational',this)">● Ситуативные</button>
     </div>
 
+    <div class="ph-sidebar-block">
+      <div class="ph-sidebar-label">Перевод</div>
+      <button class="ph-sidebar-btn" id="toggle-rus-btn" onclick="toggleRusHidden(this)">👁 Скрыть русский</button>
+    </div>
+
   </div>
 
   <!-- MAIN CONTENT -->
@@ -238,6 +243,7 @@
   color: #6b7280;
   line-height: 1.35;
 }
+.ph-badge-grid.hide-rus .ph-badge-rus { display: none; }
 .ph-badge-tags {
   display: flex;
   gap: 6px;
@@ -1264,6 +1270,26 @@
     else if (['k','л','Л'].includes(e.key)) { if (IS_TEACHER) markKnow(); }
     else if (['s','ы','Ы'].includes(e.key) && answerVisible) speakKor();
   });
+
+  function toggleRusHidden(btn) {
+    const grid = document.getElementById('badge-grid');
+    const hidden = !grid.classList.contains('hide-rus');
+    grid.classList.toggle('hide-rus', hidden);
+    btn.classList.toggle('active', hidden);
+    btn.textContent = hidden ? '👁 Показать русский' : '👁 Скрыть русский';
+    try { localStorage.setItem('ph-hide-rus', hidden ? '1' : '0'); } catch(e) {}
+  }
+
+  (function initRusToggle() {
+    try {
+      if (localStorage.getItem('ph-hide-rus') === '1') {
+        document.getElementById('badge-grid').classList.add('hide-rus');
+        const btn = document.getElementById('toggle-rus-btn');
+        btn.classList.add('active');
+        btn.textContent = '👁 Показать русский';
+      }
+    } catch(e) {}
+  })();
 
   loadData();
 </script>
