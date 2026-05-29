@@ -15,6 +15,7 @@
     <button class="hub-tab" data-mode="cards-kr" onclick="setHubMode('cards-kr',this)">🇰🇷→🇷🇺 Карточки</button>
     <button class="hub-tab" data-mode="cards-ru" onclick="setHubMode('cards-ru',this)">🇷🇺→🇰🇷 Карточки</button>
     <button class="hub-tab" data-mode="quiz" onclick="setHubMode('quiz',this)">🧪 Тест</button>
+    <button class="hub-tab" data-mode="flash" onclick="setHubMode('flash',this)">⚡ Флеш</button>
     <button class="hub-tab hub-tab-add" onclick="openBatchModal()">＋ Добавить список</button>
   </div>
 
@@ -113,6 +114,29 @@
     </div>
   </div>
 
+  <!-- FLASH MODE -->
+  <div class="hub-mode hub-mode-flash" id="mode-flash">
+    <div class="hub-flash-speed" id="flash-speed"></div>
+    <div class="hub-card" id="flash-card">
+      <div class="hub-card-pos" id="flash-pos"></div>
+      <div class="hub-card-main" id="flash-main" style="font-family:'Noto Sans KR',sans-serif;">⚡</div>
+      <div class="hub-card-answer" id="flash-answer"></div>
+      <div class="hub-card-num" id="flash-num"></div>
+    </div>
+    <div class="hub-card-btns">
+      <button class="btn btn-primary" id="flash-play" onclick="toggleFlashPlay()">▶</button>
+      <button class="btn" onclick="flashDir()"><span id="flash-dir-lbl">한→рус</span></button>
+      <button class="btn" onclick="flashFlip()">👁 Перевод</button>
+      <button class="btn" onclick="speakFlash()">🔊</button>
+    </div>
+    <div class="hub-card-progress">
+      <span id="flash-progress">нажмите ▶</span>
+    </div>
+    <div class="hub-empty" id="flash-empty" style="display:none;">
+      В словаре нет слов
+    </div>
+  </div>
+
 </div>
 
 <style>
@@ -147,6 +171,17 @@
 /* ── Modes ── */
 .hub-mode { display: none; }
 .hub-mode.active { display: block; }
+
+/* ── Flash speed tabs ── */
+.hub-flash-speed { display: flex; gap: 6px; margin-bottom: 12px; justify-content: center; }
+.hub-flash-speed .hub-speed-btn {
+  padding: 5px 14px; font-size: 12px; font-weight: 600;
+  font-family: var(--font-main, inherit);
+  border: 1px solid var(--border-color, #e2e5ec); border-radius: 20px;
+  background: var(--bg-surface, #fff); color: var(--text-tertiary, #999);
+  cursor: pointer; transition: all 0.12s;
+}
+.hub-flash-speed .hub-speed-btn.active { background: var(--bg-app, #f5f6fa); color: var(--text-primary); border-color: var(--text-tertiary); }
 
 /* ── List ── */
 .hub-word-list { display: flex; flex-direction: column; gap: 6px; }
@@ -388,10 +423,12 @@
     if (activeFilter === 'active') filtered = allWords.filter(w => !w.is_learned);
     else if (activeFilter === 'learned') filtered = allWords.filter(w => w.is_learned);
     else filtered = [...allWords];
+    if (activeMode === 'flash') { stopFlashPlay(); flashIdx = -1; flashOrder = []; }
     renderMode();
   }
 
   function setHubMode(mode, btn) {
+    if (activeMode === 'flash' && mode !== 'flash') stopFlashPlay();
     activeMode = mode;
     document.querySelectorAll('.hub-tab').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
@@ -402,6 +439,7 @@
     quizIdx = 0; quizScore = 0;
     if (mode === 'cards-kr') shuffleCardOrder('kr');
     else if (mode === 'cards-ru') shuffleCardOrder('ru');
+    else if (mode === 'flash') { flashIdx = -1; flashOrder = []; }
     renderMode();
   }
 
@@ -410,6 +448,7 @@
     else if (activeMode === 'cards-kr') renderCard('kr');
     else if (activeMode === 'cards-ru') renderCard('ru');
     else if (activeMode === 'quiz') renderQuiz();
+    else if (activeMode === 'flash') renderFlash();
   }
 
   // ── LIST ──
@@ -631,6 +670,119 @@
     showQuizQuestion();
   }
 
+  // ── FLASH ──
+  let flashIdx = -1, flashTimer = null, flashDelay = 2500;
+  let flashKR2RU = true, flashPlaying = false, flashOrder = [];
+
+  function currentFlashWord() {
+    if (!filtered.length) return null;
+    if (flashOrder.length !== filtered.length) {
+      flashOrder = shuffleArr(filtered.map((_, i) => i));
+      if (flashIdx < 0 || flashIdx >= flashOrder.length) flashIdx = 0;
+    }
+    if (flashIdx < 0) flashIdx = 0;
+    return filtered[flashOrder[flashIdx % flashOrder.length]];
+  }
+
+  function renderFlash() {
+    const empty = document.getElementById('flash-empty');
+    const card = document.getElementById('flash-card');
+    if (!filtered.length) {
+      stopFlashPlay();
+      empty.style.display = '';
+      card.style.display = 'none';
+      document.getElementById('flash-progress').textContent = '';
+      return;
+    }
+    empty.style.display = 'none';
+    card.style.display = '';
+
+    const answer = document.getElementById('flash-answer');
+    answer.classList.remove('visible');
+
+    if (flashIdx < 0) {
+      document.getElementById('flash-main').textContent = '⚡';
+      document.getElementById('flash-pos').textContent = '';
+      answer.textContent = '';
+      document.getElementById('flash-num').textContent = '';
+      document.getElementById('flash-progress').textContent = flashPlaying ? '' : 'нажмите ▶';
+      return;
+    }
+
+    const w = currentFlashWord();
+    document.getElementById('flash-main').textContent = flashKR2RU ? w.word_kor : w.word_rus;
+    answer.textContent = flashKR2RU ? w.word_rus : w.word_kor;
+    document.getElementById('flash-pos').textContent = w.pos || '';
+    const pos = (flashIdx % flashOrder.length) + 1;
+    document.getElementById('flash-num').textContent = '#' + pos;
+    document.getElementById('flash-progress').textContent = pos + ' / ' + filtered.length;
+  }
+
+  function flashNext() {
+    if (!filtered.length) { renderFlash(); return; }
+    if (flashOrder.length !== filtered.length) { flashOrder = shuffleArr(filtered.map((_, i) => i)); flashIdx = -1; }
+    flashIdx = (flashIdx + 1) % filtered.length;
+    trackExercise();
+    renderFlash();
+  }
+
+  function startFlashTimer() {
+    stopFlashTimer();
+    flashTimer = setInterval(() => {
+      if (!document.getElementById('mode-flash').classList.contains('active')) { stopFlashPlay(); return; }
+      flashNext();
+    }, flashDelay);
+  }
+  function stopFlashTimer() { if (flashTimer) { clearInterval(flashTimer); flashTimer = null; } }
+
+  function stopFlashPlay() {
+    flashPlaying = false;
+    stopFlashTimer();
+    const btn = document.getElementById('flash-play');
+    if (btn) btn.textContent = '▶';
+  }
+
+  function toggleFlashPlay() {
+    if (flashPlaying) { stopFlashPlay(); return; }
+    if (!filtered.length) { renderFlash(); return; }
+    flashPlaying = true;
+    document.getElementById('flash-play').textContent = '⏸';
+    flashNext();
+    startFlashTimer();
+  }
+
+  function flashDir() {
+    flashKR2RU = !flashKR2RU;
+    document.getElementById('flash-dir-lbl').textContent = flashKR2RU ? '한→рус' : 'рус→한';
+    renderFlash();
+  }
+
+  function flashFlip() {
+    document.getElementById('flash-answer').classList.toggle('visible');
+  }
+
+  function speakFlash() {
+    const w = currentFlashWord();
+    if (w) speakText(w.word_kor);
+  }
+
+  (function buildFlashSpeed() {
+    const speeds = [['медленно', 4000], ['средне', 2500], ['быстро', 1500]];
+    const wrap = document.getElementById('flash-speed');
+    speeds.forEach((s, i) => {
+      const b = document.createElement('button');
+      b.className = 'hub-speed-btn' + (i === 1 ? ' active' : '');
+      b.textContent = s[0];
+      b.onclick = () => {
+        wrap.querySelectorAll('.hub-speed-btn').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        flashDelay = s[1];
+        if (flashPlaying) startFlashTimer();
+      };
+      wrap.appendChild(b);
+    });
+  })();
+
   // ── KEYBOARD ──
   document.addEventListener('keydown', e => {
     if (activeMode === 'cards-kr' || activeMode === 'cards-ru') {
@@ -639,6 +791,10 @@
       else if (e.key === 'ArrowLeft') cardPrev(dir);
       else if (e.key === ' ') { e.preventDefault(); cardFlip(dir); }
       else if (['s','ы','Ы'].includes(e.key)) speakCardWord(dir);
+    } else if (activeMode === 'flash') {
+      if (e.key === ' ') { e.preventDefault(); flashFlip(); }
+      else if (e.key === 'ArrowRight') flashNext();
+      else if (['s','ы','Ы'].includes(e.key)) speakFlash();
     }
   });
 

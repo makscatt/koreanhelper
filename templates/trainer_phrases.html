@@ -205,10 +205,11 @@
   flex-direction: column;
   gap: 6px;
 }
-.ph-badge:hover {
-  border-color: #c0c8d8;
+.ph-badge:hover, .ph-badge:focus, .ph-badge:focus-within {
+  border-color: #86efac;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  box-shadow: 0 0 0 3px rgba(34,197,94,0.18), 0 4px 12px rgba(34,197,94,0.12);
+  outline: none;
 }
 .ph-badge.mastered {
   background: #f0fdf4;
