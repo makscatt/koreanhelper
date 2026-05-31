@@ -178,12 +178,54 @@
   border: 1.5px solid #e4e8ef;
   border-radius: 12px;
   padding: 14px;
-  cursor: pointer;
   transition: 0.15s;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 12px;
+}
+.ph-badge-body {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
+.ph-badge-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  justify-content: center;
+}
+.ph-snake-btn {
+  width: 52px; height: 52px;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.5rem;
+  font-weight: 800;
+  cursor: pointer;
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.12s, filter 0.12s;
+  line-height: 1;
+}
+.ph-snake-btn:hover { transform: scale(1.06); }
+.ph-snake-btn:active { transform: scale(0.94); }
+.ph-snake-know { background: #22c55e; }
+.ph-snake-know:hover { filter: brightness(1.05); }
+.ph-snake-dunno { background: #ef4444; }
+.ph-snake-dunno:hover { filter: brightness(1.05); }
+.ph-badge.snake-active {
+  border-color: #1a1d23;
+  box-shadow: 0 0 0 3px rgba(26,29,35,0.15), 0 6px 16px rgba(0,0,0,0.10);
+}
+@keyframes phFlashRed {
+  0%   { background: #fee2e2; border-color: #ef4444; }
+  60%  { background: #fee2e2; border-color: #ef4444; }
+  100% { background: #fff;    border-color: #e4e8ef; }
+}
+.ph-badge.flash-red { animation: phFlashRed 0.5s ease-out; }
 .ph-badge:hover, .ph-badge:focus, .ph-badge:focus-within {
   border-color: #86efac;
   transform: translateY(-1px);
@@ -666,8 +708,10 @@
       const isMastered = progress[pair.id] === 'know';
       const q = getBadgeQuestion(pair);
       const badge = document.createElement('div');
-      badge.className = 'ph-badge' + (isMastered ? ' mastered' : '');
+      badge.className = 'ph-badge' + (isMastered ? ' mastered' : '') + (idx === curIdx ? ' snake-active' : '');
       badge.dataset.idx = idx;
+
+      const body = document.createElement('div'); body.className = 'ph-badge-body';
 
       const head = document.createElement('div'); head.className = 'ph-badge-head';
       const num = document.createElement('span'); num.className = 'ph-badge-num';
@@ -676,16 +720,16 @@
       const star = document.createElement('span'); star.className = 'ph-badge-star';
       star.textContent = '⭐';
       head.appendChild(star);
-      badge.appendChild(head);
+      body.appendChild(head);
 
       const kor = document.createElement('div'); kor.className = 'ph-badge-kor';
       kor.innerHTML = q.kor.replace(/___/g, '<span class="blank">___</span>');
-      badge.appendChild(kor);
+      body.appendChild(kor);
 
       if (q.rus) {
         const rus = document.createElement('div'); rus.className = 'ph-badge-rus';
         rus.innerHTML = q.rus;
-        badge.appendChild(rus);
+        body.appendChild(rus);
       }
 
       const tags = document.createElement('div'); tags.className = 'ph-badge-tags';
@@ -704,10 +748,87 @@
         t.textContent = 'шаблон';
         tags.appendChild(t);
       }
-      badge.appendChild(tags);
+      body.appendChild(tags);
+      badge.appendChild(body);
+
+      const actions = document.createElement('div'); actions.className = 'ph-badge-actions';
+      const knowBtn = document.createElement('button');
+      knowBtn.className = 'ph-snake-btn ph-snake-know';
+      knowBtn.textContent = '✓'; knowBtn.title = 'Знаю — дальше';
+      knowBtn.onclick = (e) => { e.stopPropagation(); snakeKnow(idx); };
+      const dunnoBtn = document.createElement('button');
+      dunnoBtn.className = 'ph-snake-btn ph-snake-dunno';
+      dunnoBtn.textContent = '✗'; dunnoBtn.title = 'Не знаю — назад';
+      dunnoBtn.onclick = (e) => { e.stopPropagation(); snakeDunno(idx); };
+      actions.appendChild(knowBtn);
+      actions.appendChild(dunnoBtn);
+      badge.appendChild(actions);
 
       grid.appendChild(badge);
     });
+  }
+
+  /* ── СНЕЙКА: зелёная/красная кнопки на карточках ── */
+  function saveItemStatus(itemId, status) {
+    if (!IS_TEACHER) return;
+    fetch('/api/items/set', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ student_id: STUDENT_ID, trainer: 'phrases', item_id: itemId, status: status })
+    }).catch(() => {});
+  }
+
+  function setSnakeActive(idx) {
+    curIdx = Math.max(0, Math.min(idx, filtered.length - 1));
+    document.querySelectorAll('#badge-grid .ph-badge').forEach(b => {
+      b.classList.toggle('snake-active', Number(b.dataset.idx) === curIdx);
+    });
+    const activeEl = document.querySelector('#badge-grid .ph-badge[data-idx="' + curIdx + '"]');
+    if (activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function updateGridCounters() {
+    const total = filtered.length;
+    const masteredCount = filtered.filter(p => progress[p.id] === 'know').length;
+    document.getElementById('cnt-cur').textContent = masteredCount;
+    document.getElementById('mastered-count').textContent = masteredCount;
+    document.getElementById('progress-bar').style.width = total ? ((masteredCount / total) * 100) + '%' : '0%';
+  }
+
+  // Зелёная: красим карточку зелёным и шагаем к следующей
+  function snakeKnow(idx) {
+    if (!filtered.length) return;
+    const pair = filtered[idx];
+    progress[pair.id] = 'know';
+    saveItemStatus(pair.id, 'know');
+    const el = document.querySelector('#badge-grid .ph-badge[data-idx="' + idx + '"]');
+    if (el) el.classList.add('mastered');
+    updateGridCounters();
+    updateSectionDoneState();
+    setSnakeActive(idx + 1);
+  }
+
+  // Красная: мгновенный красный флэш, откат к предыдущей и снятие её зелёного
+  function snakeDunno(idx) {
+    if (!filtered.length) return;
+    const el = document.querySelector('#badge-grid .ph-badge[data-idx="' + idx + '"]');
+    if (el) {
+      el.classList.remove('flash-red');
+      void el.offsetWidth;
+      el.classList.add('flash-red');
+      setTimeout(() => el.classList.remove('flash-red'), 500);
+    }
+    const prevIdx = idx - 1;
+    if (prevIdx >= 0) {
+      const prevPair = filtered[prevIdx];
+      delete progress[prevPair.id];
+      saveItemStatus(prevPair.id, '');
+      const prevEl = document.querySelector('#badge-grid .ph-badge[data-idx="' + prevIdx + '"]');
+      if (prevEl) prevEl.classList.remove('mastered');
+      updateGridCounters();
+      updateSectionDoneState();
+    }
+    setSnakeActive(prevIdx >= 0 ? prevIdx : 0);
   }
 
   /* ── LIST ── */
