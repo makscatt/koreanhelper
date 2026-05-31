@@ -73,6 +73,10 @@
         <span>Выучено:</span>
         <span class="ph-mastered-pill" id="mastered-count">0</span>
         <span>из <span id="mastered-total">0</span></span>
+        <div class="ph-cardview-toggle">
+          <button class="ph-cardview-btn active" data-cv="grid" onclick="setCardView('grid',this)" title="Все карточки">▦ Сетка</button>
+          <button class="ph-cardview-btn" data-cv="single" onclick="setCardView('single',this)" title="Одна крупно">🔲 Одна</button>
+        </div>
       </div>
 
       <div class="ph-badge-grid" id="badge-grid"></div>
@@ -207,18 +211,17 @@
   cursor: pointer;
   color: #fff;
   display: flex; align-items: center; justify-content: center;
-  transition: transform 0.12s, filter 0.12s;
+  opacity: 0.4;
+  transition: transform 0.12s, opacity 0.12s;
   line-height: 1;
 }
-.ph-snake-btn:hover { transform: scale(1.06); }
+.ph-snake-btn:hover { opacity: 1; transform: scale(1.06); }
 .ph-snake-btn:active { transform: scale(0.94); }
 .ph-snake-know { background: #22c55e; }
-.ph-snake-know:hover { filter: brightness(1.05); }
 .ph-snake-dunno { background: #ef4444; }
-.ph-snake-dunno:hover { filter: brightness(1.05); }
 .ph-badge.snake-active {
-  border-color: #1a1d23;
-  box-shadow: 0 0 0 3px rgba(26,29,35,0.15), 0 6px 16px rgba(0,0,0,0.10);
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34,197,94,0.20), 0 6px 16px rgba(34,197,94,0.12);
 }
 @keyframes phFlashRed {
   0%   { background: #fee2e2; border-color: #ef4444; }
@@ -226,12 +229,61 @@
   100% { background: #fff;    border-color: #e4e8ef; }
 }
 .ph-badge.flash-red { animation: phFlashRed 0.5s ease-out; }
-.ph-badge:hover, .ph-badge:focus, .ph-badge:focus-within {
-  border-color: #86efac;
-  transform: translateY(-1px);
-  box-shadow: 0 0 0 3px rgba(34,197,94,0.18), 0 4px 12px rgba(34,197,94,0.12);
-  outline: none;
+
+/* ── Переключатель вида карточек (сетка / одна) ── */
+.ph-cardview-toggle {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
 }
+.ph-cardview-btn {
+  padding: 5px 12px;
+  background: #fff;
+  border: 1.5px solid #e4e8ef;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: inherit;
+  color: #4b5563;
+  cursor: pointer;
+  transition: 0.15s;
+}
+.ph-cardview-btn:hover:not(.active) { border-color: #c0c8d8; color: #1a1d23; }
+.ph-cardview-btn.active { background: #1a1d23; color: #fff; border-color: #1a1d23; }
+
+/* ── Одиночная крупная карточка ── */
+.ph-badge-grid.single-mode {
+  display: block;
+}
+.ph-single-card {
+  position: relative;
+  background: #fff;
+  border: 1.5px solid #e4e8ef;
+  border-radius: 18px;
+  padding: 40px 36px;
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  min-height: 280px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.06);
+}
+.ph-single-card.mastered { background: #f0fdf4; border-color: #bbf7d0; }
+.ph-single-card.flash-red { animation: phFlashRed 0.5s ease-out; }
+.ph-single-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.ph-single-num { font-size: 0.85rem; font-weight: 700; color: #9ca3af; letter-spacing: 0.05em; }
+.ph-single-kor { font-size: 1.9rem; font-weight: 700; color: #1a1d23; line-height: 1.3; }
+.ph-single-rus { font-size: 1.15rem; color: #6b7280; line-height: 1.35; }
+.ph-badge-grid.single-mode.hide-rus .ph-single-rus { display: none; }
+.ph-single-actions { display: flex; flex-direction: column; gap: 14px; flex-shrink: 0; }
+.ph-single-actions .ph-snake-btn { width: 76px; height: 76px; font-size: 2.1rem; opacity: 0.5; }
+.ph-single-actions .ph-snake-btn:hover { opacity: 1; }
+@media (max-width: 600px) {
+  .ph-single-card { flex-direction: column; padding: 24px 18px; gap: 20px; }
+  .ph-single-kor { font-size: 1.5rem; }
+}
+
 .ph-badge.mastered {
   background: #f0fdf4;
   border-color: #bbf7d0;
@@ -413,6 +465,7 @@
   let activeSection = 'all';
   let activePriority = 'all';
   let activeMode = 'card';
+  let cardView = 'grid';
 
   let progress = {};
   const STUDENT_ID = {{ student.id }};
@@ -690,6 +743,7 @@
   function renderGrid() {
     const grid = document.getElementById('badge-grid');
     grid.innerHTML = '';
+    grid.classList.toggle('single-mode', cardView === 'single');
     const total = filtered.length;
     const masteredCount = filtered.filter(p => progress[p.id] === 'know').length;
     document.getElementById('cnt-total').textContent = total;
@@ -702,6 +756,8 @@
       grid.innerHTML = '<p style="color:#8b92a0;text-align:center;padding:30px 0;grid-column:1/-1">Нет пар в этом фильтре</p>';
       return;
     }
+
+    if (cardView === 'single') { renderSingleCard(grid); return; }
 
     const priorityLabels = { core: 'Базовая', regular: 'Обычная', situational: 'Ситуативная' };
     filtered.forEach((pair, idx) => {
@@ -768,6 +824,70 @@
     });
   }
 
+  /* ── Одиночная крупная карточка ── */
+  function renderSingleCard(grid) {
+    curIdx = Math.max(0, Math.min(curIdx, filtered.length - 1));
+    const pair = filtered[curIdx];
+    const isMastered = progress[pair.id] === 'know';
+    const q = getBadgeQuestion(pair);
+    const priorityLabels = { core: 'Базовая', regular: 'Обычная', situational: 'Ситуативная' };
+
+    const card = document.createElement('div');
+    card.className = 'ph-single-card' + (isMastered ? ' mastered' : '');
+
+    const body = document.createElement('div'); body.className = 'ph-single-body';
+    const num = document.createElement('div'); num.className = 'ph-single-num';
+    num.textContent = '#' + String(curIdx + 1).padStart(2, '0') + ' · ' + (curIdx + 1) + '/' + filtered.length;
+    body.appendChild(num);
+
+    const kor = document.createElement('div'); kor.className = 'ph-single-kor';
+    kor.innerHTML = q.kor.replace(/___/g, '<span class="blank">___</span>');
+    body.appendChild(kor);
+
+    if (q.rus) {
+      const rus = document.createElement('div'); rus.className = 'ph-single-rus';
+      rus.innerHTML = q.rus;
+      body.appendChild(rus);
+    }
+
+    const tags = document.createElement('div'); tags.className = 'ph-badge-tags';
+    if (pair.section_label) {
+      const t = document.createElement('span'); t.className = 'ph-badge-tag';
+      t.textContent = pair.section_label; tags.appendChild(t);
+    }
+    if (pair.priority) {
+      const t = document.createElement('span'); t.className = 'ph-badge-tag priority-' + pair.priority;
+      t.textContent = priorityLabels[pair.priority] || pair.priority; tags.appendChild(t);
+    }
+    if (pair.type === 'template') {
+      const t = document.createElement('span'); t.className = 'ph-badge-tag';
+      t.textContent = 'шаблон'; tags.appendChild(t);
+    }
+    body.appendChild(tags);
+    card.appendChild(body);
+
+    const actions = document.createElement('div'); actions.className = 'ph-single-actions';
+    const knowBtn = document.createElement('button');
+    knowBtn.className = 'ph-snake-btn ph-snake-know';
+    knowBtn.textContent = '✓'; knowBtn.title = 'Знаю — дальше';
+    knowBtn.onclick = () => snakeKnow(curIdx);
+    const dunnoBtn = document.createElement('button');
+    dunnoBtn.className = 'ph-snake-btn ph-snake-dunno';
+    dunnoBtn.textContent = '✗'; dunnoBtn.title = 'Не знаю — назад';
+    dunnoBtn.onclick = () => snakeDunno(curIdx);
+    actions.appendChild(knowBtn); actions.appendChild(dunnoBtn);
+    card.appendChild(actions);
+
+    grid.appendChild(card);
+  }
+
+  function setCardView(view, btn) {
+    cardView = view;
+    document.querySelectorAll('.ph-cardview-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderGrid();
+  }
+
   /* ── СНЕЙКА: зелёная/красная кнопки на карточках ── */
   function saveItemStatus(itemId, status) {
     if (!IS_TEACHER) return;
@@ -801,6 +921,13 @@
     const pair = filtered[idx];
     progress[pair.id] = 'know';
     saveItemStatus(pair.id, 'know');
+    if (cardView === 'single') {
+      curIdx = Math.min(idx + 1, filtered.length - 1);
+      updateGridCounters();
+      updateSectionDoneState();
+      renderGrid();
+      return;
+    }
     const el = document.querySelector('#badge-grid .ph-badge[data-idx="' + idx + '"]');
     if (el) el.classList.add('mastered');
     updateGridCounters();
@@ -811,6 +938,27 @@
   // Красная: мгновенный красный флэш, откат к предыдущей и снятие её зелёного
   function snakeDunno(idx) {
     if (!filtered.length) return;
+    const prevIdx = idx - 1;
+    if (cardView === 'single') {
+      const el = document.querySelector('#badge-grid .ph-single-card');
+      if (el) {
+        el.classList.remove('flash-red');
+        void el.offsetWidth;
+        el.classList.add('flash-red');
+      }
+      setTimeout(() => {
+        if (prevIdx >= 0) {
+          const prevPair = filtered[prevIdx];
+          delete progress[prevPair.id];
+          saveItemStatus(prevPair.id, '');
+        }
+        curIdx = prevIdx >= 0 ? prevIdx : 0;
+        updateGridCounters();
+        updateSectionDoneState();
+        renderGrid();
+      }, 450);
+      return;
+    }
     const el = document.querySelector('#badge-grid .ph-badge[data-idx="' + idx + '"]');
     if (el) {
       el.classList.remove('flash-red');
@@ -818,7 +966,6 @@
       el.classList.add('flash-red');
       setTimeout(() => el.classList.remove('flash-red'), 500);
     }
-    const prevIdx = idx - 1;
     if (prevIdx >= 0) {
       const prevPair = filtered[prevIdx];
       delete progress[prevPair.id];
