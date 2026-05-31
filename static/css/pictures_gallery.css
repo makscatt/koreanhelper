@@ -1,0 +1,162 @@
+/* ═══════════════════════════════════════════
+   Картинки — простая галерея
+   ═══════════════════════════════════════════ */
+
+.gal-intro {
+  margin: 4px 0 18px;
+  font-size: 15px;
+  color: var(--text-secondary, #555);
+  line-height: 1.5;
+}
+
+/* ── Сетка карточек ── */
+.gal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.gal-card {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e5e5);
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease;
+  display: flex;
+  flex-direction: column;
+}
+.gal-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .14);
+}
+.gal-card img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: block;
+  background: var(--surface-variant, #f2f2f2);
+}
+.gal-card-title {
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.gal-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 48px 16px;
+  color: var(--text-tertiary, #999);
+  font-size: 15px;
+}
+
+/* ── Лайтбокс ── */
+.gal-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.gal-viewer.hidden { display: none; }
+
+.gal-viewer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, .72);
+  backdrop-filter: blur(2px);
+}
+
+.gal-viewer-box {
+  position: relative;
+  z-index: 1;
+  max-width: min(1000px, 100%);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.gal-viewer-close {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: #fff;
+  color: #222;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .3);
+  z-index: 2;
+}
+.gal-viewer-close:hover { background: #f0f0f0; }
+
+.gal-viewer-img {
+  max-width: 100%;
+  max-height: 72vh;
+  border-radius: 12px;
+  object-fit: contain;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .4);
+  background: #fff;
+}
+
+.gal-viewer-title {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* ── Опорные слова ── */
+.gal-keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.gal-keyword-btn {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: none;
+  background: var(--primary, #ffd54a);
+  color: var(--on-primary, #222);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter .12s ease;
+}
+.gal-keyword-btn:hover { filter: brightness(.94); }
+
+/* ── Подсказка учителю ── */
+.gal-hint {
+  max-width: 600px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .12);
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+}
+.gal-hint.hidden { display: none; }
+
+/* ── Адаптив ── */
+@media (max-width: 900px) {
+  .gal-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+  .gal-viewer-img { max-height: 64vh; }
+}
+@media (max-width: 600px) {
+  .gal-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .gal-card-title { font-size: 13px; padding: 8px 10px; }
+  .gal-viewer { padding: 14px; }
+  .gal-viewer-close { top: 0; right: 0; }
+}

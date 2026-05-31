@@ -2,7 +2,7 @@
 {% block title %}Картинки — {{ student.name }}{% endblock %}
 
 {% block trainer_content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pictures_retell.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pictures_gallery.css') }}">
 <script>document.body.dataset.module = 'pictures';</script>
 
 <div class="trainer-header">
@@ -10,504 +10,113 @@
   <span class="trainer-title" id="page-title">Картинки</span>
 </div>
 
-<!-- ═══ TABS ═══ -->
-<div id="tabs-bar" class="pic-tabs">
-  <button class="pic-tab active" data-tab="retell" onclick="switchTab('retell')">
-    <span class="pic-tab-icon">🗣</span>
-    <span class="pic-tab-label">Пересказ</span>
-    <span class="pic-tab-sub">базовый</span>
-  </button>
-  <button class="pic-tab" data-tab="advanced" onclick="switchTab('advanced')">
-    <span class="pic-tab-icon">🖼</span>
-    <span class="pic-tab-label">Картинки</span>
-    <span class="pic-tab-sub">продвинутый</span>
-  </button>
-</div>
+<div class="gal-intro">Посмотри на картинку и опиши по-корейски, что видишь и что происходит.</div>
 
-<!-- ═══ TAB DESCRIPTION ═══ -->
-<div id="tab-desc" class="pic-tab-desc retell">
-  Изучите слова по картинке → прочитайте текст → перескажите его с опорой на ключевые слова и вопросы.
-</div>
+<!-- ═══ GALLERY GRID ═══ -->
+<div id="gallery-grid" class="gal-grid"></div>
 
-<!-- ═══ MENU VIEW ═══ -->
-<div id="menu-view" class="pic-menu-grid"></div>
-
-<!-- ═══ LESSON VIEW — ADVANCED (existing) ═══ -->
-<div id="lesson-view" class="hidden">
-  <div class="pic-layout-grid">
-    <div class="pic-left-col">
-      <div class="pic-image-container" id="image-wrapper">
-        <img src="" alt="Lesson Image" class="pic-main-image" id="main-image">
-      </div>
-    </div>
-    <div class="pic-sidebar">
-      <div class="pic-collapse-block open">
-        <div class="pic-collapse-header" onclick="toggleBlock(this)">
-          <span>📍 Словарь</span>
-          <span class="pic-collapse-arrow">▼</span>
-        </div>
-        <div class="pic-collapse-body">
-          <ul class="pic-vocab-list" id="vocab-list"></ul>
-        </div>
-      </div>
-      <div class="pic-collapse-block open">
-        <div class="pic-collapse-header" onclick="toggleBlock(this)">
-          <span>💬 Диалог</span>
-          <span class="pic-collapse-arrow">▼</span>
-        </div>
-        <div class="pic-collapse-body">
-          <div id="dialog-container"></div>
-        </div>
-      </div>
-      <div class="pic-collapse-block open">
-        <div class="pic-collapse-header" onclick="toggleBlock(this)">
-          <span>❓ Вопросы</span>
-          <span class="pic-collapse-arrow">▼</span>
-        </div>
-        <div class="pic-collapse-body">
-          <div id="qa-container"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ═══ LESSON VIEW — RETELL (new) ═══ -->
-<div id="retell-view" class="hidden">
-  <div class="retell-layout">
-
-    <!-- Картинка — по центру, не на весь экран -->
-    <div class="retell-image-block">
-      <div class="pic-image-container" id="retell-image-wrapper">
-        <img src="" alt="Lesson Image" class="pic-main-image" id="retell-main-image">
-      </div>
-      <div class="retell-image-hint">Наведите на маркер или нажмите для озвучки</div>
-    </div>
-
-    <!-- Две колонки: Словарь слева, Текст справа -->
-    <div class="retell-two-col">
-
-      <!-- LEFT: Словарь -->
-      <div class="retell-vocab-block retell-section" id="retell-vocab-section">
-        <div class="retell-section-header" onclick="this.parentNode.classList.toggle('collapsed')">
-          <span>📍 Словарь</span>
-          <span class="retell-section-arrow">▼</span>
-        </div>
-        <div class="retell-section-body" id="retell-vocab-body"></div>
-      </div>
-
-      <!-- RIGHT: Текст для чтения -->
-      <div class="retell-text-block retell-section" id="retell-text-section">
-        <div class="retell-section-header" onclick="this.parentNode.classList.toggle('collapsed')">
-          <span>📖 Текст для чтения</span>
-          <span class="retell-section-arrow">▼</span>
-        </div>
-        <div class="retell-section-body" id="retell-text-body"></div>
-        <div class="retell-text-hint">Нажмите на строку — увидите перевод</div>
-      </div>
-
-    </div>
-
-    <!-- Под двумя колонками: keywords + prompts -->
-    <div class="retell-bottom-blocks">
-
-      <div class="pic-collapse-block open">
-        <div class="pic-collapse-header" onclick="toggleBlock(this)">
-          <span>🔑 Опорные слова</span>
-          <span class="pic-collapse-arrow">▼</span>
-        </div>
-        <div class="pic-collapse-body">
-          <div id="retell-keywords" class="pic-keywords-wrap"></div>
-          <div class="pic-keywords-hint">Глядя на картинку и эти слова — перескажите текст своими словами</div>
-        </div>
-      </div>
-
-      <div class="pic-collapse-block open">
-        <div class="pic-collapse-header" onclick="toggleBlock(this)">
-          <span>🗣 Пересказ по вопросам</span>
-          <span class="pic-collapse-arrow">▼</span>
-        </div>
-        <div class="pic-collapse-body">
-          <div id="retell-prompts-container"></div>
-        </div>
-      </div>
-
-    </div>
+<!-- ═══ LIGHTBOX VIEWER ═══ -->
+<div id="viewer" class="gal-viewer hidden">
+  <div class="gal-viewer-backdrop" onclick="closeImage()"></div>
+  <div class="gal-viewer-box">
+    <button class="gal-viewer-close" onclick="closeImage()" aria-label="Закрыть">✕</button>
+    <img id="viewer-img" class="gal-viewer-img" src="" alt="">
+    <div id="viewer-title" class="gal-viewer-title"></div>
+    <div id="viewer-keywords" class="gal-keywords"></div>
+    <div id="viewer-hint" class="gal-hint hidden"></div>
   </div>
 </div>
 {% endblock %}
 
 {% block trainer_js %}
 <script>
-  /* ── DOM refs ── */
-  const menuView      = document.getElementById('menu-view');
-  const lessonView    = document.getElementById('lesson-view');
-  const retellView    = document.getElementById('retell-view');
-  const backBtn       = document.getElementById('back-btn');
-  const pageTitle     = document.getElementById('page-title');
-  const tabsBar       = document.getElementById('tabs-bar');
-  const tabDesc       = document.getElementById('tab-desc');
+  const galleryGrid   = document.getElementById('gallery-grid');
+  const viewer        = document.getElementById('viewer');
+  const viewerImg     = document.getElementById('viewer-img');
+  const viewerTitle   = document.getElementById('viewer-title');
+  const viewerKeywords= document.getElementById('viewer-keywords');
+  const viewerHint    = document.getElementById('viewer-hint');
 
-  /* Advanced refs */
-  const imageWrapper  = document.getElementById('image-wrapper');
-  const mainImage     = document.getElementById('main-image');
-  const vocabList     = document.getElementById('vocab-list');
-  const dialogContainer = document.getElementById('dialog-container');
-  const qaContainer   = document.getElementById('qa-container');
-
-  /* Retell refs */
-  const retellImageWrapper = document.getElementById('retell-image-wrapper');
-  const retellMainImage    = document.getElementById('retell-main-image');
-  const retellVocabBody    = document.getElementById('retell-vocab-body');
-  const retellTextBody     = document.getElementById('retell-text-body');
-  const retellKeywords     = document.getElementById('retell-keywords');
-  const retellPromptsContainer = document.getElementById('retell-prompts-container');
-
-  let inLesson = false;
-  let currentTab = 'retell';
-  let allData = [];
+  let inViewer = false;
 
   /* ── BACK ── */
   function handleBack() {
-    if (inLesson) closeLesson();
+    if (inViewer) closeImage();
     else window.location.href = "{{ url_for('trainer_menu', student_id=student.id) }}";
-  }
-
-  /* ── TABS ── */
-  function switchTab(tab) {
-    currentTab = tab;
-    document.querySelectorAll('.pic-tab').forEach(t => {
-      t.classList.toggle('active', t.dataset.tab === tab);
-    });
-    tabDesc.className = 'pic-tab-desc ' + tab;
-    if (tab === 'retell') {
-      tabDesc.textContent = 'Изучите слова по картинке → прочитайте текст → перескажите его с опорой на ключевые слова и вопросы.';
-    } else {
-      tabDesc.textContent = 'Картинки с маркерами, диалогами и вопросами для отработки речевых ситуаций.';
-    }
-    renderMenu(allData);
   }
 
   /* ── LOAD DATA ── */
   fetch('/static/data/pictures.json')
     .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-    .then(data => { allData = data; renderMenu(data); })
+    .then(data => renderGallery(data))
     .catch(() => {
-      menuView.innerHTML = '<p style="color:var(--error);padding:20px;">Ошибка загрузки данных</p>';
+      galleryGrid.innerHTML = '<p class="gal-empty" style="color:var(--error)">Ошибка загрузки данных</p>';
     });
 
-  /* ── MENU ── */
-  function renderMenu(data) {
-    const filtered = data.filter(l => (l.mode || 'advanced') === currentTab);
-    menuView.innerHTML = '';
-    if (filtered.length === 0) {
-      menuView.innerHTML = '<p class="pic-empty">Уроков пока нет</p>';
+  /* ── GALLERY ── */
+  function renderGallery(data) {
+    galleryGrid.innerHTML = '';
+    if (!Array.isArray(data) || data.length === 0) {
+      galleryGrid.innerHTML = '<p class="gal-empty">Картинок пока нет</p>';
       return;
     }
-    filtered.forEach(lesson => {
+    data.forEach(pic => {
       const card = document.createElement('div');
-      card.className = 'pic-menu-card';
-      card.onclick = () => openLesson(lesson);
+      card.className = 'gal-card';
+      card.onclick = () => openImage(pic);
       card.innerHTML = `
-        <img src="${lesson.image}" alt="${lesson.title}">
-        <div class="pic-menu-card-title">${lesson.title}</div>
-        <span class="pic-menu-card-badge ${lesson.mode || 'advanced'}">${(lesson.mode || 'advanced') === 'retell' ? 'пересказ' : 'продвинутый'}</span>
+        <img src="${pic.image}" alt="${pic.title || ''}" loading="lazy">
+        ${pic.title ? `<div class="gal-card-title">${pic.title}</div>` : ''}
       `;
-      menuView.appendChild(card);
+      galleryGrid.appendChild(card);
     });
   }
 
-  /* ── OPEN / CLOSE ── */
-  function openLesson(lessonData) {
-    inLesson = true;
-    menuView.classList.add('hidden');
-    tabsBar.classList.add('hidden');
-    tabDesc.classList.add('hidden');
-    pageTitle.textContent = lessonData.title;
-    backBtn.textContent = '← К списку';
+  /* ── VIEWER ── */
+  function openImage(pic) {
+    inViewer = true;
+    viewerImg.src = pic.image;
+    viewerImg.alt = pic.title || '';
+    viewerTitle.textContent = pic.title || '';
 
-    if ((lessonData.mode || 'advanced') === 'retell') {
-      retellView.classList.remove('hidden');
-      renderRetellLesson(lessonData);
-    } else {
-      lessonView.classList.remove('hidden');
-      renderAdvancedLesson(lessonData);
+    // keywords
+    viewerKeywords.innerHTML = '';
+    if (Array.isArray(pic.keywords) && pic.keywords.length > 0) {
+      pic.keywords.forEach(kw => {
+        const btn = document.createElement('button');
+        btn.className = 'gal-keyword-btn';
+        btn.textContent = kw;
+        btn.onclick = () => speakText(kw);
+        viewerKeywords.appendChild(btn);
+      });
     }
+
+    // hint
+    if (pic.hint) {
+      viewerHint.textContent = '💡 ' + pic.hint;
+      viewerHint.classList.remove('hidden');
+    } else {
+      viewerHint.classList.add('hidden');
+    }
+
+    viewer.classList.remove('hidden');
+    document.getElementById('page-title').textContent = pic.title || 'Картинки';
+    document.getElementById('back-btn').textContent = '← К галерее';
     trackExercise();
   }
 
-  function closeLesson() {
-    inLesson = false;
-    lessonView.classList.add('hidden');
-    retellView.classList.add('hidden');
-    menuView.classList.remove('hidden');
-    tabsBar.classList.remove('hidden');
-    tabDesc.classList.remove('hidden');
-    pageTitle.textContent = 'Картинки';
-    backBtn.textContent = '← Назад';
-    window.speechSynthesis.cancel();
+  function closeImage() {
+    inViewer = false;
+    viewer.classList.add('hidden');
+    viewerImg.src = '';
+    document.getElementById('page-title').textContent = 'Картинки';
+    document.getElementById('back-btn').textContent = '← Назад';
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
   }
 
-  /* ══════════════════════════════════════════
-     RENDER: RETELL LESSON
-     ══════════════════════════════════════════ */
-  function renderRetellLesson(data) {
-    retellMainImage.src = data.image;
-
-    /* Clean old */
-    retellImageWrapper.querySelectorAll('.pic-marker').forEach(m => m.remove());
-    retellVocabBody.innerHTML = '';
-    retellTextBody.innerHTML = '';
-    retellKeywords.innerHTML = '';
-    retellPromptsContainer.innerHTML = '';
-
-    /* ── Markers + Vocab rows ── */
-    data.items.forEach(item => {
-      // Marker on image
-      const marker = document.createElement('div');
-      marker.className = 'pic-marker';
-      marker.style.left = item.x + '%';
-      marker.style.top  = item.y + '%';
-      marker.textContent = item.id;
-      marker.innerHTML += `<div class="pic-tooltip">${item.kor}<br><span style="font-size:0.8em;opacity:0.7">${item.rus}</span></div>`;
-      marker.onmouseenter = () => highlightRetellItem(item.id, true);
-      marker.onmouseleave = () => highlightRetellItem(item.id, false);
-      marker.onclick = e => { e.stopPropagation(); speakText(item.kor); };
-      retellImageWrapper.appendChild(marker);
-
-      // Vocab row
-      const row = document.createElement('div');
-      row.className = 'retell-vocab-row';
-      row.id = `retell-vocab-${item.id}`;
-      row.innerHTML = `
-        <div class="retell-vocab-left">
-          <span class="retell-vocab-num">${item.id}</span>
-          <span class="retell-vocab-kor">${item.kor}</span>
-        </div>
-        <span class="retell-vocab-rus">${item.rus}</span>
-      `;
-      row.onmouseenter = () => highlightRetellMarker(item.id, true);
-      row.onmouseleave = () => highlightRetellMarker(item.id, false);
-      row.onclick = () => speakText(item.kor);
-      retellVocabBody.appendChild(row);
-    });
-
-    /* ── Text rows: toggle | korean | speaker — one line ── */
-    if (data.text && data.text.length > 0) {
-      data.text.forEach((line, i) => {
-        const korSafe = line.kor.replace(/'/g, "\\'");
-
-        // Main row
-        const row = document.createElement('div');
-        row.className = 'retell-text-row';
-        row.innerHTML = `
-          <span class="retell-text-toggle" title="Показать перевод">RU ▼</span>
-          <span class="retell-text-kor">${line.kor}</span>
-          <button class="retell-text-speaker" onclick="event.stopPropagation();speakText('${korSafe}')">🔊</button>
-        `;
-
-        // Translation div (hidden)
-        const rus = document.createElement('div');
-        rus.className = 'retell-text-rus';
-        rus.textContent = line.rus;
-
-        // Toggle logic
-        row.onclick = function(e) {
-          if (e.target.classList.contains('retell-text-speaker')) return;
-          const toggle = this.querySelector('.retell-text-toggle');
-          rus.classList.toggle('visible');
-          toggle.classList.toggle('open');
-          toggle.textContent = rus.classList.contains('visible') ? '▲' : 'RU ▼';
-        };
-
-        retellTextBody.appendChild(row);
-        retellTextBody.appendChild(rus);
-      });
-    }
-
-    /* ── Keywords ── */
-    if (data.keywords && data.keywords.length > 0) {
-      data.keywords.forEach(kw => {
-        const btn = document.createElement('button');
-        btn.className = 'pic-keyword-btn';
-        btn.textContent = kw;
-        btn.onclick = () => speakText(kw);
-        retellKeywords.appendChild(btn);
-      });
-    }
-
-    /* ── Retell Prompts ── */
-    if (data.retell_prompts && data.retell_prompts.length > 0) {
-      data.retell_prompts.forEach((p, i) => {
-        const qSafe = p.q.replace(/'/g, "\\'");
-        const div = document.createElement('div');
-        div.className = 'pic-retell-prompt';
-        div.innerHTML = `
-          <div class="pic-retell-q-row">
-            <span class="pic-retell-num">Q${i + 1}.</span>
-            <span class="pic-speaker" onclick="speakText('${qSafe}')">🔊</span>
-            <span class="pic-retell-q">${p.q}</span>
-          </div>
-          <div class="pic-retell-rus">${p.rus}</div>
-          <button class="pic-retell-hint-btn" onclick="this.classList.add('shown');this.textContent='💡 ${p.hint.replace(/'/g, "\\'")}';">
-            💡 Показать подсказку
-          </button>
-        `;
-        retellPromptsContainer.appendChild(div);
-      });
-    }
-
-    /* Admin coords */
-    if (localStorage.getItem('admin') === 'true') {
-      setupAdminCoords(retellImageWrapper);
-    }
-  }
-
-  /* ── Retell highlights ── */
-  function highlightRetellItem(id, active) {
-    const li = document.getElementById(`retell-vocab-${id}`);
-    if (li) li.style.background = active ? 'var(--primary-container)' : '';
-  }
-  function highlightRetellMarker(id, active) {
-    retellImageWrapper.querySelectorAll('.pic-marker').forEach(m => {
-      if (m.childNodes[0].nodeValue && m.childNodes[0].nodeValue.trim() == id) {
-        m.style.transform = active ? 'translate(-50%,-50%) scale(1.3)' : 'translate(-50%,-50%)';
-        m.style.zIndex    = active ? 50 : 10;
-        m.style.background = active ? 'var(--primary-hover)' : 'var(--primary)';
-      }
-    });
-  }
-
-  /* ══════════════════════════════════════════
-     RENDER: ADVANCED LESSON (existing logic)
-     ══════════════════════════════════════════ */
-  function renderAdvancedLesson(data) {
-    mainImage.src = data.image;
-
-    document.querySelectorAll('#image-wrapper .pic-marker').forEach(m => m.remove());
-    vocabList.innerHTML = '';
-
-    // Маркеры + словарь
-    data.items.forEach(item => {
-      const marker = document.createElement('div');
-      marker.className = 'pic-marker';
-      marker.style.left = item.x + '%';
-      marker.style.top  = item.y + '%';
-      marker.textContent = item.id;
-      marker.innerHTML += `<div class="pic-tooltip">${item.kor}<br><span style="font-size:0.8em;opacity:0.7">${item.rus}</span></div>`;
-      marker.onmouseenter = () => highlightListItem(item.id, true);
-      marker.onmouseleave = () => highlightListItem(item.id, false);
-      marker.onclick = e => { e.stopPropagation(); speakText(item.kor); };
-      imageWrapper.appendChild(marker);
-
-      const li = document.createElement('li');
-      li.className = 'pic-vocab-item';
-      li.id = `vocab-${item.id}`;
-      li.innerHTML = `
-        <div>
-          <span class="pic-vocab-id">${item.id}</span>
-          <span class="pic-vocab-kor">${item.kor}</span>
-        </div>
-        <span class="pic-vocab-rus">${item.rus}</span>
-      `;
-      li.onmouseenter = () => highlightMarker(item.id, true);
-      li.onmouseleave = () => highlightMarker(item.id, false);
-      li.onclick = () => speakText(item.kor);
-      vocabList.appendChild(li);
-    });
-
-    // Диалог
-    dialogContainer.innerHTML = '';
-    if (data.dialog && data.dialog.length > 0) {
-      data.dialog.forEach(row => {
-        const div = document.createElement('div');
-        div.className = 'pic-dialog-row';
-        const korText = row.kor.replace(/'/g, "\\'");
-        div.innerHTML = `
-          <div class="pic-dialog-role">${row.role}:</div>
-          <div class="pic-dialog-line">
-            <span class="pic-speaker" onclick="speakText('${korText}')">🔊</span>
-            <div>
-              ${row.kor}
-              <span class="pic-dialog-rus">${row.rus}</span>
-            </div>
-          </div>
-        `;
-        dialogContainer.appendChild(div);
-      });
-    } else {
-      dialogContainer.innerHTML = '<p style="color:var(--text-tertiary);font-size:13px;">Диалог отсутствует</p>';
-    }
-
-    // Вопросы
-    qaContainer.innerHTML = '';
-    if (data.questions && data.questions.length > 0) {
-      data.questions.forEach(q => {
-        const qText = q.q.replace(/'/g, "\\'");
-        const aText = q.a.replace(/'/g, "\\'");
-        const item = document.createElement('div');
-        item.className = 'pic-qa-item';
-        item.innerHTML = `
-          <div class="pic-qa-question" onclick="this.parentNode.classList.toggle('open')">
-            <div style="display:flex;align-items:center;gap:8px;flex:1;">
-              <span class="pic-speaker" onclick="event.stopPropagation();speakText('${qText}')">🔊</span>
-              <span>${q.q}</span>
-            </div>
-            <span class="pic-qa-arrow">▼</span>
-          </div>
-          <div class="pic-qa-answer">
-            <div style="display:flex;align-items:flex-start;gap:8px;font-weight:600;color:var(--primary);margin-bottom:4px;">
-              <span class="pic-speaker" onclick="speakText('${aText}')">🔊</span>
-              <span>${q.a}</span>
-            </div>
-            <div style="font-size:12px;color:var(--text-tertiary);padding-left:28px;">${q.rus}</div>
-          </div>
-        `;
-        qaContainer.appendChild(item);
-      });
-    } else {
-      qaContainer.innerHTML = '<p style="color:var(--text-tertiary);font-size:13px;">Вопросы отсутствуют</p>';
-    }
-
-    if (localStorage.getItem('admin') === 'true') {
-      setupAdminCoords(imageWrapper);
-    }
-  }
-
-  /* ── Shared helpers ── */
-  function toggleBlock(header) {
-    const block = header.closest('.pic-collapse-block');
-    block.classList.toggle('open');
-  }
-
-  function highlightListItem(id, active) {
-    const li = document.getElementById(`vocab-${id}`);
-    if (li) li.style.background = active ? 'var(--primary-container)' : '';
-  }
-
-  function highlightMarker(id, active) {
-    imageWrapper.querySelectorAll('.pic-marker').forEach(m => {
-      if (m.childNodes[0].nodeValue && m.childNodes[0].nodeValue.trim() == id) {
-        m.style.transform = active ? 'translate(-50%,-50%) scale(1.3)' : 'translate(-50%,-50%)';
-        m.style.zIndex    = active ? 50 : 10;
-        m.style.background = active ? 'var(--primary-hover)' : 'var(--primary)';
-      }
-    });
-  }
-
-  function setupAdminCoords(wrapper) {
-    if (wrapper.querySelector('.pic-coords')) return;
-    const coordsDiv = document.createElement('div');
-    coordsDiv.className = 'pic-coords';
-    wrapper.appendChild(coordsDiv);
-    wrapper.addEventListener('mousemove', e => {
-      const rect = wrapper.getBoundingClientRect();
-      const xP = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
-      const yP = ((e.clientY - rect.top)  / rect.height * 100).toFixed(1);
-      coordsDiv.style.display = 'block';
-      coordsDiv.textContent = `X: ${xP}% | Y: ${yP}%`;
-    });
-    wrapper.addEventListener('mouseleave', () => coordsDiv.style.display = 'none');
-  }
+  /* ── ESC closes viewer ── */
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && inViewer) closeImage();
+  });
 </script>
 {% endblock %}
