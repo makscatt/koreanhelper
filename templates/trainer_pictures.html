@@ -76,7 +76,7 @@
 
   let inViewer = false;
   let currentPic = null;
-  const IS_TEACHER = {{ 'true' if not student_mode else 'false' }};
+  const IS_TEACHER_VIEW = {{ 'true' if not student_mode else 'false' }};
 
   /* ── BACK ── */
   function handleBack() {
@@ -118,7 +118,7 @@
     viewerImg.src = pic.image;
     viewerImg.alt = pic.title || '';
     viewerTitle.textContent = pic.title || '';
-    if (IS_TEACHER) { clearSelection(); resetChat(); }
+    if (IS_TEACHER_VIEW) { clearSelection(); resetChat(); }
 
     // keywords
     viewerKeywords.innerHTML = '';
@@ -151,7 +151,7 @@
     viewer.classList.add('hidden');
     viewerImg.src = '';
     currentPic = null;
-    if (IS_TEACHER) { clearSelection(); resetChat(); }
+    if (IS_TEACHER_VIEW) { clearSelection(); resetChat(); }
     document.getElementById('page-title').textContent = 'Картинки';
     document.getElementById('back-btn').textContent = '← Назад';
     if (window.speechSynthesis) window.speechSynthesis.cancel();
@@ -165,7 +165,7 @@
   /* ══════════════════════════════════════════
      УКАЗКА-ВЫДЕЛЕНИЕ + ИИ-ЧАТ (только учитель)
      ══════════════════════════════════════════ */
-  if (IS_TEACHER) {
+  if (IS_TEACHER_VIEW) {
     const stage     = document.getElementById('gal-stage');
     const selLayer  = document.getElementById('sel-layer');
     const selRect   = document.getElementById('sel-rect');
