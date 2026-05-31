@@ -18,12 +18,49 @@
 <!-- ═══ LIGHTBOX VIEWER ═══ -->
 <div id="viewer" class="gal-viewer hidden">
   <div class="gal-viewer-backdrop" onclick="closeImage()"></div>
-  <div class="gal-viewer-box">
+  <div class="gal-viewer-box" id="viewer-box">
     <button class="gal-viewer-close" onclick="closeImage()" aria-label="Закрыть">✕</button>
-    <img id="viewer-img" class="gal-viewer-img" src="" alt="">
-    <div id="viewer-title" class="gal-viewer-title"></div>
-    <div id="viewer-keywords" class="gal-keywords"></div>
-    <div id="viewer-hint" class="gal-hint hidden"></div>
+
+    <!-- Левая часть: картинка + указка-выделение -->
+    <div class="gal-main">
+      {% if not student_mode %}
+      <div class="gal-toolbar">
+        <button id="ai-toggle" class="gal-tool-btn" onclick="toggleChat()">🤖 ИИ-чат</button>
+        <button id="sel-clear" class="gal-tool-btn hidden" onclick="clearSelection()">✖ Снять выделение</button>
+        <span class="gal-tool-hint">Тяни мышью по картинке — выделишь область</span>
+      </div>
+      {% endif %}
+      <div class="gal-stage" id="gal-stage">
+        <img id="viewer-img" class="gal-viewer-img" src="" alt="" draggable="false">
+        {% if not student_mode %}
+        <div class="gal-sel-rect hidden" id="sel-rect"></div>
+        <div class="gal-sel-layer" id="sel-layer"></div>
+        {% endif %}
+      </div>
+      <div id="viewer-title" class="gal-viewer-title"></div>
+      <div id="viewer-keywords" class="gal-keywords"></div>
+      <div id="viewer-hint" class="gal-hint hidden"></div>
+    </div>
+
+    {% if not student_mode %}
+    <!-- Правая часть: ИИ-чат -->
+    <div class="gal-chat hidden" id="gal-chat">
+      <div class="gal-chat-head">
+        <span>🤖 ИИ-чат по картинке</span>
+        <div class="gal-lang" id="gal-lang">
+          <button class="active" data-lang="both" onclick="setLang('both', this)">한+рус</button>
+          <button data-lang="ko" onclick="setLang('ko', this)">한</button>
+          <button data-lang="ru" onclick="setLang('ru', this)">рус</button>
+        </div>
+      </div>
+      <div class="gal-chat-msgs" id="gal-chat-msgs"></div>
+      <div id="gal-sel-badge" class="gal-sel-badge hidden">📍 Вопрос про выделенную область</div>
+      <div class="gal-chat-input">
+        <textarea id="gal-chat-text" rows="1" placeholder="Спроси про картинку или выделенную область…"></textarea>
+        <button id="gal-chat-send" onclick="sendChat()">➤</button>
+      </div>
+    </div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}
@@ -38,6 +75,8 @@
   const viewerHint    = document.getElementById('viewer-hint');
 
   let inViewer = false;
+  let currentPic = null;
+  const IS_TEACHER = {{ 'true' if not student_mode else 'false' }};
 
   /* ── BACK ── */
   function handleBack() {
@@ -75,9 +114,11 @@
   /* ── VIEWER ── */
   function openImage(pic) {
     inViewer = true;
+    currentPic = pic;
     viewerImg.src = pic.image;
     viewerImg.alt = pic.title || '';
     viewerTitle.textContent = pic.title || '';
+    if (IS_TEACHER) { clearSelection(); resetChat(); }
 
     // keywords
     viewerKeywords.innerHTML = '';
@@ -109,6 +150,8 @@
     inViewer = false;
     viewer.classList.add('hidden');
     viewerImg.src = '';
+    currentPic = null;
+    if (IS_TEACHER) { clearSelection(); resetChat(); }
     document.getElementById('page-title').textContent = 'Картинки';
     document.getElementById('back-btn').textContent = '← Назад';
     if (window.speechSynthesis) window.speechSynthesis.cancel();
@@ -118,5 +161,175 @@
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && inViewer) closeImage();
   });
+
+  /* ══════════════════════════════════════════
+     УКАЗКА-ВЫДЕЛЕНИЕ + ИИ-ЧАТ (только учитель)
+     ══════════════════════════════════════════ */
+  if (IS_TEACHER) {
+    const stage     = document.getElementById('gal-stage');
+    const selLayer  = document.getElementById('sel-layer');
+    const selRect   = document.getElementById('sel-rect');
+    const selClear  = document.getElementById('sel-clear');
+    const selBadge  = document.getElementById('gal-sel-badge');
+    const chatPanel = document.getElementById('gal-chat');
+    const chatMsgs  = document.getElementById('gal-chat-msgs');
+    const chatText  = document.getElementById('gal-chat-text');
+    const chatSend  = document.getElementById('gal-chat-send');
+
+    let selection = null;        // {x0,y0,x1,y1} нормированные 0..1
+    let dragging  = false;
+    let chatLang  = 'both';
+    let chatHistory = [];        // [{role, content}] только текст
+    let busy = false;
+
+    /* ── Выделение ── */
+    function imgRect() { return viewerImg.getBoundingClientRect(); }
+    function clampPt(e) {
+      const r = imgRect();
+      return {
+        x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)),
+        y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)),
+      };
+    }
+    function drawRect() {
+      if (!selection) { selRect.classList.add('hidden'); return; }
+      const x0 = Math.min(selection.x0, selection.x1), y0 = Math.min(selection.y0, selection.y1);
+      const w = Math.abs(selection.x1 - selection.x0), h = Math.abs(selection.y1 - selection.y0);
+      selRect.style.left = (x0 * 100) + '%';
+      selRect.style.top = (y0 * 100) + '%';
+      selRect.style.width = (w * 100) + '%';
+      selRect.style.height = (h * 100) + '%';
+      selRect.classList.remove('hidden');
+    }
+    selLayer.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      dragging = true;
+      const p = clampPt(e);
+      selection = { x0: p.x, y0: p.y, x1: p.x, y1: p.y };
+      selLayer.setPointerCapture(e.pointerId);
+      drawRect();
+    });
+    selLayer.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      const p = clampPt(e);
+      selection.x1 = p.x; selection.y1 = p.y;
+      drawRect();
+    });
+    selLayer.addEventListener('pointerup', () => {
+      dragging = false;
+      const tiny = !selection ||
+        Math.abs(selection.x1 - selection.x0) < 0.02 ||
+        Math.abs(selection.y1 - selection.y0) < 0.02;
+      if (tiny) { clearSelection(); return; }
+      selClear.classList.remove('hidden');
+      selBadge.classList.remove('hidden');
+    });
+
+    window.clearSelection = function () {
+      selection = null;
+      drawRect();
+      if (selClear) selClear.classList.add('hidden');
+      if (selBadge) selBadge.classList.add('hidden');
+    };
+
+    function selBBox() {
+      if (!selection) return null;
+      const x = Math.min(selection.x0, selection.x1) * 100;
+      const y = Math.min(selection.y0, selection.y1) * 100;
+      return {
+        x: +x.toFixed(0), y: +y.toFixed(0),
+        w: +(Math.abs(selection.x1 - selection.x0) * 100).toFixed(0),
+        h: +(Math.abs(selection.y1 - selection.y0) * 100).toFixed(0),
+      };
+    }
+    function makeCrop() {
+      if (!selection) return null;
+      const nw = viewerImg.naturalWidth, nh = viewerImg.naturalHeight;
+      const sx = Math.min(selection.x0, selection.x1) * nw;
+      const sy = Math.min(selection.y0, selection.y1) * nh;
+      const sw = Math.abs(selection.x1 - selection.x0) * nw;
+      const sh = Math.abs(selection.y1 - selection.y0) * nh;
+      if (sw < 4 || sh < 4) return null;
+      const c = document.createElement('canvas');
+      c.width = Math.round(sw); c.height = Math.round(sh);
+      c.getContext('2d').drawImage(viewerImg, sx, sy, sw, sh, 0, 0, sw, sh);
+      try { return c.toDataURL('image/png'); } catch (e) { return null; }
+    }
+
+    /* ── Чат ── */
+    window.toggleChat = function () {
+      const open = chatPanel.classList.toggle('hidden') === false;
+      document.getElementById('viewer-box').classList.toggle('with-chat', open);
+      document.getElementById('ai-toggle').classList.toggle('active', open);
+      if (open) chatText.focus();
+    };
+    window.setLang = function (lang, btn) {
+      chatLang = lang;
+      document.querySelectorAll('#gal-lang button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    };
+    window.resetChat = function () {
+      chatHistory = [];
+      if (chatMsgs) chatMsgs.innerHTML = '';
+      if (chatText) chatText.value = '';
+      if (chatPanel) { chatPanel.classList.add('hidden'); }
+      const vb = document.getElementById('viewer-box');
+      if (vb) vb.classList.remove('with-chat');
+      const at = document.getElementById('ai-toggle');
+      if (at) at.classList.remove('active');
+    };
+
+    function addMsg(role, text) {
+      const div = document.createElement('div');
+      div.className = 'gal-msg ' + role;
+      div.textContent = text;
+      chatMsgs.appendChild(div);
+      chatMsgs.scrollTop = chatMsgs.scrollHeight;
+      return div;
+    }
+
+    window.sendChat = async function () {
+      if (busy || !currentPic) return;
+      const q = chatText.value.trim();
+      if (!q) return;
+      busy = true;
+      chatText.value = '';
+      const bbox = selBBox();
+      addMsg('user', (bbox ? '📍 ' : '') + q);
+      const thinking = addMsg('ai', '…');
+
+      const payload = {
+        image: currentPic.image,
+        question: q,
+        lang: chatLang,
+        history: chatHistory.slice(-8),
+      };
+      if (bbox) { payload.bbox = bbox; payload.crop = makeCrop(); }
+
+      try {
+        const r = await fetch('/api/picture/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await r.json();
+        if (data.answer) {
+          thinking.textContent = data.answer;
+          chatHistory.push({ role: 'user', content: q });
+          chatHistory.push({ role: 'assistant', content: data.answer });
+        } else {
+          thinking.textContent = '⚠️ ' + (data.error || 'Ошибка ИИ');
+        }
+      } catch (e) {
+        thinking.textContent = '⚠️ Нет связи с сервером';
+      } finally {
+        busy = false;
+      }
+    };
+
+    chatText.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+    });
+  }
 </script>
 {% endblock %}

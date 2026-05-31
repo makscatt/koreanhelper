@@ -37,7 +37,7 @@ KIMCHI_BOT_TOKEN = os.environ.get('KIMCHI_BOT_TOKEN', '')
 
 # ── OpenAI для Word Hub ──
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
-OPENAI_MODEL = 'gpt-5.1'
+OPENAI_MODEL = 'gpt-5.4-mini'
 
 
 # ══════════════════════════════════════════
@@ -1277,6 +1277,114 @@ def api_tts():
             return jsonify({'error': 'TTS synthesis failed'}), 500
 
     return send_file(filepath, mimetype='audio/mpeg')
+
+
+# ══════════════════════════════════════════
+#  PICTURE CHAT  (ИИ-чат по картинке — указка + vision, только учитель)
+# ══════════════════════════════════════════
+
+_PIC_LANG_RULES = {
+    'both': 'Отвечай на корейском, а сразу под ним — перевод на русский.',
+    'ko':   'Отвечай ТОЛЬКО на корейском, простыми словами (уровень начинающий–средний).',
+    'ru':   'Отвечай на русском.',
+}
+
+@app.route('/api/picture/chat', methods=['POST'])
+@teacher_required
+def api_picture_chat():
+    """ИИ-чат по картинке. Учитель может выделить область (указка) и спросить про неё.
+    Полная картинка всегда уходит как контекст, вырезанный фрагмент — дополнительно."""
+    if not OPENAI_API_KEY:
+        return jsonify({'error': 'OpenAI not configured'}), 503
+
+    data = request.get_json(silent=True) or {}
+    question = (data.get('question') or '').strip()
+    if not question or len(question) > 2000:
+        return jsonify({'error': 'Bad request'}), 400
+
+    lang = data.get('lang') if data.get('lang') in _PIC_LANG_RULES else 'both'
+
+    # ── Полная картинка с диска (контекст для модели) ──
+    rel = (data.get('image') or '').strip()
+    if not rel.startswith('/static/data/images/'):
+        return jsonify({'error': 'Bad image'}), 400
+    fname = os.path.basename(rel)
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    fpath = os.path.join(base_dir, 'static', 'data', 'images', fname)
+    if not os.path.isfile(fpath):
+        return jsonify({'error': 'Image not found'}), 404
+    ext = os.path.splitext(fname)[1].lower().lstrip('.')
+    mime = 'jpeg' if ext in ('jpg', 'jpeg') else (ext or 'png')
+    try:
+        with open(fpath, 'rb') as f:
+            full_b64 = base64.b64encode(f.read()).decode('ascii')
+    except Exception as e:
+        print(f"Picture chat read error: {e}")
+        return jsonify({'error': 'Image read failed'}), 500
+    full_url = f'data:image/{mime};base64,{full_b64}'
+
+    # ── Вырезанный фрагмент (опционально) ──
+    crop = (data.get('crop') or '').strip()
+    has_crop = crop.startswith('data:image/') and len(crop) < 8_000_000
+    bbox = data.get('bbox') or {}
+
+    # ── Сообщения ──
+    system = (
+        'Ты — ассистент учителя корейского языка. Учитель ведёт урок по картинке: '
+        'ученик должен описывать по-корейски, что видит и что происходит. '
+        'Помогай учителю: называй предметы и действия по-корейски, давай полезные слова и фразы, '
+        'отвечай кратко и по делу. '
+        'Тебе всегда даётся ПОЛНАЯ картинка — учитывай всю сцену как контекст. '
+        'Если учитель выделил область (даны крупный фрагмент и его координаты в процентах) — '
+        'отвечай ПРО ЭТУ ОБЛАСТЬ, но опираясь на общий контекст всей картинки. '
+        + _PIC_LANG_RULES[lang]
+    )
+    messages = [{'role': 'system', 'content': system}]
+
+    # короткая история (только текст)
+    for m in (data.get('history') or [])[-8:]:
+        role = m.get('role')
+        content = (m.get('content') or '').strip()
+        if role in ('user', 'assistant') and content:
+            messages.append({'role': role, 'content': content[:2000]})
+
+    user_content = []
+    if has_crop and bbox:
+        user_content.append({'type': 'text', 'text': (
+            f'Выделенная область (в процентах от картинки): '
+            f"x {bbox.get('x')}–{bbox.get('x', 0) + bbox.get('w', 0):.0f}%, "
+            f"y {bbox.get('y')}–{bbox.get('y', 0) + bbox.get('h', 0):.0f}%. "
+            'Ниже — полная картинка и крупный фрагмент этой области.'
+        )})
+    user_content.append({'type': 'text', 'text': question})
+    user_content.append({'type': 'image_url', 'image_url': {'url': full_url}})
+    if has_crop:
+        user_content.append({'type': 'image_url', 'image_url': {'url': crop}})
+    messages.append({'role': 'user', 'content': user_content})
+
+    try:
+        resp = http_requests.post(
+            'https://api.openai.com/v1/chat/completions',
+            headers={
+                'Authorization': f'Bearer {OPENAI_API_KEY}',
+                'Content-Type': 'application/json',
+            },
+            json={
+                'model': OPENAI_MODEL,
+                'reasoning_effort': 'low',
+                'max_completion_tokens': 900,
+                'messages': messages,
+            },
+            timeout=60,
+        )
+        if resp.status_code != 200:
+            print(f"Picture chat OpenAI error: {resp.status_code} {resp.text[:300]}")
+            return jsonify({'error': 'AI error'}), 502
+        answer = resp.json()['choices'][0]['message']['content'].strip()
+        return jsonify({'answer': answer})
+    except Exception as e:
+        print(f"Picture chat error: {e}")
+        return jsonify({'error': 'AI request failed'}), 500
 
 
 # ══════════════════════════════════════════

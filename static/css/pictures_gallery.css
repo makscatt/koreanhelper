@@ -77,9 +77,19 @@
   max-width: min(1000px, 100%);
   max-height: 100%;
   display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: center;
+  gap: 16px;
+}
+.gal-viewer-box.with-chat { max-width: min(1440px, 100%); }
+
+.gal-main {
+  display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
 .gal-viewer-close {
@@ -149,10 +159,158 @@
 }
 .gal-hint.hidden { display: none; }
 
+/* ── Тулбар указки ── */
+.gal-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  justify-content: center;
+}
+.gal-tool-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, .35);
+  background: rgba(255, 255, 255, .12);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .12s ease;
+}
+.gal-tool-btn:hover { background: rgba(255, 255, 255, .22); }
+.gal-tool-btn.active { background: var(--primary, #ffd54a); color: #222; border-color: transparent; }
+.gal-tool-hint { color: rgba(255, 255, 255, .6); font-size: 12px; }
+
+/* ── Сцена картинки + указка ── */
+.gal-stage {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+.gal-stage .gal-viewer-img { display: block; }
+
+.gal-sel-layer {
+  position: absolute;
+  inset: 0;
+  cursor: crosshair;
+  touch-action: none;
+}
+.gal-sel-rect {
+  position: absolute;
+  border: 2px dashed #ffd54a;
+  background: rgba(255, 213, 74, .18);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, .35);
+  pointer-events: none;
+  border-radius: 2px;
+}
+.gal-sel-rect.hidden { display: none; }
+
+/* ── Чат ── */
+.gal-chat {
+  width: 360px;
+  max-width: 40vw;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface, #fff);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .4);
+  max-height: 84vh;
+}
+.gal-chat.hidden { display: none; }
+
+.gal-chat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--surface-variant, #f2f2f2);
+  border-bottom: 1px solid var(--border, #e5e5e5);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #1a1a1a);
+}
+.gal-lang { display: flex; gap: 2px; background: var(--border, #e5e5e5); padding: 2px; border-radius: 8px; }
+.gal-lang button {
+  border: none;
+  background: transparent;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #555);
+  cursor: pointer;
+}
+.gal-lang button.active { background: #fff; color: var(--text-primary, #1a1a1a); box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+
+.gal-chat-msgs {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gal-msg {
+  max-width: 88%;
+  padding: 8px 11px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.gal-msg.user { align-self: flex-end; background: var(--primary, #ffd54a); color: #222; border-bottom-right-radius: 4px; }
+.gal-msg.ai   { align-self: flex-start; background: var(--surface-variant, #f2f2f2); color: var(--text-primary, #1a1a1a); border-bottom-left-radius: 4px; }
+
+.gal-sel-badge {
+  margin: 0 12px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8a6d00;
+  background: rgba(255, 213, 74, .25);
+  border-radius: 8px;
+  text-align: center;
+}
+.gal-sel-badge.hidden { display: none; }
+
+.gal-chat-input {
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border, #e5e5e5);
+}
+.gal-chat-input textarea {
+  flex: 1;
+  resize: none;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 14px;
+  font-family: inherit;
+  max-height: 120px;
+}
+.gal-chat-input button {
+  border: none;
+  border-radius: 10px;
+  background: var(--primary, #ffd54a);
+  color: #222;
+  font-size: 16px;
+  padding: 0 14px;
+  cursor: pointer;
+}
+.gal-chat-input button:hover { filter: brightness(.94); }
+
 /* ── Адаптив ── */
 @media (max-width: 900px) {
   .gal-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
   .gal-viewer-img { max-height: 64vh; }
+  .gal-viewer-box, .gal-viewer-box.with-chat { flex-direction: column; align-items: center; }
+  .gal-chat { width: 100%; max-width: 100%; max-height: 40vh; }
 }
 @media (max-width: 600px) {
   .gal-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
