@@ -4,6 +4,21 @@
 {% block trainer_content %}
 <div class="trainer-header">
   <h1 class="trainer-title">💬 Фразы урока</h1>
+  <button class="ph-help-btn" id="ph-help-btn" onclick="openHelp()" title="Как вести урок — игры">?</button>
+</div>
+
+<!-- HELP POPUP: игры для урока -->
+<div class="ph-help-overlay" id="ph-help-overlay" onclick="onHelpOverlayClick(event)">
+  <div class="ph-help-card">
+    <button class="ph-help-close" onclick="closeHelp()" title="Закрыть (Esc)">✕</button>
+    <div class="ph-help-title">💡 Как вести урок — игры</div>
+    <div class="ph-help-game">
+      <div class="ph-help-game-name">🐍 Змейка</div>
+      <p>Повторяем материал поочерёдно. За каждый правильный ответ — шаг вперёд
+      (кнопка <b>✓ Знаю</b>). Ошибся — откатываемся на шаг назад
+      (кнопка <b>✗ Не знаю</b>). Продвигаемся к концу только верными ответами.</p>
+    </div>
+  </div>
 </div>
 
 <div class="phrases-layout">
@@ -61,14 +76,6 @@
       </div>
 
       <div class="ph-badge-grid" id="badge-grid"></div>
-
-      <div class="ph-kbd-hint">
-        Клик по карточке — открыть диалог. В попапе: <kbd>←</kbd><kbd>→</kbd> листать &nbsp;|&nbsp;
-        <kbd>Пробел</kbd> перевод &nbsp;|&nbsp;
-        <kbd>K</kbd> знаю &nbsp;|&nbsp;
-        <kbd>S</kbd> озвучить &nbsp;|&nbsp;
-        <kbd>Esc</kbd> закрыть
-      </div>
     </div>
 
     <!-- MODE 2: List -->
@@ -82,34 +89,6 @@
     </div>
 
   </div>
-</div>
-
-<!-- POPUP -->
-<div class="ph-popup-overlay" id="ph-popup" onclick="onPopupOverlayClick(event)">
-  <button class="ph-popup-nav ph-popup-prev" onclick="popupPrev()" title="Предыдущая (←)">⬅</button>
-  <div class="ph-popup-card" id="popup-card">
-    <button class="ph-popup-close" onclick="closePopup()" title="Закрыть (Esc)">✕</button>
-    <div class="ph-card-meta">
-      <div class="ph-card-meta-left">
-        <span class="ph-tag ph-tag-section" id="pp-tag-section"></span>
-        <span class="ph-tag" id="pp-tag-priority"></span>
-        <span class="ph-tag ph-tag-template" id="pp-tag-template" style="display:none">шаблон</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span class="ph-mastered-star" id="pp-mastered-star">⭐</span>
-        <span class="ph-card-num" id="pp-card-num">#1</span>
-        <span class="ph-popup-counter"><span id="pp-cur">1</span>/<span id="pp-total">0</span></span>
-      </div>
-    </div>
-    <div class="ph-dialog" id="dialog"></div>
-    <div class="ph-btn-row">
-      <button class="ph-btn ph-btn-dunno"    onclick="markDunno()">✗ Не знаю</button>
-      <button class="ph-btn ph-btn-translate" id="btn-translate" onclick="toggleAnswer()">👁 Перевод</button>
-      <button class="ph-btn ph-btn-know"     onclick="markKnow()">✓ Знаю</button>
-      <button class="ph-btn ph-btn-speak"    id="btn-speak" onclick="speakKor()" disabled>🔊</button>
-    </div>
-  </div>
-  <button class="ph-popup-nav ph-popup-next" onclick="popupNext()" title="Следующая (→)">➡</button>
 </div>
 
 <style>
@@ -265,71 +244,41 @@
 .ph-badge-tag.priority-regular { background: #fef3c7; color: #92400e; }
 .ph-badge-tag.priority-situational { background: #fce7f3; color: #9d174d; }
 
-/* ── Popup overlay ── */
-.ph-popup-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 18, 25, 0.55);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-  gap: 14px;
-}
-.ph-popup-overlay.active { display: flex; }
-.ph-popup-card {
-  position: relative;
-  background: #fff;
-  border-radius: 16px;
-  padding: 24px;
-  width: min(720px, 100%);
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-}
-.ph-popup-close {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 32px; height: 32px;
-  border-radius: 50%;
-  border: 1.5px solid #e4e8ef;
-  background: #fff;
-  cursor: pointer;
-  font-size: 0.9rem;
-  color: #6b7280;
+/* ── Help button (игры для урока) ── */
+.trainer-header { position: relative; }
+.ph-help-btn {
+  position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+  width: 30px; height: 30px; border-radius: 50%;
+  background: #fbbf24; color: #1a1d23;
+  border: none; font-size: 17px; font-weight: 800;
+  cursor: pointer; line-height: 1;
   display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 6px rgba(251,191,36,0.45);
   transition: 0.15s;
 }
-.ph-popup-close:hover { background: #f3f4f6; color: #1a1d23; }
-.ph-popup-nav {
-  width: 48px; height: 48px;
-  border-radius: 50%;
-  border: none;
-  background: #fff;
-  cursor: pointer;
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #1a1d23;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  display: flex; align-items: center; justify-content: center;
-  transition: 0.15s;
-  flex-shrink: 0;
+.ph-help-btn:hover { background: #f59e0b; transform: translateY(-50%) scale(1.08); }
+
+.ph-help-overlay {
+  display: none; position: fixed; inset: 0; z-index: 1200;
+  background: rgba(0,0,0,0.4); backdrop-filter: blur(2px);
+  align-items: center; justify-content: center; padding: 20px;
 }
-.ph-popup-nav:hover { background: #f3f4f6; transform: scale(1.05); }
-.ph-popup-counter {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #6b7280;
-  background: #f3f4f6;
-  padding: 3px 10px;
-  border-radius: 999px;
+.ph-help-overlay.active { display: flex; }
+.ph-help-card {
+  position: relative; background: #fff; border-radius: 16px;
+  padding: 26px 28px; max-width: 480px; width: 100%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.18); max-height: 85vh; overflow-y: auto;
 }
-@media (max-width: 720px) {
-  .ph-popup-nav { width: 40px; height: 40px; font-size: 1.1rem; }
-  .ph-popup-card { padding: 18px; }
+.ph-help-close {
+  position: absolute; top: 14px; right: 16px;
+  width: 30px; height: 30px; border: none; background: none;
+  font-size: 16px; color: #8b92a0; cursor: pointer; border-radius: 8px;
 }
+.ph-help-close:hover { background: #f3f4f6; color: #1a1d23; }
+.ph-help-title { font-size: 1.15rem; font-weight: 700; color: #1a1d23; margin-bottom: 16px; }
+.ph-help-game { background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 14px 16px; }
+.ph-help-game-name { font-weight: 700; color: #92400e; margin-bottom: 6px; }
+.ph-help-game p { margin: 0; font-size: 0.92rem; line-height: 1.55; color: #3a3f4b; }
 
 /* ── Selfintro flow (Список для категории Чагисоге) ── */
 .ph-flow-head {
@@ -418,7 +367,6 @@
   let activeStoryId = null;
   let filtered = [];
   let curIdx = 0;
-  let answerVisible = false;
   let activeCategory = 'lesson';
   let activeSection = 'all';
   let activePriority = 'all';
@@ -578,7 +526,6 @@
 
   function setMode(mode, btn) {
     activeMode = mode;
-    if (popupOpen) closePopup();
     document.querySelectorAll('.ph-sidebar-btn[data-mode]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('mode-card-area').classList.toggle('active', mode === 'card');
@@ -671,7 +618,6 @@
       const priOk = activePriority === 'all' || p.priority === activePriority;
       return catOk && secOk && priOk;
     });
-    if (popupOpen) closePopup();
     renderCurrentMode();
   }
 
@@ -760,211 +706,8 @@
       }
       badge.appendChild(tags);
 
-      badge.onclick = () => openPopup(idx);
       grid.appendChild(badge);
     });
-  }
-
-  /* ── POPUP ── */
-  let popupOpen = false;
-
-  function openPopup(idx) {
-    if (!filtered.length) return;
-    curIdx = Math.max(0, Math.min(idx, filtered.length - 1));
-    popupOpen = true;
-    document.getElementById('ph-popup').classList.add('active');
-    renderPopup();
-  }
-
-  function closePopup() {
-    popupOpen = false;
-    document.getElementById('ph-popup').classList.remove('active');
-    hideAnswer();
-  }
-
-  function onPopupOverlayClick(e) {
-    if (e.target.id === 'ph-popup') closePopup();
-  }
-
-  function popupNext() {
-    if (!filtered.length) return;
-    curIdx = (curIdx + 1) % filtered.length;
-    renderPopup();
-  }
-  function popupPrev() {
-    if (!filtered.length) return;
-    curIdx = (curIdx - 1 + filtered.length) % filtered.length;
-    renderPopup();
-  }
-
-  function renderPopup() {
-    if (!filtered.length) { closePopup(); return; }
-    hideAnswer();
-    const pair = filtered[curIdx];
-    const isMastered = progress[pair.id] === 'know';
-    document.getElementById('pp-cur').textContent = curIdx + 1;
-    document.getElementById('pp-total').textContent = filtered.length;
-    document.getElementById('pp-card-num').textContent = '#' + (curIdx + 1);
-    document.getElementById('pp-tag-section').textContent = pair.section_label || '';
-
-    const tp = document.getElementById('pp-tag-priority');
-    const priorityLabels = { core: '● Базовая', regular: '● Обычная', situational: '● Ситуативная' };
-    tp.textContent = priorityLabels[pair.priority] || pair.priority || '';
-    tp.className = 'ph-tag ph-tag-' + (pair.priority || '');
-
-    document.getElementById('pp-tag-template').style.display = pair.type === 'template' ? '' : 'none';
-    document.getElementById('pp-mastered-star').classList.toggle('visible', isMastered);
-
-    buildDialog(pair);
-  }
-
-  function buildDialog(pair) {
-    const container = document.getElementById('dialog');
-    container.innerHTML = '';
-
-    if (pair.type === 'travel_dialog') return buildTravelDialog(pair, container);
-    if (pair.type === 'phrase_only')  return buildPhraseOnly(pair, container);
-
-    const isTemplate = pair.type === 'template';
-
-    if (pair.teacher && pair.teacher.kor) {
-      const isNA = pair.teacher.kor.startsWith('(');
-      const turn = document.createElement('div');
-      turn.className = 'ph-turn';
-      if (!isNA) {
-        const lbl = document.createElement('div');
-        lbl.className = 'ph-turn-label t';
-        lbl.textContent = '👩‍🏫 Учитель';
-        turn.appendChild(lbl);
-      }
-      const bubble = document.createElement('div');
-      bubble.className = 'ph-bubble ' + (isNA ? 'na' : 't');
-      const korEl = document.createElement('div');
-      korEl.className = 'ph-kor';
-      korEl.innerHTML = pair.teacher.kor;
-      bubble.appendChild(korEl);
-      if (!isNA) {
-        const spkBtn = document.createElement('button');
-        spkBtn.className = 'ph-speak-inline';
-        spkBtn.textContent = '🔊';
-        spkBtn.title = 'Прослушать';
-        spkBtn.onclick = (e) => { e.stopPropagation(); speakText(pair.teacher.kor.replace(/<[^>]+>/g,'')); };
-        bubble.appendChild(spkBtn);
-      }
-      if (pair.teacher.rus && !isNA) {
-        const rusEl = document.createElement('div');
-        rusEl.className = 'ph-rus';
-        rusEl.innerHTML = pair.teacher.rus;
-        bubble.appendChild(rusEl);
-      }
-      turn.appendChild(bubble);
-      container.appendChild(turn);
-    }
-
-    if (pair.teacher && pair.student) {
-      container.appendChild(Object.assign(document.createElement('div'), { className: 'ph-divider' }));
-    }
-
-    if (pair.student && pair.student.kor) {
-      const turn = document.createElement('div');
-      turn.className = 'ph-turn';
-      const lbl = document.createElement('div');
-      lbl.className = 'ph-turn-label s';
-      lbl.textContent = '👤 Студент';
-      turn.appendChild(lbl);
-      const bubble = document.createElement('div');
-      bubble.className = 'ph-bubble s';
-      const korEl = document.createElement('div');
-      korEl.className = 'ph-kor';
-      korEl.innerHTML = pair.student.kor.replace(/___/g, '<span class="blank">___</span>');
-      bubble.appendChild(korEl);
-      const spkBtnS = document.createElement('button');
-      spkBtnS.className = 'ph-speak-inline';
-      spkBtnS.textContent = '🔊';
-      spkBtnS.title = 'Прослушать';
-      spkBtnS.onclick = (e) => { e.stopPropagation(); speakText(pair.student.kor.replace(/___/g,'').replace(/<[^>]+>/g,'')); };
-      bubble.appendChild(spkBtnS);
-      if (pair.student.rus) {
-        const rusEl = document.createElement('div');
-        rusEl.className = 'ph-rus';
-        rusEl.innerHTML = pair.student.rus;
-        bubble.appendChild(rusEl);
-      }
-      if (isTemplate && pair.student.placeholder_hint) {
-        const hint = document.createElement('div');
-        hint.className = 'ph-hint-box';
-        hint.innerHTML = pair.student.placeholder_hint;
-        bubble.appendChild(hint);
-      }
-      turn.appendChild(bubble);
-      container.appendChild(turn);
-    }
-  }
-
-  /* ── TRAVEL CARD: турист + список ответов сотрудника ── */
-  function buildTravelDialog(pair, container) {
-    if (pair.tourist && pair.tourist.kor) {
-      const turn = document.createElement('div'); turn.className = 'ph-turn';
-      const lbl = document.createElement('div'); lbl.className = 'ph-turn-label s';
-      lbl.textContent = '🧳 Турист'; turn.appendChild(lbl);
-      const bubble = document.createElement('div'); bubble.className = 'ph-bubble s';
-      const korEl = document.createElement('div'); korEl.className = 'ph-kor';
-      korEl.innerHTML = pair.tourist.kor; bubble.appendChild(korEl);
-      const spk = document.createElement('button'); spk.className = 'ph-speak-inline';
-      spk.textContent = '🔊'; spk.title = 'Прослушать';
-      spk.onclick = (e) => { e.stopPropagation(); speakText(pair.tourist.kor.replace(/<[^>]+>/g,'')); };
-      bubble.appendChild(spk);
-      if (pair.tourist.rus) {
-        const rusEl = document.createElement('div'); rusEl.className = 'ph-rus';
-        rusEl.innerHTML = pair.tourist.rus; bubble.appendChild(rusEl);
-      }
-      turn.appendChild(bubble); container.appendChild(turn);
-    }
-
-    if (Array.isArray(pair.staff_responses) && pair.staff_responses.length) {
-      container.appendChild(Object.assign(document.createElement('div'), { className: 'ph-divider' }));
-      const staffTurn = document.createElement('div'); staffTurn.className = 'ph-turn';
-      const lbl = document.createElement('div'); lbl.className = 'ph-turn-label t';
-      lbl.textContent = '👮 Возможные ответы сотрудника';
-      staffTurn.appendChild(lbl);
-      pair.staff_responses.forEach(resp => {
-        const bubble = document.createElement('div'); bubble.className = 'ph-bubble t staff-variant';
-        const korEl = document.createElement('div'); korEl.className = 'ph-kor';
-        korEl.innerHTML = resp.kor; bubble.appendChild(korEl);
-        const spk = document.createElement('button'); spk.className = 'ph-speak-inline';
-        spk.textContent = '🔊'; spk.title = 'Прослушать';
-        spk.onclick = (e) => { e.stopPropagation(); speakText(resp.kor.replace(/<[^>]+>/g,'')); };
-        bubble.appendChild(spk);
-        if (resp.rus) {
-          const rusEl = document.createElement('div'); rusEl.className = 'ph-rus';
-          rusEl.innerHTML = resp.rus; bubble.appendChild(rusEl);
-        }
-        staffTurn.appendChild(bubble);
-      });
-      container.appendChild(staffTurn);
-    }
-  }
-
-  /* ── PHRASE ONLY: одиночная фраза (турист или сотрудник) ── */
-  function buildPhraseOnly(pair, container) {
-    const isStaff = pair.speaker === 'staff';
-    const turn = document.createElement('div'); turn.className = 'ph-turn';
-    const lbl = document.createElement('div');
-    lbl.className = 'ph-turn-label ' + (isStaff ? 't' : 's');
-    lbl.textContent = isStaff ? '👮 Сотрудник' : '🧳 Турист';
-    turn.appendChild(lbl);
-    const bubble = document.createElement('div'); bubble.className = 'ph-bubble ' + (isStaff ? 't' : 's');
-    const korEl = document.createElement('div'); korEl.className = 'ph-kor';
-    korEl.innerHTML = pair.phrase.kor; bubble.appendChild(korEl);
-    const spk = document.createElement('button'); spk.className = 'ph-speak-inline';
-    spk.textContent = '🔊'; spk.title = 'Прослушать';
-    spk.onclick = (e) => { e.stopPropagation(); speakText(pair.phrase.kor.replace(/<[^>]+>/g,'')); };
-    bubble.appendChild(spk);
-    if (pair.phrase.rus) {
-      const rusEl = document.createElement('div'); rusEl.className = 'ph-rus';
-      rusEl.innerHTML = pair.phrase.rus; bubble.appendChild(rusEl);
-    }
-    turn.appendChild(bubble); container.appendChild(turn);
   }
 
   /* ── LIST ── */
@@ -1089,7 +832,6 @@
       item.querySelector('.ph-flow-q-rus').textContent = pair.teacher.rus || '';
       item.querySelector('.ph-flow-a-kor').textContent = pair.student.kor;
       item.querySelector('.ph-flow-a-rus').textContent = pair.student.rus || '';
-      item.onclick = () => openPopup(idx);
       flow.appendChild(item);
     });
     container.appendChild(flow);
@@ -1158,63 +900,6 @@
     });
   }
 
-  /* ── CONTROLS ── */
-  function toggleAnswer() { answerVisible ? hideAnswer() : showAnswer(); }
-  function showAnswer() {
-    answerVisible = true;
-    document.querySelectorAll('.ph-rus').forEach(el => el.classList.add('visible'));
-    document.querySelectorAll('.ph-hint-box').forEach(el => el.classList.add('visible'));
-    document.getElementById('btn-translate').textContent = '🙈 Скрыть';
-    document.getElementById('btn-speak').disabled = false;
-  }
-  function hideAnswer() {
-    answerVisible = false;
-    document.querySelectorAll('.ph-rus').forEach(el => el.classList.remove('visible'));
-    document.querySelectorAll('.ph-hint-box').forEach(el => el.classList.remove('visible'));
-    const btnT = document.getElementById('btn-translate'); if (btnT) btnT.textContent = '👁 Перевод';
-    const btnS = document.getElementById('btn-speak'); if (btnS) btnS.disabled = true;
-  }
-
-  async function markKnow() {
-    if (!filtered.length) return;
-    const itemId = filtered[curIdx].id;
-    progress[itemId] = 'know';
-    if (IS_TEACHER) {
-      try {
-        await fetch('/api/items/set', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ student_id: STUDENT_ID, trainer: 'phrases', item_id: itemId, status: 'know' })
-        });
-      } catch(e) {}
-    }
-    updateSectionDoneState();
-    renderGrid();
-    if (popupOpen) {
-      setTimeout(() => popupNext(), 350);
-    }
-  }
-
-  async function markDunno() {
-    if (!filtered.length) return;
-    const itemId = filtered[curIdx].id;
-    delete progress[itemId];
-    if (IS_TEACHER) {
-      try {
-        await fetch('/api/items/set', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ student_id: STUDENT_ID, trainer: 'phrases', item_id: itemId, status: '' })
-        });
-      } catch(e) {}
-    }
-    updateSectionDoneState();
-    renderGrid();
-    if (popupOpen) {
-      setTimeout(() => popupNext(), 300);
-    }
-  }
-
   function updateMasteredCounters() {
     const masteredCount = filtered.filter(p => progress[p.id] === 'know').length;
     const mc = document.getElementById('mastered-count'); if (mc) mc.textContent = masteredCount;
@@ -1244,32 +929,12 @@
     });
   }
 
-  function next() { popupNext(); }
-  function prev() { popupPrev(); }
-  function speakKor() {
-    if (!filtered.length || !answerVisible) return;
-    const pair = filtered[curIdx];
-    const parts = [];
-    if (pair.type === 'travel_dialog') {
-      if (pair.tourist && pair.tourist.kor) parts.push(pair.tourist.kor);
-      (pair.staff_responses || []).forEach(r => parts.push(r.kor));
-    } else if (pair.type === 'phrase_only') {
-      if (pair.phrase && pair.phrase.kor) parts.push(pair.phrase.kor);
-    } else {
-      if (pair.teacher && !pair.teacher.kor.startsWith('(')) parts.push(pair.teacher.kor);
-      if (pair.student) parts.push(pair.student.kor.replace(/___/g, ''));
-    }
-    speakText(parts.join('. ').replace(/<[^>]+>/g, ''));
-  }
+  /* ── HELP (игры для урока) ── */
+  function openHelp() { document.getElementById('ph-help-overlay').classList.add('active'); }
+  function closeHelp() { document.getElementById('ph-help-overlay').classList.remove('active'); }
+  function onHelpOverlayClick(e) { if (e.target.id === 'ph-help-overlay') closeHelp(); }
   document.addEventListener('keydown', e => {
-    if (!popupOpen) return;
-    if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
-    if (e.key === 'Escape') { e.preventDefault(); closePopup(); }
-    else if (e.key === 'ArrowRight') popupNext();
-    else if (e.key === 'ArrowLeft') popupPrev();
-    else if (e.key === ' ') { e.preventDefault(); toggleAnswer(); }
-    else if (['k','л','Л'].includes(e.key)) { if (IS_TEACHER) markKnow(); }
-    else if (['s','ы','Ы'].includes(e.key) && answerVisible) speakKor();
+    if (e.key === 'Escape' && document.getElementById('ph-help-overlay').classList.contains('active')) closeHelp();
   });
 
   function toggleRusHidden(btn) {
