@@ -26,13 +26,6 @@
   <!-- LEFT SIDEBAR -->
   <div class="phrases-sidebar">
 
-    <div class="ph-sidebar-block">
-      <div class="ph-sidebar-label">Вид</div>
-      <button class="ph-sidebar-btn active" data-mode="card" onclick="setMode('card',this)">🃏 Карточки</button>
-      <button class="ph-sidebar-btn" data-mode="list" onclick="setMode('list',this)">📋 Список</button>
-      <button class="ph-sidebar-btn" data-mode="outline" onclick="setMode('outline',this)">🗂 Блоки</button>
-    </div>
-
     <div class="ph-sidebar-block" id="story-picker-block" style="display:none">
       <div class="ph-sidebar-label">История</div>
       <div id="story-picker"></div>
@@ -72,16 +65,6 @@
       </div>
 
       <div class="ph-badge-grid" id="badge-grid"></div>
-    </div>
-
-    <!-- MODE 2: List -->
-    <div class="ph-mode-list-area" id="mode-list-area">
-      <div class="ph-list-view" id="list-view"></div>
-    </div>
-
-    <!-- MODE 3: Outline -->
-    <div class="ph-mode-outline-area" id="mode-outline-area">
-      <div class="ph-outline-view" id="outline-view"></div>
     </div>
 
   </div>
@@ -611,16 +594,6 @@
     updateSidebarVisibility();
   }
 
-  function setMode(mode, btn) {
-    activeMode = mode;
-    document.querySelectorAll('.ph-sidebar-btn[data-mode]').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('mode-card-area').classList.toggle('active', mode === 'card');
-    document.getElementById('mode-list-area').classList.toggle('active', mode === 'list');
-    document.getElementById('mode-outline-area').classList.toggle('active', mode === 'outline');
-    renderCurrentMode();
-  }
-
   function buildSectionTabs() {
     const container = document.getElementById('section-tabs');
     container.innerHTML = '';
@@ -709,9 +682,7 @@
   }
 
   function renderCurrentMode() {
-    if (activeMode === 'card') renderGrid();
-    else if (activeMode === 'list') renderList();
-    else if (activeMode === 'outline') renderOutline();
+    renderGrid();
   }
 
   /* ── Извлечь "вопрос" с бейджа (без раскрытия ответа) ── */
