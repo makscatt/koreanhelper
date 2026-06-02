@@ -20,6 +20,8 @@
   <div class="gal-viewer-backdrop" onclick="closeImage()"></div>
   <div class="gal-viewer-box" id="viewer-box">
     <button class="gal-viewer-close" onclick="closeImage()" aria-label="Закрыть">✕</button>
+    <button class="gal-nav gal-nav-prev" onclick="prevImage()" aria-label="Предыдущая">‹</button>
+    <button class="gal-nav gal-nav-next" onclick="nextImage()" aria-label="Следующая">›</button>
 
     <!-- Левая часть: картинка + указка-выделение -->
     <div class="gal-main">
@@ -76,6 +78,7 @@
 
   let inViewer = false;
   let currentPic = null;
+  let allPics = [];
   const IS_TEACHER_VIEW = {{ 'true' if not student_mode else 'false' }};
 
   /* ── BACK ── */
@@ -99,6 +102,7 @@
       galleryGrid.innerHTML = '<p class="gal-empty">Картинок пока нет</p>';
       return;
     }
+    allPics = data;
     data.forEach(pic => {
       const card = document.createElement('div');
       card.className = 'gal-card';
@@ -157,9 +161,23 @@
     if (window.speechSynthesis) window.speechSynthesis.cancel();
   }
 
-  /* ── ESC closes viewer ── */
+  /* ── Листание ── */
+  function stepImage(delta) {
+    if (!currentPic || allPics.length < 2) return;
+    const idx = allPics.indexOf(currentPic);
+    if (idx === -1) return;
+    openImage(allPics[(idx + delta + allPics.length) % allPics.length]);
+  }
+  function prevImage() { stepImage(-1); }
+  function nextImage() { stepImage(1); }
+
+  /* ── ESC closes viewer, стрелки листают ── */
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && inViewer) closeImage();
+    if (!inViewer) return;
+    if (e.key === 'Escape') { closeImage(); return; }
+    if (e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT')) return;
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prevImage(); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); nextImage(); }
   });
 
   /* ══════════════════════════════════════════
