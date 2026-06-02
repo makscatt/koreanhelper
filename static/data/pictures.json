@@ -68,5 +68,19 @@
     "image": "/static/data/images/reading_bed.png",
     "keywords": ["침대", "책", "읽다", "이불", "스탠드", "알람 시계", "커피", "밤"],
     "hint": "여자가 밤에 침대에 누워서 책을 읽고 있어요."
+  },
+  {
+    "id": "gallery_sunset",
+    "title": "Галерея с закатами (미술관)",
+    "image": "/static/data/images/gallery_sunset.png",
+    "keywords": ["미술관", "그림", "액자", "노을", "구름", "새", "자동차", "커플", "벤치", "조명"],
+    "hint": "미술관 벽에 노을 그림 네 점이 걸려 있어요."
+  },
+  {
+    "id": "gallery_museum",
+    "title": "Выставка картин (전시회)",
+    "image": "/static/data/images/gallery_museum.png",
+    "keywords": ["전시회", "그림", "사과", "집", "꽃", "자전거", "자전거를 타다", "벤치", "화분", "안내판"],
+    "hint": "전시회에 사과, 집, 꽃, 자전거 그림이 걸려 있어요."
   }
 ]
